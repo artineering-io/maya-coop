@@ -1,0 +1,38 @@
+/////////////////////////////////////////////////////////////////////////////////////
+//
+// @license:       MIT
+// @repository:    https://github.com/artineering-io/maya-coop
+// @summary:       Drag and drop plugin installer
+// @run:           Drag and drop install.mel file onto the viewport to add paths and
+//                 install dependencies
+//
+/////////////////////////////////////////////////////////////////////////////////////
+{ // avoid global namespace clashing
+
+  // add scripts path to PYTHONPATH
+  string $fileDir = `installScriptLocation`;
+  python ("import sys");
+  string $pyPaths[] = python ("sys.path");
+  int $times = stringArrayCount ($fileDir, $pyPaths);
+  string $scriptsDir = $fileDir + "scripts/";
+  if ( stringArrayCount ($scriptsDir, $pyPaths) == 0 ) {
+      //print "Adding current path to PYTHONPATH";
+      python ("sys.path.insert(0, '" + $scriptsDir + "')") ;
+  }
+
+  python ("import coopSetup");
+  python ("reload(coopSetup)");  // convenience to reload coopSetup upon change
+  python ("coopSetup.run('" + $fileDir + "')");
+
+  global proc string installScriptLocation () {
+      string $whatIs=`whatIs installScriptLocation`;
+      // $whatIs "Mel procedure found in: C:/Users/...."
+      string $fullPath=`substring $whatIs 25 999`;
+      string $buffer[];
+      int $numTok=`tokenize $fullPath "/" $buffer`;
+      int $numLetters=size($fullPath);
+      int $numLettersLastFolder=size($buffer[$numTok-1]);
+      string $scriptLocation=`substring $fullPath 1 ($numLetters-$numLettersLastFolder)`;
+      return $scriptLocation;
+  }
+}
