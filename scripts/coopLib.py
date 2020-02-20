@@ -433,7 +433,8 @@ def getShapes(objects, renderable=False, l=False, quiet=False):
     for obj in objs:
         potentialShape = []
         # check if its a mesh object
-        if cmds.objectType(obj) == "mesh":
+        objType = cmds.objectType(obj)
+        if objType == "mesh" or objType == "nurbsSurface":
             potentialShape = cmds.ls(obj, l=l)  # make an array
             # shapes.extend(cmds.ls(obj, l=l))  # there might be more objects with the same name
         else:
@@ -753,12 +754,33 @@ def getMaterials(objects):
     return materials
 
 
+def setMaterial(mat, objects):
+    """
+    Set material onto objects
+    Args:
+        mat (str): Name of material to set to objects
+        objects (list): List of objects that the material is assigned to
+    """
+    mat = u_stringify(mat)
+    shadingEngines = cleanShadingEngines(objects)
+    if shadingEngines:
+        for shadingEngine in shadingEngines:
+            cmds.connectAttr("{0}.outColor".format(mat), "{0}.surfaceShader".format(shadingEngine), f=True)
+    else:
+        # fallback to hypershade cmd
+        selection = cmds.ls(sl=True, l=True)
+        cmds.select(objects, r=True)
+        cmds.hyperShade(assign=mat)
+        cmds.select(selection, r=True)
+
+
 def cleanShadingEngines(objs, quiet=True):
     """
     Makes sure the shading engines are clean
     Args:
         objs (list): Objects to clean shading engines from
     """
+    shadingEngines = []
     shapes = getShapes(objs, l=True)
     for shape in shapes:
         shadingEngines = ListUtils.removeDuplicates(cmds.listConnections(shape, type="shadingEngine"))
@@ -780,7 +802,7 @@ def cleanShadingEngines(objs, quiet=True):
                             break
                         except RuntimeError:
                             logger.warning("Couldn't disconnect {0} from {1}".format(shape, dest))
-
+    return shadingEngines
 
 def getAssignedMeshes(materials, shapes=True, l=False):
     """
@@ -814,6 +836,7 @@ def setVertexColorSets(shapes, colorSets, value=[0.0, 0.0, 0.0, 0.0]):
         shapes (lst): Shapes to delete vertex color sets from
         colorSets (lst): Vertex color sets to delete
         value (list): List of values to set (default [0.0, 0.0, 0.0, 0.0])
+    Warning: Saving vertex colors using the Maya API doesn't save on references
     """
     # unit tests
     if isinstance(shapes, basestring):
@@ -842,6 +865,24 @@ def setVertexColorSets(shapes, colorSets, value=[0.0, 0.0, 0.0, 0.0]):
                 oVertexColorArray[vertex].a = value[3]
             fnMesh.setCurrentColorSetName(colorSet)
             fnMesh.setVertexColors(oVertexColorArray, vertexIndexArray)
+            # with face vertex color
+            """
+            # get mesh data
+            faceIndexArray = list()
+            localVertexIndexArray = list()
+            vertexColorArray = list()
+            emptyColor = om.MColor([0.0, 0.0, 0.0, 0.0])
+            itComponent = om.MItMeshFaceVertex(oShape)
+            while not itComponent.isDone():
+                #localVertexIndexArray.append(itComponent.faceVertexId())
+                localVertexIndexArray.append(itComponent.vertexId())
+                faceIndexArray.append(itComponent.faceId())
+                vertexColorArray.append(emptyColor)
+                itComponent.next()
+            # set color data=
+            fnMesh.setCurrentColorSetName(colorSet)
+            fnMesh.setFaceVertexColors(vertexColorArray, faceIndexArray, localVertexIndexArray)
+            """
             logger.info("Vertex color set {0} set for: {1}".format(colorSet, shape))
         deleteColorSetHistory(shape)
 
