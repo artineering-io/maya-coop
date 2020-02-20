@@ -11,7 +11,7 @@
 @run:           import coopQt as qt (suggested)
 """
 from __future__ import print_function
-import logging, time, threading
+import logging, time, threading, os
 import maya.mel as mel
 import maya.cmds as cmds
 import maya.OpenMayaUI as omUI
@@ -37,11 +37,8 @@ fontFooter = QtGui.QFont('MS Shell dlg 2', 8);
 # button.setStyleSheet("background-image: url(" + imagePath + "); border:solid black 1px;")
 # self.setStyleSheet("QLabel { color: rgb(50, 50, 50); font-size: 11px; background-color: rgba(188, 188, 188, 50); border: 1px solid rgba(188, 188, 188, 250); } QSpinBox { color: rgb(50, 50, 50); font-size: 11px; background-color: rgba(255, 188, 20, 50); }")
 
-PPI = 1
-if cmds.about(mac=True):
-    PPI = 1
-else:
-    PPI = cmds.mayaDpiSetting(systemDpi=True, q=True)/96.0
+
+PPI = cmds.mayaDpiSetting(realScaleValue=True, q=True)
 
 # WINDOW
 def getMayaWindow():
@@ -85,6 +82,22 @@ def deleteDock(name=''):
         cmds.deleteUI(name)
 
 
+def relativePath(path):
+    """
+    Returns the relative path, if any, compared to the project path
+    Args:
+        path (str): path of current file or directory
+    Returns:
+        relPath (str): relative path to project, if available (with forward slashes)
+    """
+    projectPath = os.path.abspath(cmds.workspace(q=True, rootDirectory=True))
+    newPath = os.path.abspath(path)
+    if projectPath in newPath:
+        newPath = newPath[newPath.find(projectPath)+len(projectPath):]
+        return newPath.replace(os.sep, '/')
+    return path
+
+
 class MayaUI(QtWidgets.QDialog):
     """
     DEPRECATED - USE CoopMayaUI instead
@@ -110,10 +123,13 @@ class CoopMayaUI(QtWidgets.QDialog):
         self.setWindowTitle(title)
         self.setObjectName(title)
         self.setWindowFlags(QtCore.Qt.Tool)  # always on top (multiplatform)
+        self.dpiS = cmds.mayaDpiSetting(realScaleValue=True, q=True)
+        """
         if cmds.about(mac=True):
             self.dpiS = 1
         else:
             self.dpiS = cmds.mayaDpiSetting(systemDpi=True, q=True)/96.0
+        """
 
         # check if the ui is dockable
         if cmds.dockControl(title, query=True, exists=True):
@@ -178,51 +194,6 @@ def refreshUI(windowTitle):
         logger.debug("{0} window doesn't exist".format(windowTitle))
 
 
-def createMayaWindow(title, rebuild=False, brand='studio.coop', tooltip='introduction to the UI'):
-    """
-    Creates a default Maya window
-    Args:
-        title (str): The title of the Maya window
-        rebuild (bool): If the window is destroyed and rebuild with each call
-        brand (str): The brand of your company
-        tooltip (str): Help tooltip for the UI
-
-    Returns:
-        window (QDialog): the QDialog instance
-        existed (bool): if the window existed before or not
-    """
-    if cmds.window(title, exists=True):
-        if not rebuild:
-            cmds.showWindow(title)
-            return None, True
-        cmds.deleteUI(title, wnd=True)  # delete old window
-    mWindow = MayaUI()
-    mWindow.setWindowTitle(title)
-    mWindow.setObjectName(title)
-    mWindow.setWindowFlags(QtCore.Qt.Tool)  # always on top (multiplatform)
-
-    if cmds.about(mac=True):
-        mWindow.dpiS = 1
-    else:
-        mWindow.dpiS = cmds.mayaDpiSetting(systemDpi=True, q=True)/96.0
-
-    # Default UI elements (keeping it simple)
-    mWindow.header = QtWidgets.QLabel(title)
-    mWindow.header.setAlignment(QtCore.Qt.AlignHCenter)
-    mWindow.header.setFont(fontHeader)
-    mWindow.header.setContentsMargins(10, 10, 10, 10)
-
-    mWindow.brand = QtWidgets.QLabel(brand)
-    mWindow.brand.setToolTip(tooltip)
-    mWindow.brand.setStyleSheet("background-color: rgb(40,40,40); color: rgb(180,180,180); border:solid black 1px")
-    mWindow.brand.setAlignment(QtCore.Qt.AlignHCenter)
-    mWindow.brand.setGeometry(10, 10, 20, 20)
-    mWindow.brand.setFont(fontFooter)
-
-    logger.debug("Window successfully created")
-    return mWindow, False
-
-
 def getCoopIconPath():
     """
     Get the coop icon path
@@ -263,8 +234,9 @@ class IconButton(QtWidgets.QLabel):
     Icon Button class object
     """
     clicked = QtCore.Signal(str)
+    active = False
 
-    def __init__(self, image, tooltip='', size=[25, 25], parent=None, bColor=(50, 50, 50), hColor=(200, 200, 200)):
+    def __init__(self, image, tooltip='', size=[25, 25], parent=None, bColor=(68, 68, 68), hColor=(200, 200, 200)):
         """
         Icon Button constructor
         Args:
@@ -278,15 +250,33 @@ class IconButton(QtWidgets.QLabel):
         self.setScaledContents(True)
         self.setToolTip(tooltip)
         self.setPixmap(image)
-        styleSheet = "QLabel{background-color: rgb" + "{0}".format(bColor) + \
-                     ";} QLabel:hover{background-color: rgb" + "{0}".format(hColor) + ";}"
-        self.setStyleSheet(styleSheet)
+        self.bColor = bColor
+        self.hColor = hColor
+        self.setColors()
 
     def mouseReleaseEvent(self, event):
+        self.toggle()
         self.clicked.emit("emit the signal")
 
     def changeIcon(self, image):
         self.setPixmap(image)
+
+    def toggle(self):
+        if not self.active:
+            self.active = True
+        else:
+            self.active = False
+
+    def setColors(self):
+        styleSheet = "QLabel{background-color: rgb" + "{0}".format(self.bColor) + \
+                     ";} QLabel:hover{background-color: rgb" + "{0}".format(self.hColor) + ";}"
+        self.setStyleSheet(styleSheet)
+
+    def setActiveColors(self):
+        """ Sets an active background color """
+        styleSheet = "QLabel{background-color: rgb" + "{0}".format(self.hColor) + \
+                     ";} QLabel:hover{background-color: rgb" + "{0}".format(self.hColor) + ";}"
+        self.setStyleSheet(styleSheet)
 
 
 class HLine(QtWidgets.QFrame):
@@ -350,6 +340,194 @@ class RelativeSlider(QtWidgets.QSlider):
         self.blockSignals(False)
 
 
+class LabeledFieldSliderGroup(QtWidgets.QWidget):
+    """
+    Create a labeled field slider group
+    """
+    valueChanged = QtCore.Signal()  # value changed signal of custom widget
+
+    def __init__(self, label="", value=0.0, min=0.0, max=1.0):
+        super(LabeledFieldSliderGroup, self).__init__()
+        self.dpiS = cmds.mayaDpiSetting(realScaleValue=True, q=True)
+
+        # create layout
+        self.layout = QtWidgets.QHBoxLayout(self)
+        self.layout.setContentsMargins(0, 0, 0, 0)
+
+        # create label
+        l = QtWidgets.QLabel(label)
+        l.setMinimumWidth(140 * self.dpiS)
+        l.setAlignment(QtCore.Qt.AlignRight | QtCore.Qt.AlignVCenter)
+        self.layout.addWidget(l)
+
+        # create field
+        self.field = QtWidgets.QDoubleSpinBox()
+        self.field.setDecimals(3)
+        self.field.setButtonSymbols(QtWidgets.QAbstractSpinBox.NoButtons)
+        self.field.setFixedWidth(60 * self.dpiS)
+        self.field.setStyleSheet("border: 0; border-radius: {0}px".format(2 * self.dpiS))
+        self.field.setAlignment(QtCore.Qt.AlignVCenter)
+        self.field.setMinimum(-999999999)
+        self.field.setMaximum(999999999)
+        self.field.setSingleStep(0.01 * pow(10, len(str(int(value)))))  # step depends on how many digits value has
+        self.field.setObjectName("{0} field".format(label))
+        self.layout.addWidget(self.field)
+
+        # create slider
+        self.slider = QtWidgets.QSlider(QtCore.Qt.Horizontal)
+        self.slider.installEventFilter(self)
+        self.slider.setMinimumWidth(200 * self.dpiS)
+        self.slider.setObjectName("{0} slider".format(label))
+        self.slider.setSingleStep(10 * pow(10, len(str(int(value)))))  # step depends on how many digits value has
+        self.slider.setPageStep(10 * pow(10, len(str(int(value)))))  # step depends on how many digits value has
+        self.layout.addWidget(self.slider)
+
+        # save data variables
+        self.setRange(min, max)
+
+        # set values
+        self.field.setValue(value)
+        self.slider.setValue(value * 1000)  # sliders only operate on integers
+        self.internalValue = value
+
+        # create connections
+        self.slider.valueChanged.connect(self.updateValue)
+        self.field.valueChanged.connect(self.updateValue)
+
+
+    def setRange(self, min='', max=''):
+        """
+        Sets the range of the slider to min and max
+        Args:
+            min (float): Minimum value of slider
+            max (float): Maximum value of slider
+        """
+        import numbers
+        if isinstance(min, numbers.Number):
+            if isinstance(max, numbers.Number):
+                if min < max:
+                    self.min = min
+                else:
+                    logger.warning("Minimum value is not less than maximum value")
+            else:
+                if min < self.max:
+                    self.min = min
+                else:
+                    logger.warning("Minimum value is not less than maximum value")
+            self.slider.setMinimum(self.min * 1000)
+        if isinstance(max, numbers.Number):
+            if max > self.min:
+                self.max = max
+            else:
+                logger.warning("Maximum value is not more than minimum value")
+            self.slider.setMaximum(self.max * 1000)
+
+    def updateValue(self):
+        """ Update and synchronize the value between the spinbox and slider """
+        if self.sender() == self.slider:
+            value = self.sender().value() / 1000.0
+            # print("{0} with value: {1}".format(self.sender().objectName(), value))
+            self.field.setValue(value)
+        if self.sender() == self.field:
+            value = self.sender().value()
+            # print("{0} with value: {1}".format(self.sender().objectName(), value))
+            self.slider.blockSignals(True)
+            # check if slider needs to be changed
+            if value < self.min:
+                self.setRange(value, self.max)
+            if value > self.max:
+                self.setRange(self.min, value)
+            # set value
+            self.slider.setValue(value * 1000)
+            self.slider.blockSignals(False)
+        self.internalValue = value
+        self.valueChanged.emit()
+
+    def value(self):
+        """
+        Get the internal value of the LabeledFieldSliderGroup
+        Returns:
+            float: the shared value between the spinbox and the slider
+        """
+        return self.internalValue
+
+    def eventFilter(self, object, event):
+        """ Event filter to ignore mouse wheel on slider """
+        if event.type() == QtCore.QEvent.Wheel and object is self.slider:
+            return True
+        else:
+            return False
+
+
+class FileBrowserGrp(QtWidgets.QWidget):
+    """
+    Create a line edit file browser group
+    """
+    valueChanged = QtCore.Signal()  # value changed signal of custom widget
+
+    def __init__(self, filePath='', placeholder='', button='...', startDir=''):
+        super(FileBrowserGrp, self).__init__()
+        self.dpiS = cmds.mayaDpiSetting(realScaleValue=True, q=True)
+        self.internalValue = filePath
+        self.startDir = startDir
+        if not startDir:
+            self.startDir = cmds.workspace(q=True, rootDirectory=True)
+
+        # create layout
+        self.layout = QtWidgets.QHBoxLayout(self)
+        self.layout.setContentsMargins(0, 0, 0, 0)
+        self.layout.setSpacing(2 * self.dpiS)
+
+        # create line edit
+        self.lineEdit = QtWidgets.QLineEdit(filePath)
+        self.lineEdit.setPlaceholderText(placeholder)
+        self.lineEdit.returnPressed.connect(self.updatePath)
+        sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Preferred, QtWidgets.QSizePolicy.Preferred)
+        sizePolicy.setHorizontalStretch(1)
+        self.lineEdit.setSizePolicy(sizePolicy)
+
+        self.layout.addWidget(self.lineEdit)
+        self.layout.addStretch()
+
+        # create browse button
+        pushButton = QtWidgets.QPushButton(button)
+        pushButton.setMaximumWidth(len(str(button))*10*self.dpiS)
+        pushButton.released.connect(self.browseDialog)
+        self.layout.addWidget(pushButton)
+        self.layout.addStretch()
+
+    def browseDialog(self):
+        """ Runs when the file browse button is released """
+        startDir = self.lineEdit.text()
+        if not startDir:
+            # get project filepath
+            startDir = self.startDir
+        elif startDir[0] == '/':
+            # relative path, make absolute
+            startDir = os.path.join(self.startDir, startDir[1:])
+        saveDir = cmds.fileDialog2(dir=startDir, fileMode=1, cap="Select texture file:", dialogStyle=2)
+        if not saveDir:
+            cmds.error("Filename not specified")
+            return
+        saveDir = relativePath(saveDir[0])
+        self.internalValue = saveDir
+        self.lineEdit.setText(saveDir)
+        self.valueChanged.emit()
+
+    def updatePath(self):
+        """ Runs when the line edit field is updated """
+        self.internalValue = self.lineEdit.text()
+        self.valueChanged.emit()
+
+    def value(self):
+        """
+        Get the internal value of the FileBrowserGrp
+        Returns:
+            str: the current path to a file
+        """
+        return self.internalValue
+
+
 class WidgetGroup(QtWidgets.QWidget):
     """
     Simple widget group class object with embedded layout and batch widget assignment
@@ -369,8 +547,7 @@ class WidgetGroup(QtWidgets.QWidget):
         self.groupLayout = qLayout
         self.setLayout(self.groupLayout)
         self.groupLayout.setContentsMargins(margins, margins, margins, margins)
-        for widget in qWidgets:
-            self.groupLayout.addWidget(widget)
+        self.addWidgets(qWidgets)
 
     def addWidget(self, widget):
         """
@@ -397,4 +574,53 @@ class WidgetGroup(QtWidgets.QWidget):
             widgets (lst): List of QWidgets to be added
         """
         for widget in widgets:
-            self.groupLayout.addWidget(widget)
+            if widget == "stretch":
+                self.groupLayout.addStretch()
+            else:
+                self.groupLayout.addWidget(widget)
+
+
+class CollapsibleGrp(QtWidgets.QWidget):
+    """
+    Create a collapsible group similar to what you can find in the attribute editor
+    """
+    def __init__(self, title=''):
+        super(CollapsibleGrp, self).__init__()
+        self.dpiS = cmds.mayaDpiSetting(realScaleValue=True, q=True)
+        self.title = title
+
+        # create layout
+        self.layout = QtWidgets.QVBoxLayout(self)
+        self.layout.setContentsMargins(0, 0, 0, 0)
+        self.layout.setSpacing(0)
+        # self.layout.setSpacing(2 * self.dpiS)
+
+        # create toggle button
+        self.toggleButton = QtWidgets.QPushButton(u'  \u25BC    ' + self.title)
+        self.toggleButton.setObjectName("toggler")
+        self.setStyleSheet('QPushButton#toggler {'
+                           'text-align: left;'
+                           'font-weight: bold;'
+                           'background-color: #5d5d5d;'
+                           'padding: 0.3em;'
+                           'border-radius: 0.2em;}')
+        self.toggleButton.released.connect(self.toggleContent)
+        self.layout.addWidget(self.toggleButton)
+
+        # content widget
+        self.content = QtWidgets.QGroupBox()
+        self.contentLayout = QtWidgets.QVBoxLayout(self.content)
+        self.layout.addWidget(self.content)
+
+    def addWidget(self, widget):
+        """ Adds a widget to the content of the collapsible group """
+        self.contentLayout.addWidget(widget)
+
+    def toggleContent(self):
+        """ Toggles the content of the collapsible group """
+        if self.content.isVisible():
+            self.content.setVisible(False)
+            self.toggleButton.setText(u'  \u25B6    ' + self.title)
+        else:
+            self.content.setVisible(True)
+            self.toggleButton.setText(u'  \u25BC    ' + self.title)
