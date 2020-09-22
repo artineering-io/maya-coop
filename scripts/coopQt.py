@@ -11,12 +11,25 @@
 @run:           import coopQt as qt (suggested)
 """
 from __future__ import print_function
+from __future__ import unicode_literals
 import logging, time, threading, os
 import maya.mel as mel
 import maya.cmds as cmds
 import maya.OpenMayaUI as omUI
 from PySide2 import QtCore, QtGui, QtWidgets
 from shiboken2 import wrapInstance
+# Qt Web stuff
+from PySide2.QtCore import QUrl
+try:
+    from PySide2.QtWebEngineWidgets import QWebEngineView, QWebEnginePage  # Doesn't work with Maya 2017
+except ImportError:
+    from PySide2.QtWebKitWidgets import QWebView as QWebEngineView
+
+
+try:
+    basestring  # Python 2
+except NameError:
+    basestring = (str,)  # Python 3
 
 try:
     long        # Python 2
@@ -50,6 +63,12 @@ def getMayaWindow():
     ptr = omUI.MQtUtil.mainWindow()  # pointer to main window
     return wrapInstance(long(ptr), QtWidgets.QWidget)  # wrapper
 
+def isWindowMinimized(window):
+    """ Returns True if window is minimized """
+    if cmds.window(window, exists=True, query=True):
+        ptr = omUI.MQtUtil.findWindow(window)  # pointer to window
+        qWindow = wrapInstance(long(ptr), QtWidgets.QWidget)  # wrapper
+        return qWindow.windowState() == QtCore.Qt.WindowMinimized
 
 def getDock(name=''):
     """
@@ -111,6 +130,15 @@ class CoopMayaUI(QtWidgets.QDialog):
 
     def __init__(self, title, dock=False, rebuild=False, brand="studio.coop", tooltip="", show=True, parent=getMayaWindow()):
 
+        # check if parent is given, otherwise, get Maya
+        if isinstance(parent, basestring):
+            if cmds.window(parent, exists=True, query=True):
+                ptr = omUI.MQtUtil.findWindow(parent)
+                parent = wrapInstance(long(ptr), QtWidgets.QWidget)  # wrapper
+            else:
+                cmds.warning("No window with name {} was found, parenting to Maya window")
+                parent = getMayaWindow()
+
         super(CoopMayaUI, self).__init__(parent)
         # check if window exists
         if cmds.window(title, exists=True):
@@ -155,8 +183,9 @@ class CoopMayaUI(QtWidgets.QDialog):
         self.brand = QtWidgets.QLabel(brand)
         self.brand.setAlignment(QtCore.Qt.AlignHCenter)
         self.brand.setToolTip(tooltip)
-        self.brand.setStyleSheet("background-color: rgb(40,40,40); color: rgb(180,180,180); border:solid black 1px")
+        self.brand.setStyleSheet("background-color: rgb(40,40,40); color: rgb(180,180,180); border:solid black 1px;")
         self.brand.setFont(fontFooter)
+        self.brand.setFixedHeight(15)
 
         self.buildUI()
         self.populateUI()
@@ -173,7 +202,7 @@ class CoopMayaUI(QtWidgets.QDialog):
         pass
 
 
-def refreshUI(windowTitle):
+def refreshUI(windowTitle, quiet=True):
     """
     Refresh the UI elements by deleting all widgets and rebuilding it
     Args:
@@ -183,15 +212,25 @@ def refreshUI(windowTitle):
         ptr = omUI.MQtUtil.findWindow(windowTitle)  # pointer to main window
         window = wrapInstance(long(ptr), QtWidgets.QWidget)  # wrapper
         mainLayout = window.layout()
-        # delete all widgets within main layout
-        index = mainLayout.count() - 1
-        while index >= 0:
-            widget = mainLayout.itemAt(index).widget()
-            widget.setParent(None)
-            index -= 1
+        clearLayout(mainLayout)  # delete all widgets within main layout
         window.window().buildUI()
     else:
-        logger.debug("{0} window doesn't exist".format(windowTitle))
+        if not quiet:
+            logger.debug("{0} window doesn't exist".format(windowTitle))
+
+
+def clearLayout(layout):
+    """
+    Delete all widgets within a layout
+    Args:
+        layout (str): layout to clear
+    """
+    # delete all widgets within main layout
+    index = layout.count() - 1
+    while index >= 0:
+        widget = layout.itemAt(index).widget()
+        widget.setParent(None)
+        index -= 1
 
 
 def getCoopIconPath():
@@ -315,6 +354,7 @@ class RelativeSlider(QtWidgets.QSlider):
         super(RelativeSlider, self).__init__(direction)
         self.prevValue = 0
         self.sliderReleased.connect(self.release)
+        self.installEventFilter(self)
 
     def release(self):
         self.prevValue = 0
@@ -338,6 +378,13 @@ class RelativeSlider(QtWidgets.QSlider):
         else:
             self.setValue(0)
         self.blockSignals(False)
+
+    def eventFilter(self, object, event):
+        """ Event filter to ignore mouse wheel on slider """
+        if event.type() == QtCore.QEvent.Wheel:
+            return True  # blocking the event
+        else:
+            return False
 
 
 class LabeledFieldSliderGroup(QtWidgets.QWidget):
@@ -624,3 +671,19 @@ class CollapsibleGrp(QtWidgets.QWidget):
         else:
             self.content.setVisible(True)
             self.toggleButton.setText(u'  \u25BC    ' + self.title)
+
+
+class SplashView(QWebEngineView):
+    """ SplashView is a QWebEngineView that opens links in a browser instead of in the QWebEngineView"""
+    def __init__(self, *args, **kwargs):
+        QWebEngineView.__init__(self, *args, **kwargs)
+        self.setPage(WebEnginePage(self))
+
+
+class WebEnginePage(QWebEnginePage):
+    def acceptNavigationRequest(self, url,  _type, isMainFrame):
+        if _type == QWebEnginePage.NavigationTypeLinkClicked:
+            print("Opening: {}".format(url.toString()))
+            QtGui.QDesktopServices.openUrl(url)
+            return False
+        return True

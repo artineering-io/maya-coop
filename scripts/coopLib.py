@@ -11,6 +11,7 @@
 @run:           import coopLib as lib (suggested)
 """
 from __future__ import print_function
+from __future__ import unicode_literals
 import os, sys, subprocess, shutil, re, logging, json, math, traceback
 from functools import wraps
 import maya.mel as mel
@@ -204,7 +205,7 @@ def getLibDir():
     Returns:
         directory (str): the directory where the coopLib is found at
     """
-    return os.path.dirname(os.path.realpath(__file__))
+    return Path(__file__).parent().path
 
 
 def createDirectory(directory):
@@ -257,12 +258,9 @@ def restartMaya(brute=True):
         brute (bool): True if the Maya process should stop, False if Maya should be exited normally
     """
     if not brute:
-        mayaPyDir = os.path.join(os.path.dirname(sys.executable), "mayapy")
-        if cmds.about(nt=True, q=True):
-            mayaPyDir += ".exe"
-        scriptDir = os.path.join(os.path.dirname(os.path.realpath(__file__)), "coopRestart.py")
-        print(scriptDir)
-        subprocess.Popen([mayaPyDir, scriptDir])
+        mayaPyDir = Path(sys.executable).parent().child("mayapy.exe")
+        scriptDir = Path(__file__).parent().child("coopRestart.py")
+        subprocess.Popen([mayaPyDir.path, scriptDir.path])
         cmds.quit(force=True)
     else:
         os.execl(sys.executable, sys.executable, *sys.argv)
@@ -463,11 +461,14 @@ def isRenderable(obj, quiet=True):
         (bool) if its renderable or not
     """
     # unit test
+    # make sure we are not working with components/attributes
+    obj = cmds.ls(obj, objectsOnly=True, l=True)
     if isinstance(obj, list) or isinstance(obj, tuple):
         if len(obj) == 1:
             obj = obj[0]
         else:
             logger.error("isRenderable - {0} cannot be checked".format(obj))
+            return False
     if not cmds.objExists(obj):
         if not quiet:
             logger.error("{0} does not exist, skipping it".format(obj))
@@ -726,13 +727,19 @@ def getMaterials(objects):
     """
     Get materials of objects
     Args:
-        objects (list): List of objects to get the materials from
+        objects (list): List of objects/components to get the materials from
     Returns:
         List of materials
     """
     materials = cmds.ls(objects, l=True, mat=True)
     transforms = cmds.ls(objects, l=True, et="transform")
     shapes = cmds.ls(objects, l=True, s=True, noIntermediate=True)
+
+    if not materials and not transforms and not shapes:
+        # are these components?
+        objs = cmds.ls(objects, objectsOnly=True)
+        if objs:
+            return getMaterialOfComponents(objects)
 
     # get shapes from transforms
     if transforms:
@@ -751,6 +758,31 @@ def getMaterials(objects):
                 cmds.connectAttr("{0}.outColor".format(defaultMat), "{0}.surfaceShader".format(se), f=True)
             ListUtils.update(materials, mats)
 
+    return materials
+
+
+def getMaterialOfComponents(components):
+    """
+    Get materials of components
+    Args:
+        components (list): List of components to get materials from
+    Returns:
+        List of materials
+    """
+    materials = []
+    for c in components:
+        obj = cmds.ls(c, objectsOnly=True)
+        shadingEngines = ListUtils.removeDuplicates(cmds.listConnections(obj, type="shadingEngine"))
+        for se in shadingEngines:
+            s = cmds.sets(se, q=True)
+            if c in s:
+                materials.extend(cmds.ls(cmds.listConnections(se), mat=True))
+    if not materials:
+        materials = getMaterials(cmds.ls(components, objectsOnly=True))  # try getting material of object
+        if not materials:
+            displayWarning("No materials on {}, assigning default Lambert material".format(components))
+            cmds.hyperShade(assign="lambert1")
+            return cmds.ls(sl=True)
     return materials
 
 
@@ -1206,6 +1238,12 @@ def getMObject(node, getType=False):
         return oNode.apiTypeStr
 
 
+def scheduleRefreshAllViews():
+    """ Schedules a refresh of all views """
+    import maya.OpenMayaUI as omUI
+    omUI.M3dView.scheduleRefreshAllViews()
+
+
 def printInfo(info):
     """
     Prints the information statement in the command response (to the right of the command line)
@@ -1213,6 +1251,18 @@ def printInfo(info):
         info (str): Information to be displayed
     """
     om.MGlobal.displayInfo(info)
+
+def displayInfo(info):
+    """
+    Displays the information on the viewport
+    Prints the information statement in the command response (to the right of the command line)
+    Args:
+        info (str): Information to be displayed
+    """
+    if mayaVersion() > 2018:
+        m = '<span style="color:#82C99A;">{}</span>'.format(info)
+        cmds.inViewMessage(msg=m, pos="midCenter", fade=True)
+    printInfo(info)
 
 
 def printWarning(warning):
@@ -1223,6 +1273,18 @@ def printWarning(warning):
     """
     om.MGlobal.displayWarning(warning)
 
+def displayWarning(warning):
+    """
+    Displays a warning on the viewport
+    Prints the warning statement in the command response (to the right of the command line)
+    Args:
+        warning (str): Warning to be displayed
+    """
+    if mayaVersion() > 2018:
+        m = '<span style="color:#F4FA58;">Warning: </span><span style="color:#DDD">{}</span>'.format(warning)
+        cmds.inViewMessage(msg=m, pos="midCenter", fade=True)
+    printWarning(warning)
+
 
 def printError(error):
     """
@@ -1231,6 +1293,18 @@ def printError(error):
         error (str): Error to be displayed
     """
     om.MGlobal.displayError(error)
+
+def displayError(error):
+    """
+    Displays an error on the viewport
+    Prints the error statement in the command response (to the right of the command line)
+    Args:
+        error (str): Error to be displayed
+    """
+    if mayaVersion() > 2018:
+        m = '<span style="color:#F05A5A;">Error: </span><span style="color:#DDD">{}</span>'.format(error)
+        cmds.inViewMessage(msg=m, pos="midCenterBot", fade=True)
+    printError(error)
 
 
 #                _   _
@@ -1241,7 +1315,12 @@ def printError(error):
 #   |_|
 class Path(object):
     def __init__(self, path):
-        self.path = path
+        if isinstance(path, str):
+            self.path = path.decode(sys.getfilesystemencoding())
+        elif isinstance(path, unicode):
+            self.path = path
+        else:
+            printError("{} is not a string".format(path))
 
     def parent(self):
         """
