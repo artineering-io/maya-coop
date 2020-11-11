@@ -137,7 +137,7 @@ class ListUtils(object):
         """
         Adds object if it didn't exist before
         Args:
-            obj (unicode): object to be added
+            obj (str): object to be added
         """
         if obj not in objList:
             objList.append(obj)
@@ -193,7 +193,7 @@ def getEnvDir():
     """
     Gets the environment directory
     Returns:
-        directory (unicode): the directory of the Maya.env file
+        directory (str): the directory of the Maya.env file
     """
     envDir = os.path.abspath(cmds.about(env=True, q=True))
     return os.path.dirname(envDir)
@@ -203,7 +203,7 @@ def getLibDir():
     """
     Gets the coop library directory
     Returns:
-        directory (unicode): the directory where the coopLib is found at
+        directory (str): the directory where the coopLib is found at
     """
     return Path(__file__).parent().path
 
@@ -212,7 +212,7 @@ def createDirectory(directory):
     """
     Creates the given directory if it doesn't exist already
     Args:
-        directory (unicode): The directory to create
+        directory (str): The directory to create
     """
     if directory:
         if not os.path.exists(directory):
@@ -225,7 +225,7 @@ def openUrl(url):
     """
     Opens the url in the default browser
     Args:
-        url (unicode): The URL to open
+        url (str): The URL to open
     """
     import webbrowser
     webbrowser.open(url, new=2, autoraise=True)
@@ -287,7 +287,7 @@ def createEmptyNode(inputName):
     """
     Creates a completely empty node
     Args:
-         inputName (unicode): Name of the new empty node
+         inputName (str): Name of the new empty node
     """
     cmds.select(cl=True)
     cmds.group(em=True, name=inputName)
@@ -319,7 +319,7 @@ def getActiveModelPanel():
     """
     Get the active model editor panel
     Returns:
-        modelPanel name (unicode)
+        modelPanel name (str)
     """
     activePanel = cmds.getPanel(wf=True)
     if cmds.getPanel(typeOf=activePanel) == 'modelPanel':
@@ -331,19 +331,46 @@ def getActiveModelPanel():
 def detachShelf():
     """
     Detaches the current shelves
-    IN PROGRESS
     """
     shelfTopLevel = mel.eval('$tempMelVar=$gShelfTopLevel')
     shelfName = cmds.shelfTabLayout(shelfTopLevel, st=True, q=True)
     shelfPaths = os.path.abspath(cmds.internalVar(ush=True)).split(';')
     shelfFile = "shelf_{0}.mel".format(shelfName)
 
+    # find path of shelf
     shelfFilePath = ""
     for shelfPath in shelfPaths:
         files = os.listdir(shelfPath)
         if shelfFile in files:
             shelfFilePath = os.path.join(shelfPath, shelfFile)
-    print(shelfFilePath)
+    if not shelfFilePath:
+        displayError("Can't detach shelf, try closing Maya with the shelf open and try again")
+        return
+
+    # read mel shelf file
+    with open(shelfFilePath, 'r') as file:
+        buttons = file.read()
+    # modify parsed mel
+    buttons = buttons.split(';\n')[3:]
+    buttons[-1] = buttons[-1][:buttons[-1].rindex("}")]
+
+    # check if window doesn't already exist
+    windowTitle = "{} popup shelf".format(shelfName)
+    windowName = "{}_popup_shelf".format(shelfName)
+    if cmds.window(windowName, exists=True):
+        cmds.showWindow(windowName)
+        return
+
+    # make a window, give it a layout, then make a model editor
+    window = cmds.window(windowTitle, w=800, h=50)
+    cmds.shelfLayout(spa=5)
+    for button in buttons:
+        melCommand = "{};".format(button)
+        mel.eval(melCommand)
+    cmds.setParent('..')
+
+    # show window
+    cmds.showWindow(window)
 
 
 def deleteShelves(shelvesDict=None, restart=True):
@@ -455,7 +482,7 @@ def isRenderable(obj, quiet=True):
     """
     Checks if object is renderable
     Args:
-        obj (unicode): Name of object to verify
+        obj (str): Name of object to verify
         quiet (bool): If the function should keep quiet (default=True)
     Returns:
         (bool) if its renderable or not
@@ -518,7 +545,7 @@ def getTransform(node, fullPath=False):
     """
     Get transform node of object
     Args:
-        node (unicode): Name of node
+        node (str): Name of node
         fullPath (bool): If full path or not
     Returns:
         Name of transform node
@@ -534,7 +561,7 @@ def changeAttributes(attributes, value):
     Batch change attributes of selected objects:
     e.g. lib.changeAttributes(['jointOrientX', 'jointOrientY', 'jointOrientZ'], 0)
     Args:
-        attributes (list): List of attributes (unicode)
+        attributes (list): List of attributes (str)
         value: Value to set into attributes
     """
     selected = cmds.ls(sl=True)
@@ -552,7 +579,7 @@ def copyAttributes(attributes):
     Batch copy attributes of first selected object to the rest of selected objects:
     e.g. lib.copyAttributes(['jointOrientX', 'jointOrientY', 'jointOrientZ'])
     Args:
-        attributes (list): List of attributes (unicode)
+        attributes (list): List of attributes (str)
     """
     selected = cmds.ls(sl=True)
     if selected:
@@ -572,8 +599,8 @@ def setAttr(obj, attr, value, silent=False):
     """
     Generic setAttr convenience function which changes the Maya command depending on the data type
     Args:
-        obj (unicode): node
-        attr (unicode): attribute
+        obj (str): node
+        attr (str): attribute
         value (any): the value to set
         silent (bool): if the function is silent when errors occur
     """
@@ -607,8 +634,8 @@ def getNextFreeMultiIndex(node, attr, idx=0):
     """
     Find the next unconnected multi index starting at the passed index
     Args:
-        node (unicode): node to search in
-        attr (unicode): attribute to search in
+        node (str): node to search in
+        attr (str): attribute to search in
         idx (int): starting index to search from
     Returns:
         The next free index
@@ -625,8 +652,8 @@ def getNextFreeMultiIndexConsideringChildren(node, attr, idx=0):
     """
     Find the next unconnected multi index, considering children attributes, starting at the passed index
     Args:
-        node (unicode): node to search in
-        attr (unicode): attribute to search in
+        node (str): node to search in
+        attr (str): attribute to search in
         idx (int): starting index to search from
     Returns:
         The next free index
@@ -651,8 +678,8 @@ def distanceBetween(obj1, obj2):
     """
     Distance between objects
     Args:
-        obj1 (unicode): object 1
-        obj2 (unicode): object 2
+        obj1 (str): object 1
+        obj2 (str): object 2
 
     Returns:
         Distance between the objects (in world space)
@@ -667,8 +694,8 @@ def snap(source='', targets=[], type="translation"):
     Snap targets objects to source object
     If not specified, the first selected object is considered as source, the rest as targets
     Args:
-        source (unicode): Source transform name
-        targets (list): List of target transform names (unicode)
+        source (str): Source transform name
+        targets (list): List of target transform names (str)
         type: Either "translation" (default), "rotation" or "position" (translation + rotation)
     Note:
         Targets should not have their transformations frozen
@@ -790,7 +817,7 @@ def setMaterial(mat, objects):
     """
     Set material onto objects
     Args:
-        mat (unicode): Name of material to set to objects
+        mat (str): Name of material to set to objects
         objects (list): List of objects that the material is assigned to
     """
     mat = u_stringify(mat)
@@ -840,7 +867,7 @@ def getAssignedMeshes(materials, shapes=True, l=False):
     """
     Get the assigned meshes (shapes) out of a material
     Args:
-        material (unicode): Material name to get meshes from
+        material (str): Material name to get meshes from
         shapes (bool): Return shapes or transform node names [Defailt=True]
     Returns:
         List of meshes
@@ -1225,7 +1252,7 @@ def getMObject(node, getType=False):
     """
     Gets mObject of a node (Python API 2.0)
     Args:
-        node (unicode): name of node
+        node (str): name of node
     Returns:
         Node of the object
     """
@@ -1248,7 +1275,7 @@ def printInfo(info):
     """
     Prints the information statement in the command response (to the right of the command line)
     Args:
-        info (unicode): Information to be displayed
+        info (str): Information to be displayed
     """
     om.MGlobal.displayInfo(info)
 
@@ -1257,7 +1284,7 @@ def displayInfo(info):
     Displays the information on the viewport
     Prints the information statement in the command response (to the right of the command line)
     Args:
-        info (unicode): Information to be displayed
+        info (str): Information to be displayed
     """
     if mayaVersion() > 2018:
         m = '<span style="color:#82C99A;">{}</span>'.format(info)
@@ -1269,7 +1296,7 @@ def printWarning(warning):
     """
     Prints the warning statement in the command response (to the right of the command line)
     Args:
-        warning (unicode): Warning to be displayed
+        warning (str): Warning to be displayed
     """
     om.MGlobal.displayWarning(warning)
 
@@ -1278,7 +1305,7 @@ def displayWarning(warning):
     Displays a warning on the viewport
     Prints the warning statement in the command response (to the right of the command line)
     Args:
-        warning (unicode): Warning to be displayed
+        warning (str): Warning to be displayed
     """
     if mayaVersion() > 2018:
         m = '<span style="color:#F4FA58;">Warning: </span><span style="color:#DDD">{}</span>'.format(warning)
@@ -1290,7 +1317,7 @@ def printError(error):
     """
     Prints the error statement in the command response (to the right of the command line)
     Args:
-        error (unicode): Error to be displayed
+        error (str): Error to be displayed
     """
     om.MGlobal.displayError(error)
 
@@ -1299,7 +1326,7 @@ def displayError(error):
     Displays an error on the viewport
     Prints the error statement in the command response (to the right of the command line)
     Args:
-        error (unicode): Error to be displayed
+        error (str): Error to be displayed
     """
     if mayaVersion() > 2018:
         m = '<span style="color:#F05A5A;">Error: </span><span style="color:#DDD">{}</span>'.format(error)
@@ -1389,7 +1416,7 @@ class Path(object):
         """
         Returns the path with forward slashes
         Returns:
-            path (unicode): path with forward slashes
+            path (str): path with forward slashes
         """
         return self.path.replace(os.sep, '/')
 
@@ -1562,8 +1589,8 @@ def changeNamespace(objectName, changeDict):
     """
     Changes the namespaces of the object
     Args:
-        objectName (unicode): Name to change namespace
-        changeDict (dict): Dictionary of keys (str), values (unicode) to change namespaces to (key->value)
+        objectName (str): Name to change namespace
+        changeDict (dict): Dictionary of keys {str), values (str) to change namespaces to (key->value)
 
     Returns:
         String with the namespaces changed
@@ -1580,7 +1607,7 @@ def removeNamespaceFromString(objectName):
     """
     Removes the namespace from string
     Args:
-        objectName (unicode): Object name to remove namespace from
+        objectName (str): Object name to remove namespace from
 
     Returns:
         String: New name without namespaces
@@ -1646,7 +1673,7 @@ def u_internet():
         import httplib
     except:
         import http.client as httplib
-    conn = httplib.HTTPConnection("www.microsoft.com", timeout=5)
+    conn = httplib.HTTPConnection("microsoft.com", timeout=5)
     try:
         conn.request("HEAD", "/")
         conn.close()
@@ -1665,7 +1692,7 @@ def save_zip():
     """
     Compress the saved opened scene file within the same directory
     Returns:
-        Path (unicode): Path to saved zip file
+        Path (str): Path to saved zip file
     """
     import zipfile
     fileName = cmds.file(q=True, sn=True, shn=True)
@@ -1694,7 +1721,7 @@ def removeCallback(procedure):
     Remove callbacks that do not exist anymore (created for example from a plugin which you don't have)
     E.g., removeProcedure("CgAbBlastPanelOptChangeCallback")
     Args:
-        procedure (unicode): Name of callback procedure
+        procedure (str): Name of callback procedure
 
     Returns:
     """
