@@ -349,10 +349,17 @@ def detachShelf():
 
     # read mel shelf file
     with open(shelfFilePath, 'r') as file:
-        buttons = file.read()
-    # modify parsed mel
-    buttons = buttons.split(';\n')[3:]
-    buttons[-1] = buttons[-1][:buttons[-1].rindex("}")]
+        text = file.read()
+    # build new mel command
+    melCommands = ""
+    buttons = 0
+    lines = [line for line in text.splitlines() if line]  # get rid of empty lines
+    for line in lines:
+        if line.strip() == "shelfButton":
+            buttons += 1
+        if buttons > 0:
+            melCommands += line
+    melCommands = melCommands[:-2]
 
     # check if window doesn't already exist
     windowTitle = "{} popup shelf".format(shelfName)
@@ -362,14 +369,13 @@ def detachShelf():
         return
 
     # make a window, give it a layout, then make a model editor
-    window = cmds.window(windowTitle, w=800, h=50)
+    window = cmds.window(windowTitle, w=800, h=46, rtf=True)
     cmds.shelfLayout(spa=5)
-    for button in buttons:
-        melCommand = "{};".format(button)
-        mel.eval(melCommand)
+    mel.eval(melCommands)
     cmds.setParent('..')
 
     # show window
+    cmds.window(window, w=46*buttons, e=True)
     cmds.showWindow(window)
 
 
