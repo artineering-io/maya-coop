@@ -14,7 +14,6 @@ from __future__ import print_function
 from __future__ import unicode_literals
 import os, shutil, io, pprint
 import maya.cmds as cmds
-import maya.mel as mel
 import coopLib as lib
 
 

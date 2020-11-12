@@ -15,7 +15,7 @@
   string $pyPaths[] = python ("sys.path");
   int $times = stringArrayCount ($fileDir, $pyPaths);
   string $scriptsDir = $fileDir + "scripts/";
-  if ( stringArrayCount ($scriptsDir, $pyPaths) == 0 ) {
+  if (stringArrayCount ($scriptsDir, $pyPaths) == 0) {
       //print "Adding current path to PYTHONPATH";
       python ("sys.path.insert(0, '" + $scriptsDir + "')") ;
   }

@@ -180,7 +180,7 @@ def mayaVersion():
 
 def localOS():
     """
-    Returns the Operating System (OS) of the local machine ( win, mac, linux )
+    Returns the Operating System (OS) of the local machine (win, mac, linux)
     """
     if cmds.about(mac=True):
         return "mac"
@@ -1275,7 +1275,7 @@ def printInfo(info):
     """
     Prints the information statement in the command response (to the right of the command line)
     Args:
-        info (str): Information to be displayed
+        info (unicode): Information to be displayed
     """
     om.MGlobal.displayInfo(info)
 
@@ -1284,7 +1284,7 @@ def displayInfo(info):
     Displays the information on the viewport
     Prints the information statement in the command response (to the right of the command line)
     Args:
-        info (str): Information to be displayed
+        info (unicode): Information to be displayed
     """
     if mayaVersion() > 2018:
         m = '<span style="color:#82C99A;">{}</span>'.format(info)
@@ -1296,7 +1296,7 @@ def printWarning(warning):
     """
     Prints the warning statement in the command response (to the right of the command line)
     Args:
-        warning (str): Warning to be displayed
+        warning (unicode): Warning to be displayed
     """
     om.MGlobal.displayWarning(warning)
 
@@ -1305,7 +1305,7 @@ def displayWarning(warning):
     Displays a warning on the viewport
     Prints the warning statement in the command response (to the right of the command line)
     Args:
-        warning (str): Warning to be displayed
+        warning (unicode): Warning to be displayed
     """
     if mayaVersion() > 2018:
         m = '<span style="color:#F4FA58;">Warning: </span><span style="color:#DDD">{}</span>'.format(warning)
@@ -1317,7 +1317,7 @@ def printError(error):
     """
     Prints the error statement in the command response (to the right of the command line)
     Args:
-        error (str): Error to be displayed
+        error (unicode): Error to be displayed
     """
     om.MGlobal.displayError(error)
 
@@ -1326,7 +1326,7 @@ def displayError(error):
     Displays an error on the viewport
     Prints the error statement in the command response (to the right of the command line)
     Args:
-        error (str): Error to be displayed
+        error (unicode): Error to be displayed
     """
     if mayaVersion() > 2018:
         m = '<span style="color:#F05A5A;">Error: </span><span style="color:#DDD">{}</span>'.format(error)
