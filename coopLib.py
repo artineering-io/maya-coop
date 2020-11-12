@@ -418,9 +418,7 @@ def restoreShelves():
     Raises:
         restartDialog()
     """
-    scriptsDir = os.path.abspath(cmds.internalVar(usd=True))
-    envDir = os.path.dirname(scriptsDir)
-    shelfDir = os.path.join(envDir, 'prefs', 'shelves')
+    shelfDir = os.path.join(getEnvDir(), 'prefs', 'shelves')
     for shelf in os.listdir(shelfDir):
         if shelf.endswith('.deleted'):
             restoredShelf = os.path.join(shelfDir, shelf.split('.deleted')[0])
