@@ -11,7 +11,8 @@
 @run:           Drag and drop the install.mel file which runs coopSetup
 """
 from __future__ import print_function
-import os, shutil, urllib, pprint
+from __future__ import unicode_literals
+import os, shutil, io, pprint
 import maya.cmds as cmds
 import maya.mel as mel
 import coopLib as lib
@@ -31,7 +32,8 @@ def run(root):
         root: root directory of the plugin hierarchy
     """
     print("-> Installing plugin")
-    variables = {'MAYA_MODULE_PATH': [os.path.abspath(root)]}
+    r = root.decode('unicode-escape')  # convert to unicode
+    variables = {'MAYA_MODULE_PATH': [os.path.abspath(r)]}
 
     # get Maya.env file
     mayaEnvFilePath = cmds.about(env=True, q=True)
@@ -58,7 +60,7 @@ def run(root):
     # replace environment file
     shutil.move(tempFilePath, mayaEnvFilePath)
 
-    lib.printInfo("-> Installation complete")
+    lib.displayInfo("-> Installation complete")
 
     # restart maya (we make sure everything will load correctly once maya is restarted)
     cmds.confirmDialog(title='Restart Maya',
@@ -80,7 +82,7 @@ def getEnvironmentVariables(mayaEnvFilePath):
     envVariables = dict()
     envVariablesOrder = []
     envCleanup = False
-    with open(mayaEnvFilePath, 'rb') as f:
+    with io.open(mayaEnvFilePath, mode='r') as f:
         for line in f:
             # get rid of new line chars
             line = line.replace("\n", "")
@@ -155,7 +157,7 @@ def writeVariables(filePath, variables, sortedVariables):
         filePath (str): path to save variables to
         variables (dict): environment variables to save
     """
-    with open(filePath, 'ab') as tmp:
+    with io.open(filePath, mode='a') as tmp:
         # the shelf environment variable must be the first
         shelfVariable = "MAYA_SHELF_PATH"
         if shelfVariable in variables:
@@ -166,7 +168,7 @@ def writeVariables(filePath, variables, sortedVariables):
                 outLine = "{0}=".format(shelfVariable)
                 for v in variables.pop(shelfVariable, None):
                     outLine += "{0}{1}".format(v, sep)
-                tmp.write(outLine + "\n")
+                tmp.write(outLine[0:-1] + "\n")
         # add new variables in sortedVariables
         for var in variables:
             if var not in sortedVariables:
@@ -180,4 +182,4 @@ def writeVariables(filePath, variables, sortedVariables):
                     outLine = "{0}=".format(var)
                     for v in variables[var]:
                         outLine += "{0}{1}".format(v, sep)
-                    tmp.write(outLine + "\n")
+                    tmp.write(outLine[0:-1] + "\n")
