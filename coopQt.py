@@ -687,3 +687,22 @@ class WebEnginePage(QWebEnginePage):
             QtGui.QDesktopServices.openUrl(url)
             return False
         return True
+
+
+class ProgressDialog(QtWidgets.QProgressDialog):
+    """ Simple progress dialog """
+    def __init__(self, parent, window_title):
+        super(ProgressDialog, self).__init__(parent)
+        self.setWindowModality(QtCore.Qt.WindowModal)
+        self.setWindowTitle(window_title)
+        self.setMinimumWidth(600)
+        self.setAutoClose(True)
+        self.setAutoReset(True)
+        self.setRange(0, 100)
+        self.setValue(0)
+        self.show()
+        processEvents()
+
+def processEvents():
+    """ Processes all queued Qt events """
+    QtCore.QCoreApplication.processEvents()
