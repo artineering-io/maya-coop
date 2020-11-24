@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 """
 @license:       MIT
 @repository:    https://github.com/artineering-io/maya-coop
@@ -12,7 +13,7 @@
 """
 from __future__ import print_function
 from __future__ import unicode_literals
-import os, sys, subprocess, shutil, re, logging, json, math, traceback
+import os, sys, subprocess, shutil, re, logging, json, math, traceback, platform
 from functools import wraps
 import maya.mel as mel
 import maya.cmds as cmds
@@ -156,6 +157,24 @@ class ListUtils(object):
 ######################################################################################
 # GENERAL UTILITIES
 ######################################################################################
+def pyVersion(version=0):
+    """
+    Checks for the version of python currently running
+    Args:
+        version (float): desired version to check with
+    Returns:
+        Python version (unicode): The version currently running if no version is supplied
+        Version check (bool): True if current version is higher than the given version. False if not
+    """
+    v = platform.python_version()
+    fV = float(v[:v.rindex('.')])
+    if not version:
+        return fV
+    if fV >= float(version):
+        return True
+    return False
+
+
 def checkAboveVersion(year):
     """
     Checks if Maya is above a certain version
@@ -278,6 +297,28 @@ def restartDialog(brute=True):
                                  ma='center')
     if restart == 'Yes':
         restartMaya(brute)
+
+
+def dialog_save(starting_directory="", title="Save as...", file_filter="All Files (*.*)"):
+    """
+    Simple save dialog in Maya
+    Args:
+        starting_directory (unicode): Starting directory. (default: project root directory)
+        title (unicode): Dialog title. (default: "Save as...")
+        file_filter (unicode): File filter. (default: "All Files (*.*)")
+
+    Returns:
+        Path (unicode) to save as
+    """
+    if not starting_directory:
+        starting_directory = cmds.workspace(rd=True, q=True)
+    exportPath = cmds.fileDialog2(fileFilter=file_filter, fileMode=0,
+                                  startingDirectory=starting_directory,
+                                  cap=title, dialogStyle=2)
+    if not exportPath:
+        displayError("Filepath not specified")
+        return ""
+    return exportPath[0]
 
 
 ######################################################################################
@@ -1256,7 +1297,7 @@ def getMObject(node, getType=False):
     """
     Gets mObject of a node (Python API 2.0)
     Args:
-        node (str): name of node
+        node (unicode): name of node
     Returns:
         Node of the object
     """
