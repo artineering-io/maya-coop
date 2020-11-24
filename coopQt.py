@@ -8,7 +8,7 @@
 #    \___\___/ \___/| .__/ \__\_\\__|
 #                   |_|
 @summary:       Maya cooperative qt library
-@run:           import coopQt as qt (suggested)
+@run:           import coop.coopQt as qt (suggested)
 """
 from __future__ import print_function
 from __future__ import unicode_literals
@@ -702,6 +702,14 @@ class ProgressDialog(QtWidgets.QProgressDialog):
         self.setValue(0)
         self.show()
         processEvents()
+
+    def add(self, v, item):
+        if self.wasCanceled():
+            return False
+        self.setValue(self.value() + v)
+        self.setLabelText("Processing {}".format(item))
+        processEvents()
+        return True
 
 def processEvents():
     """ Processes all queued Qt events """

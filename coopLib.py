@@ -9,7 +9,7 @@
 #    \___\___/ \___/| .__/|_____|_|_.__/
 #                   |_|
 @summary:       Maya cooperative python library
-@run:           import coopLib as lib (suggested)
+@run:           import coop.coopLib as lib (suggested)
 """
 from __future__ import print_function
 from __future__ import unicode_literals
@@ -312,13 +312,35 @@ def dialog_save(starting_directory="", title="Save as...", file_filter="All File
     """
     if not starting_directory:
         starting_directory = cmds.workspace(rd=True, q=True)
-    exportPath = cmds.fileDialog2(fileFilter=file_filter, fileMode=0,
+    save_path = cmds.fileDialog2(fileFilter=file_filter, fileMode=0,
                                   startingDirectory=starting_directory,
                                   cap=title, dialogStyle=2)
-    if not exportPath:
+    if not save_path:
         displayError("Filepath not specified")
         return ""
-    return exportPath[0]
+    return save_path[0]
+
+
+def dialog_open(starting_directory="", title="Open file", file_filter="All Files (*.*)"):
+    """
+    Simple open dialog in Maya
+    Args:
+        starting_directory (unicode): Starting directory. (default: project root directory)
+        title (unicode): Dialog title. (default: "Save as...")
+        file_filter (unicode): File filter. (default: "All Files (*.*)")
+
+    Returns:
+        Path (unicode) to open
+    """
+    if not starting_directory:
+        starting_directory = cmds.workspace(rd=True, q=True)
+    open_path = cmds.fileDialog2(fileFilter=file_filter, fileMode=1,
+                                  startingDirectory=starting_directory,
+                                  cap=title, dialogStyle=2)
+    if not open_path:
+        displayError("No path specified")
+        return ""
+    return open_path[0]
 
 
 ######################################################################################
