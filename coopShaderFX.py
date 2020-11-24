@@ -139,3 +139,26 @@ def dereferenceMaterial(mat):
         return newMaterial
     else:
         return mat
+
+
+def filePathCheck(text=[], fix=False):
+    """
+    Checks all existing ShaderFX materials for non-ascii paths
+    Returns:
+        Prints warnings in the script editor for all non-ascii paths and sets these paths to ""
+    """
+    sfxMaterials = lib.u_enlist(text)
+    if not sfxMaterials:
+        sfxMaterials = cmds.ls(exactType='ShaderfxShader')
+    for sfx in sfxMaterials:
+        attrs = cmds.listAttr(sfx, usedAsFilename=True)
+        for attr in attrs:
+            path = cmds.getAttr("{}.{}".format(sfx, attr))
+            try:
+                "{}.{} is {}".format(sfx, attr, path)
+            except UnicodeEncodeError:
+                # there are characters that Maya doesn't support
+                lib.printWarning("{}.{} has an unsupported file path".format(sfx, attr))
+                if fix:
+                    cmds.setAttr("{}.{}".format(sfx, attr), "", type="string")
+
