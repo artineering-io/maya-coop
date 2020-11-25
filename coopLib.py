@@ -316,7 +316,7 @@ def dialog_save(starting_directory="", title="Save as...", file_filter="All File
                                   startingDirectory=starting_directory,
                                   cap=title, dialogStyle=2)
     if not save_path:
-        displayError("Filepath not specified")
+        displayError("Filepath not specified", True)
         return ""
     return save_path[0]
 
@@ -338,8 +338,7 @@ def dialog_open(starting_directory="", title="Open file", file_filter="All Files
                                   startingDirectory=starting_directory,
                                   cap=title, dialogStyle=2)
     if not open_path:
-        displayError("No path specified")
-        return ""
+        displayError("No path specified", True)
     return open_path[0]
 
 
@@ -358,6 +357,22 @@ def createEmptyNode(inputName):
     keyableAttributes = cmds.listAttr(nodeName, k=True)
     for attribute in keyableAttributes:
         cmds.setAttr('{0}.{1}'.format(nodeName[0], attribute), l=True, k=False)
+
+
+def node_data(node_name, settable=True):
+    """
+    Returns the node data in a dictionary
+    Args:
+        node_name (unicode): Name of the node to get data from
+        settable (bool): Only the data that can be set (default: bool)
+    Returns:
+        Dictionary containing a dictionary with attribute: value
+    """
+    data = dict()
+    node_attrs = cmds.listAttr(node_name, settable=settable)
+    for attr in node_attrs:
+        data[attr] = cmds.getAttr("{}.{}".format(node_name, attr))
+    return data
 
 
 def purgeMissing(objects):
@@ -505,7 +520,9 @@ def getShapes(objects, renderable=False, l=False, quiet=False):
     Get shapes of objects/components
     Args:
         objects (list): List of objects or components
-        fp (bool): If full path is desired or not
+        renderable (bool): If shape needs to be renderable
+        l (bool): If full path is desired or not
+        quiet (bool): If command should print errors or not
     """
     # transform string input (if any) to a list
     if isinstance(objects, basestring):
@@ -528,7 +545,6 @@ def getShapes(objects, renderable=False, l=False, quiet=False):
         objType = cmds.objectType(obj)
         if objType == "mesh" or objType == "nurbsSurface":
             potentialShape = cmds.ls(obj, l=l)  # make an array
-            # shapes.extend(cmds.ls(obj, l=l))  # there might be more objects with the same name
         else:
             potentialShape = cmds.listRelatives(obj, shapes=True, noIntermediate=True, path=True, fullPath=l) or []
             # shapes.extend(shp)
@@ -1380,25 +1396,30 @@ def displayWarning(warning):
     printWarning(warning)
 
 
-def printError(error):
+def printError(error, traceback=False):
     """
     Prints the error statement in the command response (to the right of the command line)
     Args:
         error (unicode): Error to be displayed
     """
-    om.MGlobal.displayError(error)
+    if not traceback:
+        om.MGlobal.displayError(error)
+    else:
+        cmds.error(error)
 
-def displayError(error):
+
+def displayError(error, traceback=False):
     """
     Displays an error on the viewport
     Prints the error statement in the command response (to the right of the command line)
     Args:
         error (unicode): Error to be displayed
+        traceback (bool): If python should error our and show a traceback
     """
     if mayaVersion() > 2018:
         m = '<span style="color:#F05A5A;">Error: </span><span style="color:#DDD">{}</span>'.format(error)
         cmds.inViewMessage(msg=m, pos="midCenterBot", fade=True)
-    printError(error)
+    printError(error, traceback)
 
 
 #                _   _
