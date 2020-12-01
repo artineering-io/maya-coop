@@ -359,12 +359,13 @@ def createEmptyNode(inputName):
         cmds.setAttr('{0}.{1}'.format(nodeName[0], attribute), l=True, k=False)
 
 
-def node_data(node_name, settable=True):
+def get_node_data(node_name, settable=True):
     """
     Returns the node data in a dictionary
     Args:
         node_name (unicode): Name of the node to get data from
         settable (bool): Only the data that can be set (default: bool)
+
     Returns:
         Dictionary containing a dictionary with attribute: value
     """
@@ -373,6 +374,17 @@ def node_data(node_name, settable=True):
     for attr in node_attrs:
         data[attr] = cmds.getAttr("{}.{}".format(node_name, attr))
     return data
+
+
+def set_node_data(node_name, node_data):
+    """
+    Sets the node data contained in a dictionary
+    Args:
+        node_name (unicode): Name of the node to set data to
+        node_data (dict): Dictionary of node data {attribute: value}
+    """
+    for attr in node_data:
+        setAttr(node_name, attr, node_data)
 
 
 def purgeMissing(objects):
@@ -682,8 +694,8 @@ def setAttr(obj, attr, value, silent=False):
     """
     Generic setAttr convenience function which changes the Maya command depending on the data type
     Args:
-        obj (str): node
-        attr (str): attribute
+        obj (unicode): node
+        attr (unicode): attribute
         value (any): the value to set
         silent (bool): if the function is silent when errors occur
     """
@@ -900,7 +912,7 @@ def setMaterial(mat, objects):
     """
     Set material onto objects
     Args:
-        mat (str): Name of material to set to objects
+        mat (unicode): Name of material to set to objects
         objects (list): List of objects that the material is assigned to
     """
     mat = u_stringify(mat)
@@ -1435,7 +1447,7 @@ class Path(object):
         elif isinstance(path, unicode):
             self.path = path
         else:
-            printError("{} is not a string".format(path))
+            printError("{} is not a string".format(path), True)
 
     def parent(self):
         """
@@ -1507,6 +1519,30 @@ class Path(object):
             path (str): path with forward slashes
         """
         return self.path.replace(os.sep, '/')
+
+    def list_dir(self):
+        """
+        List everything in a directory - files and directories.
+        Returns:
+            (list): list with everything in the directory
+        """
+        return os.listdir(self.path)
+
+    def find_all(self, filename, relative=True):
+        """
+        Finds the filename and lists its locations in the Path.
+        Returns:
+            (list): list with everything in the directory
+        """
+        found = []
+        for root, dirs, files in os.walk(self.path):
+            if filename in files:
+                found.append(os.path.join(root, filename))
+        if relative:
+            return [os.path.relpath(f, self.path) for f in found]
+        else:
+            return found
+
 
 #        _        _
 #    ___| |_ _ __(_)_ __   __ _

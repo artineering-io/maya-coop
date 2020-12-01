@@ -1,17 +1,11 @@
 """
 @summary:       Maya cooperative ShaderFX library
-@run:           import coopShaderFX as csfx (suggested)
+@run:           import coop.shaderFX as csfx (suggested)
 @license:       MIT
 @repository:    https://github.com/artineering-io/maya-coop
 """
-import logging
 import maya.cmds as cmds
 import coopLib as clib
-
-# LOGGING
-logging.basicConfig()  # errors and everything else (2 separate log groups)
-logger = logging.getLogger("coopShaderFX")  # create a logger for this file
-logger.setLevel(logging.DEBUG)  # defines the logging level (INFO for releases)
 
 
 def get_id(material, unique_node_name, quiet=False):
@@ -21,6 +15,7 @@ def get_id(material, unique_node_name, quiet=False):
         material (unicode): Material to get node id from
         unique_node_name (unicode): Unique node name in ShaderFX
         quiet (bool): If warnings should print or not
+
     Returns:
         (int): Node id in ShaderFX graph
     """
@@ -30,7 +25,7 @@ def get_id(material, unique_node_name, quiet=False):
             node_id = cmds.shaderfx(sfxnode=material, getNodeIDByName=unique_node_name)
         except RuntimeError:
             if not quiet:
-                logger.warning("Node {0} was not found in the material {1}".format(unique_node_name, material))
+                clib.printWarning("Node {0} was not found in the material {1}".format(unique_node_name, material))
     return node_id
 
 
@@ -59,7 +54,7 @@ def set_node_value(material, unique_node_name, value, quiet=False):
         cmds.select(selection, r=True)
     else:
         if not quiet:
-            logger.warning("Setting of {0} node to {1} has failed".format(unique_node_name, value))
+            clib.printWarning("Setting of {0} node to {1} has failed".format(unique_node_name, value))
     return node_id
 
 
@@ -115,10 +110,10 @@ def dereference_material(mat):
     Creates a local material with the same name if mat is referenced
     Args:
         mat (unicode): Material name to check and dereference
+
     Returns:
-        localMaterial (unicode): Local material name
+        (unicode): Local material name
     """
-    logger.debug("Dereferencing {0}".format(mat))
     if cmds.referenceQuery(mat, isNodeReferenced=True):
         new_material = mat.split(':')[-1]
         objects = clib.getAssignedMeshes(mat, shapes=True, l=True)
@@ -133,6 +128,7 @@ def dereference_material(mat):
 def filepath_check(text=None, fix=False):
     """
     Checks all existing ShaderFX materials for non-ascii paths
+
     Returns:
         Prints warnings in the script editor for all non-ascii paths and sets these paths to ""
     """
@@ -159,8 +155,9 @@ def create_material(name, graph_dir="", custom_graph=""):
         name (unicode): Name of the new material
         graph_dir (unicode): Directory of where custom graphs are located
         custom_graph (unicode): Name of custom_graph
+
     Returns:
-        shader (unicode): Name of new material
+        (unicode): Name of new material
     """
     graph = ""
     if graph_dir and custom_graph:
