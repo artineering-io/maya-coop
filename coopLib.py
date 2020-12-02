@@ -738,6 +738,11 @@ def setAttr(obj, attr, value, silent=False):
                     setAttr(obj, attr, value[0])
                     return
                 cmds.setAttr("{0}.{1}".format(obj, attr), value[0])
+            elif cmds.attributeQuery(attr, node=obj, attributeType=True) == "compound":
+                idx = 0
+                for sub_attr in cmds.attributeQuery(attr, node=obj, listChildren=True):
+                    setAttr(obj, sub_attr, value[idx])
+                    idx += 1
             else:
                 cmds.setAttr("{0}.{1}".format(obj, attr), tuple(value), type="doubleArray")
         else:
@@ -984,14 +989,16 @@ def cleanShadingEngines(objs, quiet=True):
                             logger.warning("Couldn't disconnect {0} from {1}".format(shape, dest))
     return shadingEngines
 
+
 def getAssignedMeshes(materials, shapes=True, l=False):
     """
     Get the assigned meshes (shapes) out of a material
     Args:
-        material (str): Material name to get meshes from
-        shapes (bool): Return shapes or transform node names [Defailt=True]
+        materials (list, unicode): Material name/s to get meshes from
+        shapes (bool): Return shapes or transform node names (default = Shapes)
+        l (bool): Long names of meshes (default = False)
     Returns:
-        List of meshes
+        (list): List of meshes
     """
     meshes = []
     # get shading engines
