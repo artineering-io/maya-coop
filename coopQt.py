@@ -191,7 +191,6 @@ class CoopMayaUI(QtWidgets.QDialog):
         self.populateUI()
         if not dock and show:
             self.show()
-            #parent.show()
 
         logger.debug("{0} was successfully generated".format(title))
 

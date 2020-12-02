@@ -157,6 +157,19 @@ class ListUtils(object):
 ######################################################################################
 # GENERAL UTILITIES
 ######################################################################################
+def get_host():
+    """
+    Checks for host application of python environment
+    Returns:
+        (unicode): Host name (e.g., Maya, Blender)
+    """
+    host = os.path.basename(sys.executable)
+    if "maya" in host:
+        return "Maya"
+    if "blender" in host:
+        return "Blender"
+
+
 def pyVersion(version=0):
     """
     Checks for the version of python currently running
@@ -199,13 +212,25 @@ def mayaVersion():
 
 def localOS():
     """
-    Returns the Operating System (OS) of the local machine (win, mac, linux)
+    Returns the operating system (OS) of the local machine
+    Returns:
+        (unicode): Either "win", "mac" or "linux"
     """
     if cmds.about(mac=True):
         return "mac"
     elif cmds.about(linux=True):
         return "linux"
     return "win"
+
+
+def plugin_ext():
+    """
+    Returns the plugin extension depending on the local operating system
+    Returns:
+        (unicode): Either "mll", "bundle" or "so"
+    """
+    extensions = {"win": "mll", "mac": "bundle", "linux": "so"}
+    return extensions[localOS()]
 
 
 def getEnvDir():
@@ -919,7 +944,8 @@ def setMaterial(mat, objects):
     shadingEngines = cleanShadingEngines(objects)
     if shadingEngines:
         for shadingEngine in shadingEngines:
-            cmds.connectAttr("{0}.outColor".format(mat), "{0}.surfaceShader".format(shadingEngine), f=True)
+            if not cmds.isConnected("{0}.outColor".format(mat), "{0}.surfaceShader".format(shadingEngine)):
+                cmds.connectAttr("{0}.outColor".format(mat), "{0}.surfaceShader".format(shadingEngine), f=True)
     else:
         # fallback to hypershade cmd
         selection = cmds.ls(sl=True, l=True)
@@ -1417,7 +1443,8 @@ def printError(error, traceback=False):
     if not traceback:
         om.MGlobal.displayError(error)
     else:
-        cmds.error(error)
+        cmds.evalDeferred(lambda: printError(error))
+        raise RuntimeError(error)
 
 
 def displayError(error, traceback=False):
