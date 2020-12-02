@@ -964,9 +964,17 @@ def cleanShadingEngines(objs, quiet=True):
     Makes sure the shading engines are clean
     Args:
         objs (list): Objects to clean shading engines from
+
+    Returns:
+        (list) shading engines connected to objs
     """
     shadingEngines = []
-    shapes = getShapes(objs, l=True)
+    shapes = []
+    for obj in objs:
+        if cmds.objectType(obj) != "mesh":
+            shapes.append(getShapes(obj, l=True))
+        else:
+            shapes.append(obj)
     for shape in shapes:
         shadingEngines = ListUtils.removeDuplicates(cmds.listConnections(shape, type="shadingEngine"))
         if "MNPRX_SE" in shadingEngines:
@@ -1000,20 +1008,37 @@ def getAssignedMeshes(materials, shapes=True, l=False):
     Returns:
         (list): List of meshes
     """
-    meshes = []
+    assigned_meshes = []
+    u_enlist(materials)
     # get shading engines
-    if isinstance(materials, basestring):
-        materials = [materials]
-    shadingEngines = cmds.listConnections(materials, type="shadingEngine")
-    if shadingEngines:
-        for shadingEngine in shadingEngines:
-            m = cmds.sets(shadingEngine, q=True) or []  # shapes
-            m = cmds.ls(m, l=l)
-            if m:
-                if not shapes:
-                    m = cmds.listRelatives(m, parent=True, fullPath=l)  # transforms
-                meshes.extend(m)
-    return meshes
+    shadingEngines = cmds.listConnections(materials, type="shadingEngine") or []
+    for shadingEngine in shadingEngines:
+        meshes = cmds.sets(shadingEngine, q=True) or []  # meshes
+        meshes = cmds.ls(meshes, l=l)
+        if meshes:
+            if not shapes:
+                # get transforms instead (unless component are assigned)
+                for mesh in meshes:
+                    if not is_component(mesh):
+                        mesh = cmds.listRelatives(mesh, parent=True, fullPath=l)  # transforms
+                    assigned_meshes.append(mesh)
+            else:
+                assigned_meshes.extend(meshes)
+    return assigned_meshes
+
+
+def is_component(obj):
+    """
+    Check if an object is a component or not
+    Args:
+        obj (unicode): Object name to check if its a component
+
+    Returns:
+        (bool): True if it is a component
+    """
+    if "." in obj:
+        return True
+    return False
 
 
 def setVertexColorSets(shapes, colorSets, value=[0.0, 0.0, 0.0, 0.0]):
