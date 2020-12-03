@@ -416,7 +416,7 @@ def set_node_data(node_name, node_data):
         node_data (dict): Dictionary of node data {attribute: value}
     """
     for attr in node_data:
-        setAttr(node_name, attr, node_data)
+        setAttr(node_name, attr, node_data[attr])
 
 
 def purgeMissing(objects):
