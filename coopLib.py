@@ -397,7 +397,14 @@ def get_node_data(node_name, settable=True):
     data = dict()
     node_attrs = cmds.listAttr(node_name, settable=settable)
     for attr in node_attrs:
-        data[attr] = cmds.getAttr("{}.{}".format(node_name, attr))
+        if cmds.attributeQuery(attr, node=node_name, attributeType=True) != "compound":
+            try:
+                data[attr] = cmds.getAttr("{}.{}".format(node_name, attr))
+            except RuntimeError as err:
+                print("Couldn't get {}.{} because of: {}".format(node_name, attr, err))
+        else:
+            for sub_attr in cmds.attributeQuery(attr, node=node_name, listChildren=True):
+                data[sub_attr] = cmds.getAttr("{}.{}".format(node_name, sub_attr))
     return data
 
 
@@ -1021,7 +1028,7 @@ def getAssignedMeshes(materials, shapes=True, l=False):
                 for mesh in meshes:
                     if not is_component(mesh):
                         mesh = cmds.listRelatives(mesh, parent=True, fullPath=l)  # transforms
-                    assigned_meshes.append(mesh)
+                    assigned_meshes.extend(mesh)
             else:
                 assigned_meshes.extend(meshes)
     return assigned_meshes
