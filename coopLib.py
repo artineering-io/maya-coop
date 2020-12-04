@@ -397,14 +397,14 @@ def get_node_data(node_name, settable=True):
     data = dict()
     node_attrs = cmds.listAttr(node_name, settable=settable)
     for attr in node_attrs:
-        if cmds.attributeQuery(attr, node=node_name, attributeType=True) != "compound":
-            try:
-                data[attr] = cmds.getAttr("{}.{}".format(node_name, attr))
-            except RuntimeError as err:
-                print("Couldn't get {}.{} because of: {}".format(node_name, attr, err))
-        else:
-            for sub_attr in cmds.attributeQuery(attr, node=node_name, listChildren=True):
-                data[sub_attr] = cmds.getAttr("{}.{}".format(node_name, sub_attr))
+        try:
+            if cmds.attributeQuery(attr, node=node_name, attributeType=True) != "compound":
+                    data[attr] = cmds.getAttr("{}.{}".format(node_name, attr))
+            else:
+                for sub_attr in cmds.attributeQuery(attr, node=node_name, listChildren=True):
+                    data[sub_attr] = cmds.getAttr("{}.{}".format(node_name, sub_attr))
+        except RuntimeError as err:
+            print("Couldn't get {}.{} because of: {}".format(node_name, attr, err))
     return data
 
 
@@ -896,9 +896,7 @@ def getMaterials(objects):
 
     if not materials and not transforms and not shapes:
         # are these components?
-        objs = cmds.ls(objects, objectsOnly=True)
-        if objs:
-            return getMaterialOfComponents(objects)
+        return getMaterialOfComponents(objects)
 
     # get shapes from transforms
     if transforms:
@@ -930,18 +928,22 @@ def getMaterialOfComponents(components):
     """
     materials = []
     for c in components:
-        obj = cmds.ls(c, objectsOnly=True)
-        shadingEngines = ListUtils.removeDuplicates(cmds.listConnections(obj, type="shadingEngine"))
-        for se in shadingEngines:
-            s = cmds.sets(se, q=True)
-            if c in s:
-                materials.extend(cmds.ls(cmds.listConnections(se), mat=True))
+        if is_component(c):
+            obj = cmds.ls(c, objectsOnly=True)
+            shadingEngines = ListUtils.removeDuplicates(cmds.listConnections(obj, type="shadingEngine"))
+            for se in shadingEngines:
+                s = cmds.sets(se, q=True)
+                if c in s:
+                    materials.extend(cmds.ls(cmds.listConnections(se), mat=True))
     if not materials:
-        materials = getMaterials(cmds.ls(components, objectsOnly=True))  # try getting material of object
-        if not materials:
-            displayWarning("No materials on {}, assigning default Lambert material".format(components))
-            cmds.hyperShade(assign="lambert1")
-            return cmds.ls(sl=True)
+        # components might not have a material
+        for c in components:
+            if is_component(c):
+                materials = getMaterials(cmds.ls(components, objectsOnly=True))
+                if not materials:
+                    displayWarning("No materials on {}, assigning default Lambert material".format(components))
+                    cmds.hyperShade(assign="lambert1")
+                    return cmds.ls(sl=True)
     return materials
 
 
@@ -1106,13 +1108,15 @@ def setVertexColorSets(shapes, colorSets, value=[0.0, 0.0, 0.0, 0.0]):
         deleteColorSetHistory(shape)
 
 
-def deleteVertexColorSets(shapes, colorSets):
+def deleteVertexColorSets(shapes, colorSets, quiet=True):
     """
     Delete the vertex color set and its history
     Args:
         shapes (lst): Shapes to delete vertex color sets from
         colorSets (lst): Vertex color sets to delete
     """
+    if quiet:
+        logger.setLevel(logging.INFO)
     shapes = u_enlist(shapes)  # put in list
     colorSets = u_enlist(colorSets)  # put in list
     for shape in shapes:
@@ -1134,7 +1138,7 @@ def deleteVertexColorSets(shapes, colorSets):
                 if nodes2Delete:
                     cmds.delete(nodes2Delete)
                 logger.info("Vertex color set {0} deleted for: {1}".format(colorSet, shape))
-
+    logger.setLevel(logging.DEBUG)
 
 def bakeVertexColors(shapes):
     """
