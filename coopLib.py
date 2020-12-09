@@ -886,10 +886,11 @@ def getMaterials(objects):
     """
     Get materials of objects
     Args:
-        objects (list): List of objects/components to get the materials from
+        objects (list, unicode): List of objects/components to get the materials from
     Returns:
         List of materials
     """
+    objects = u_enlist(objects)
     materials = cmds.ls(objects, l=True, mat=True)
     transforms = cmds.ls(objects, l=True, et="transform")
     shapes = cmds.ls(objects, l=True, s=True, noIntermediate=True)
