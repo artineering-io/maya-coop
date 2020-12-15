@@ -384,12 +384,13 @@ def createEmptyNode(inputName):
         cmds.setAttr('{0}.{1}'.format(nodeName[0], attribute), l=True, k=False)
 
 
-def get_node_data(node_name, settable=True):
+def get_node_data(node_name, settable=True, quiet=False):
     """
     Returns the node data in a dictionary
     Args:
         node_name (unicode): Name of the node to get data from
         settable (bool): Only the data that can be set (default: bool)
+        quiet (bool):
 
     Returns:
         Dictionary containing a dictionary with attribute: value
@@ -404,7 +405,8 @@ def get_node_data(node_name, settable=True):
                 for sub_attr in cmds.attributeQuery(attr, node=node_name, listChildren=True):
                     data[sub_attr] = cmds.getAttr("{}.{}".format(node_name, sub_attr))
         except RuntimeError as err:
-            print("Couldn't get {}.{} because of: {}".format(node_name, attr, err))
+            if not quiet:
+                print("get_node_data() -> Couldn't get {}.{} because of: {}".format(node_name, attr, err))
     return data
 
 
@@ -567,6 +569,8 @@ def getShapes(objects, renderable=False, l=False, quiet=False):
         renderable (bool): If shape needs to be renderable
         l (bool): If full path is desired or not
         quiet (bool): If command should print errors or not
+    Returns:
+        (list): List of shapes
     """
     # transform string input (if any) to a list
     if isinstance(objects, basestring):
@@ -1029,9 +1033,11 @@ def getAssignedMeshes(materials, shapes=True, l=False):
             if not shapes:
                 # get transforms instead (unless component are assigned)
                 for mesh in meshes:
-                    if not is_component(mesh):
+                    if is_component(mesh):
+                        assigned_meshes.append(mesh)
+                    else:
                         mesh = cmds.listRelatives(mesh, parent=True, fullPath=l)  # transforms
-                    assigned_meshes.extend(mesh)
+                        assigned_meshes.extend(mesh)
             else:
                 assigned_meshes.extend(meshes)
     return assigned_meshes
@@ -1109,6 +1115,7 @@ def setVertexColorSets(shapes, colorSets, value=[0.0, 0.0, 0.0, 0.0]):
         deleteColorSetHistory(shape)
 
 
+@undo
 def deleteVertexColorSets(shapes, colorSets, quiet=True):
     """
     Delete the vertex color set and its history

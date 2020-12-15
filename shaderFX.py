@@ -43,14 +43,18 @@ def set_node_value(material, unique_node_name, value, quiet=False):
         selection = cmds.ls(sl=True, l=True)
         cmds.select(material, r=True)  # triggers and scripts are only made if material is selected
         if "value" in cmds.shaderfx(sfxnode=material, listProperties=node_id):
-            if isinstance(value, bool):
-                cmds.shaderfx(sfxnode=material, edit_bool=(node_id, "value", value))
-            elif isinstance(value, float):
-                cmds.shaderfx(sfxnode=material, edit_float=(node_id, "value", value))
-            elif isinstance(value, int):
-                cmds.shaderfx(sfxnode=material, edit_int=(node_id, "value", value))
+            v = cmds.shaderfx(sfxnode=material, getPropertyValue=(node_id, "value"))
+            if v is not value:
+                if isinstance(value, bool):
+                    cmds.shaderfx(sfxnode=material, edit_bool=(node_id, "value", value))
+                elif isinstance(value, float):
+                    cmds.shaderfx(sfxnode=material, edit_float=(node_id, "value", value))
+                elif isinstance(value, int):
+                    cmds.shaderfx(sfxnode=material, edit_int=(node_id, "value", value))
         else:
-            cmds.shaderfx(sfxnode=material, edit_stringlist=(node_id, "options", value))
+            v = cmds.shaderfx(sfxnode=material, getPropertyValue=(node_id, "options"))[-1]
+            if v is not value:
+                cmds.shaderfx(sfxnode=material, edit_stringlist=(node_id, "options", value))
         cmds.select(selection, r=True)
     else:
         if not quiet:
@@ -174,3 +178,17 @@ def create_material(name, graph_dir="", custom_graph=""):
     if graph:
         cmds.shaderfx(sfxnode=shader, loadGraph=graph)
     return shader
+
+
+def update_materials(objects):
+    """ Forces an update of assigned shaderFX materials """
+    materials = clib.getMaterials(objects)
+    selection = cmds.ls(sl=True, l=True)
+    restore_selection = False
+    for mat in materials:
+        if cmds.objectType(mat) == 'ShaderfxShader':
+            cmds.select(mat, r=True)  # needs to be selected
+            restore_selection = True
+            cmds.shaderfx(sfxnode=mat, update=True)
+    if restore_selection:
+        cmds.select(selection, r=True)

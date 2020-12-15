@@ -698,14 +698,16 @@ class ProgressDialog(QtWidgets.QProgressDialog):
         self.setAutoClose(True)
         self.setAutoReset(True)
         self.setRange(0, 100)
-        self.setValue(0)
+        self.floatValue = 0
+        self.setValue(int(self.floatValue))
         self.show()
         processEvents()
 
     def add(self, v, item):
         if self.wasCanceled():
             return False
-        self.setValue(self.value() + v)
+        self.floatValue += v
+        self.setValue(int(self.floatValue))
         self.setLabelText("Processing {}".format(item))
         processEvents()
         return True
