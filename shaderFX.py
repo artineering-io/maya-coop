@@ -180,9 +180,12 @@ def create_material(name, graph_dir="", custom_graph=""):
     return shader
 
 
-def update_materials(objects):
+def refresh_materials(objects):
     """ Forces an update of assigned shaderFX materials """
-    materials = clib.getMaterials(objects)
+    if objects:
+        materials = clib.getMaterials(objects)
+    else:
+        materials = cmds.ls(type="ShaderfxShader")
     selection = cmds.ls(sl=True, l=True)
     restore_selection = False
     for mat in materials:
