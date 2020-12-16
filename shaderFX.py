@@ -180,7 +180,7 @@ def create_material(name, graph_dir="", custom_graph=""):
     return shader
 
 
-def refresh_materials(objects):
+def refresh_materials(objects=None):
     """ Forces an update of assigned shaderFX materials """
     if objects:
         materials = clib.getMaterials(objects)

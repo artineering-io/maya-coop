@@ -1145,7 +1145,7 @@ def deleteVertexColorSets(shapes, colorSets, quiet=True):
                         logger.debug("{0} node scheduled for deletion".format(node))
                 if nodes2Delete:
                     cmds.delete(nodes2Delete)
-                logger.info("Vertex color set {0} deleted for: {1}".format(colorSet, shape))
+                logger.debug("Vertex color set {0} deleted for: {1}".format(colorSet, shape))
     logger.setLevel(logging.DEBUG)
 
 def bakeVertexColors(shapes):
