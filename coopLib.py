@@ -1621,6 +1621,15 @@ class Path(object):
         else:
             return found
 
+    def file_size(self):
+        """
+        Returns the file size of the path in MB
+        Returns:
+            (float): Size of the file in MB
+        """
+        if self.exists():
+            return os.path.getsize(self.path)/1024.0/1024.0
+        return 0
 
 #        _        _
 #    ___| |_ _ __(_)_ __   __ _
