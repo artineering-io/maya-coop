@@ -112,6 +112,7 @@ def undo(f):
 #   |_____|_|___/\__|\___/ \__|_|_|___/
 #
 # List utilities within a helper class to work with lists.
+# It works in a similar way to set(), but it keeps the order of its elements
 class ListUtils(object):
     @staticmethod
     def removeDuplicates(objList):

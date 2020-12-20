@@ -172,7 +172,8 @@ def create_material(name, graph_dir="", custom_graph=""):
             clib.printError("No custom graph was found in {}".format(graph_path.path))
     # resolve name clashes with SFX
     if cmds.objExists(name):
-        name += "_SFX"
+        if "_SFX" not in name:
+            name += "_SFX"
     # create node and load custom_graph if available
     shader = cmds.shadingNode('ShaderfxShader', asShader=True, name=name)
     if graph:
