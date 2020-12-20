@@ -13,18 +13,16 @@
 from __future__ import print_function
 from __future__ import unicode_literals
 import logging, time, threading, os
-import maya.mel as mel
 import maya.cmds as cmds
 import maya.OpenMayaUI as omUI
 from PySide2 import QtCore, QtGui, QtWidgets
 from shiboken2 import wrapInstance
-# Qt Web stuff
-from PySide2.QtCore import QUrl
+import coopLib as clib
+
 try:
     from PySide2.QtWebEngineWidgets import QWebEngineView, QWebEnginePage  # Doesn't work with Maya 2017
 except ImportError:
     from PySide2.QtWebKitWidgets import QWebView as QWebEngineView
-
 
 try:
     basestring  # Python 2
@@ -32,7 +30,7 @@ except NameError:
     basestring = (str,)  # Python 3
 
 try:
-    long        # Python 2
+    long  # Python 2
 except NameError:
     long = int  # Python 3
 
@@ -41,94 +39,100 @@ logging.basicConfig()  # errors and everything else (2 separate log groups)
 logger = logging.getLogger("coopQt")  # create a logger for this file
 logger.setLevel(logging.DEBUG)  # defines the logging level (INFO for releases)
 
-
 # STYLES
-fontHeader = QtGui.QFont('MS Shell dlg 2', 15);
-fontFooter = QtGui.QFont('MS Shell dlg 2', 8);
-# button.setStyleSheet("background-color: rgb(0,210,255); color: rgb(0,0,0);")
-# imagePath = cmds.internalVar(upd = True) + 'icons/background.png')
-# button.setStyleSheet("background-image: url(" + imagePath + "); border:solid black 1px;")
-# self.setStyleSheet("QLabel { color: rgb(50, 50, 50); font-size: 11px; background-color: rgba(188, 188, 188, 50); border: 1px solid rgba(188, 188, 188, 250); } QSpinBox { color: rgb(50, 50, 50); font-size: 11px; background-color: rgba(255, 188, 20, 50); }")
+FONT_HEADER = QtGui.QFont('MS Shell dlg 2', 15)
+FONT_FOOTER = QtGui.QFont('MS Shell dlg 2', 8)
 
-
-PPI = cmds.mayaDpiSetting(realScaleValue=True, q=True)
 
 # WINDOW
-def getMayaWindow():
+def get_Maya_window():
     """
     Get the pointer to a maya window and wrap the instance as a QWidget
     Returns:
-        Maya Window as a QWidget instance
+        (QWidget): Maya window as a QWidget instance
     """
     ptr = omUI.MQtUtil.mainWindow()  # pointer to main window
     return wrapInstance(long(ptr), QtWidgets.QWidget)  # wrapper
 
-def isWindowMinimized(window):
-    """ Returns True if window is minimized """
+
+def is_minimized(window):
+    """
+    Returns True if window is minimized
+    Args:
+        window (unicode):  Window title
+
+    Returns:
+        (bool): True if window is minimized
+    """
     if cmds.window(window, exists=True, query=True):
         ptr = omUI.MQtUtil.findWindow(window)  # pointer to window
-        qWindow = wrapInstance(long(ptr), QtWidgets.QWidget)  # wrapper
-        return qWindow.windowState() == QtCore.Qt.WindowMinimized
+        q_window = wrapInstance(long(ptr), QtWidgets.QWidget)  # wrapper
+        return q_window.windowState() == QtCore.Qt.WindowMinimized
 
-def getDock(name=''):
+
+def get_dock(name=''):
     """
     Get pointer to a dock pane
     Args:
-        name: Name of the dock
+        name (unicode): Name of the dock
 
     Returns:
-        ptr: pointer to the created dock
+        (raw): Raw pointer to the created dock
     """
     if not name:
         cmds.error("No name for dock was specified")
-    deleteDock(name)
+    delete_dock(name)
     # used to be called dockControl
     # ctrl = cmds.workspaceControl(name, dockToMainWindow=('left', True), label=name)
     ctrl = cmds.dockControl(name, con=name, area='left', label=name)
-    qtCtrl = omUI.MQtUtil.findControl(ctrl)
-    ptr = wrapInstance(long(qtCtrl), QtWidgets.QWidget)
+    qt_ctrl = omUI.MQtUtil.findControl(ctrl)
+    ptr = wrapInstance(long(qt_ctrl), QtWidgets.QWidget)
     return ptr
 
 
-def deleteDock(name=''):
+def delete_dock(name=''):
     """
     Deletes a docked UI
     Args:
-        name: Name of the dock to delete
+        name (unicode): Name of the dock to delete
     """
     if cmds.dockControl(name, query=True, exists=True):  # workspaceControl on 2017
         logger.debug("The dock should be deleted next")
         cmds.deleteUI(name)
 
 
-def relativePath(path):
+def get_dpi_scale():
+    """
+    Gets the dpi scale of the Maya window
+    Returns:
+        (float): DPI scaling factor of the Maya interface
+    TODO: MacOS and Linux version
+    """
+    if clib.localOS() == "win":
+        return cmds.mayaDpiSetting(realScaleValue=True, q=True)
+    return 1.0
+
+
+def relative_path(path):
     """
     Returns the relative path, if any, compared to the project path
     Args:
-        path (str): path of current file or directory
+        path (unicode): path of current file or directory
     Returns:
-        relPath (str): relative path to project, if available (with forward slashes)
+        relPath (unicode): relative path to project, if available (with forward slashes)
     """
-    projectPath = os.path.abspath(cmds.workspace(q=True, rootDirectory=True))
-    newPath = os.path.abspath(path)
-    if projectPath in newPath:
-        newPath = newPath[newPath.find(projectPath)+len(projectPath):]
-        return newPath.replace(os.sep, '/')
+    project_path = os.path.abspath(cmds.workspace(q=True, rootDirectory=True))
+    new_path = os.path.abspath(path)
+    if project_path in new_path:
+        new_path = new_path[new_path.find(project_path) + len(project_path):]
+        return new_path.replace(os.sep, str('/'))
     return path
-
-
-class MayaUI(QtWidgets.QDialog):
-    """
-    DEPRECATED - USE CoopMayaUI instead
-    Creates a QDialog and parents it to the main Maya window
-    """
-    def __init__(self, parent=getMayaWindow()):
-        super(MayaUI, self).__init__(parent)
 
 
 class CoopMayaUI(QtWidgets.QDialog):
 
-    def __init__(self, title, dock=False, rebuild=False, brand="studio.coop", tooltip="", show=True, parent=getMayaWindow()):
+    def __init__(self, title, dock=False, rebuild=False, brand="studio.coop", tooltip="", show=True,
+                 parent=get_Maya_window()):
 
         # check if parent is given, otherwise, get Maya
         if isinstance(parent, basestring):
@@ -137,7 +141,7 @@ class CoopMayaUI(QtWidgets.QDialog):
                 parent = wrapInstance(long(ptr), QtWidgets.QWidget)  # wrapper
             else:
                 cmds.warning("No window with name {} was found, parenting to Maya window")
-                parent = getMayaWindow()
+                parent = get_Maya_window()
 
         super(CoopMayaUI, self).__init__(parent)
         # check if window exists
@@ -151,13 +155,7 @@ class CoopMayaUI(QtWidgets.QDialog):
         self.setWindowTitle(title)
         self.setObjectName(title)
         self.setWindowFlags(QtCore.Qt.Tool)  # always on top (multiplatform)
-        self.dpiS = cmds.mayaDpiSetting(realScaleValue=True, q=True)
-        """
-        if cmds.about(mac=True):
-            self.dpiS = 1
-        else:
-            self.dpiS = cmds.mayaDpiSetting(systemDpi=True, q=True)/96.0
-        """
+        self.dpi = get_dpi_scale()
 
         # check if the ui is dockable
         if cmds.dockControl(title, query=True, exists=True):
@@ -174,17 +172,17 @@ class CoopMayaUI(QtWidgets.QDialog):
         self.layout.setContentsMargins(0, 0, 0, 0)
         self.layout.setSpacing(0)
 
-        headerMargin = 10 * self.dpiS
+        header_margin = 10 * self.dpi
         self.header = QtWidgets.QLabel(title)
         self.header.setAlignment(QtCore.Qt.AlignHCenter)
-        self.header.setFont(fontHeader)
-        self.header.setContentsMargins(headerMargin, headerMargin, headerMargin, headerMargin)
+        self.header.setFont(FONT_HEADER)
+        self.header.setContentsMargins(header_margin, header_margin, header_margin, header_margin)
 
         self.brand = QtWidgets.QLabel(brand)
         self.brand.setAlignment(QtCore.Qt.AlignHCenter)
         self.brand.setToolTip(tooltip)
         self.brand.setStyleSheet("background-color: rgb(40,40,40); color: rgb(180,180,180); border:solid black 1px;")
-        self.brand.setFont(fontFooter)
+        self.brand.setFont(FONT_FOOTER)
         self.brand.setFixedHeight(15)
 
         self.buildUI()
@@ -201,28 +199,29 @@ class CoopMayaUI(QtWidgets.QDialog):
         pass
 
 
-def refreshUI(windowTitle, quiet=True):
+def refresh_window(window_title, quiet=True):
     """
     Refresh the UI elements by deleting all widgets and rebuilding it
     Args:
-        windowTitle (str): Title of the window to refresh
+        window_title (unicode): Title of the window to refresh
+        quiet (bool): If messages should be printed
     """
-    if cmds.window(windowTitle, exists=True):
-        ptr = omUI.MQtUtil.findWindow(windowTitle)  # pointer to main window
+    if cmds.window(window_title, exists=True):
+        ptr = omUI.MQtUtil.findWindow(window_title)  # pointer to main window
         window = wrapInstance(long(ptr), QtWidgets.QWidget)  # wrapper
-        mainLayout = window.layout()
-        clearLayout(mainLayout)  # delete all widgets within main layout
+        main_layout = window.layout()
+        clear_layout(main_layout)  # delete all widgets within main layout
         window.window().buildUI()
     else:
         if not quiet:
-            logger.debug("{0} window doesn't exist".format(windowTitle))
+            logger.debug("{0} window doesn't exist".format(window_title))
 
 
-def clearLayout(layout):
+def clear_layout(layout):
     """
     Delete all widgets within a layout
     Args:
-        layout (str): layout to clear
+        layout (QLayout): layout to clear
     """
     # delete all widgets within main layout
     index = layout.count() - 1
@@ -232,41 +231,6 @@ def clearLayout(layout):
         index -= 1
 
 
-def getCoopIconPath():
-    """
-    Get the coop icon path
-    Returns:
-        iconPath (str): the coop icon path
-    """
-    iconPaths = mel.eval('getenv("XBMLANGPATH")')
-    for iconPath in iconPaths.split(';'):
-        if "coop/maya/icons" in iconPath:
-            return iconPath
-
-
-def labeledComboBox(label, options):
-    """
-    Creates and returns a labeled combobox
-    Args:
-        label (str): String containing label text
-        options (lst): List of options to display in combo box e.g. ['.png', '.jpg', '.tif']
-
-    Returns:
-        labeledComboBox (QWidget): QWidget with the labeled combo box
-    TODO:
-        Convert to CLASS
-    """
-    w = QtWidgets.QWidget()
-    wLayout = QtWidgets.QHBoxLayout()
-    labelW = QtWidgets.QLabel(label)
-    comboW = QtWidgets.QComboBox()
-    comboW.addItems(options)
-    wLayout.addWidget(labelW)
-    wLayout.addWidget(comboW)
-    w.setLayout(wLayout)
-    return w
-
-
 class IconButton(QtWidgets.QLabel):
     """
     Icon Button class object
@@ -274,7 +238,7 @@ class IconButton(QtWidgets.QLabel):
     clicked = QtCore.Signal(str)
     active = False
 
-    def __init__(self, image, tooltip='', size=[25, 25], parent=None, bColor=(68, 68, 68), hColor=(200, 200, 200)):
+    def __init__(self, image, tooltip='', size=None, parent=None, b_color=(68, 68, 68), h_color=(200, 200, 200)):
         """
         Icon Button constructor
         Args:
@@ -284,19 +248,21 @@ class IconButton(QtWidgets.QLabel):
             parent (QWidget): Parent widget (default -> None)
         """
         super(IconButton, self).__init__(parent)
+        if size is None:
+            size = [25, 25]
         self.setFixedSize(size[0], size[1])
         self.setScaledContents(True)
         self.setToolTip(tooltip)
         self.setPixmap(image)
-        self.bColor = bColor
-        self.hColor = hColor
-        self.setColors()
+        self.b_color = b_color
+        self.h_color = h_color
+        self.set_colors()
 
     def mouseReleaseEvent(self, event):
         self.toggle()
         self.clicked.emit("emit the signal")
 
-    def changeIcon(self, image):
+    def change_icon(self, image):
         self.setPixmap(image)
 
     def toggle(self):
@@ -305,23 +271,24 @@ class IconButton(QtWidgets.QLabel):
         else:
             self.active = False
 
-    def setColors(self):
-        styleSheet = "QLabel{background-color: rgb" + "{0}".format(self.bColor) + \
-                     ";} QLabel:hover{background-color: rgb" + "{0}".format(self.hColor) + ";}"
-        self.setStyleSheet(styleSheet)
+    def set_colors(self):
+        style_sheet = "QLabel{background-color: rgb" + "{0}".format(self.b_color) + \
+                      ";} QLabel:hover{background-color: rgb" + "{0}".format(self.h_color) + ";}"
+        self.setStyleSheet(style_sheet)
 
-    def setActiveColors(self):
+    def set_active_colors(self):
         """ Sets an active background color """
-        styleSheet = "QLabel{background-color: rgb" + "{0}".format(self.hColor) + \
-                     ";} QLabel:hover{background-color: rgb" + "{0}".format(self.hColor) + ";}"
-        self.setStyleSheet(styleSheet)
+        style_sheet = "QLabel{background-color: rgb" + "{0}".format(self.h_color) + \
+                      ";} QLabel:hover{background-color: rgb" + "{0}".format(self.h_color) + ";}"
+        self.setStyleSheet(style_sheet)
 
 
 class HLine(QtWidgets.QFrame):
     """
     Horizontal line class object
     """
-    def __init__(self, width=0, height=5*PPI):
+
+    def __init__(self, width=0, height=5):
         """
         Horizontal line constructor
         Args:
@@ -334,7 +301,6 @@ class HLine(QtWidgets.QFrame):
         self.height = height
         self.width = width
 
-
     def sizeHint(self):
         return QtCore.QSize(self.width, self.height)
 
@@ -344,6 +310,7 @@ class RelativeSlider(QtWidgets.QSlider):
     Relative slider class object
     A slider that slides back to it's 0 position after sliding, giving relative values to it's previous position
     """
+
     def __init__(self, direction=QtCore.Qt.Horizontal):
         """
         Relative slider constructor
@@ -357,23 +324,23 @@ class RelativeSlider(QtWidgets.QSlider):
 
     def release(self):
         self.prevValue = 0
-        self.slideBack(time.time()+0.05)
+        self.slide_back(time.time() + 0.05)
 
-    def relValue(self):
+    def rel_value(self):
         """
         Get the relative value
         Returns:
             (int): relative value
         """
-        relValue = self.value() - self.prevValue
+        rel_value = self.value() - self.prevValue
         self.prevValue = self.value()
-        return relValue
+        return rel_value
 
-    def slideBack(self, endTime):
+    def slide_back(self, end_time):
         self.blockSignals(True)
-        if time.time() < endTime:
+        if time.time() < end_time:
             self.setValue(self.value() * 0.9)
-            threading.Timer(0.01, self.slideBack, [endTime]).start()
+            threading.Timer(0.01, self.slide_back, [end_time]).start()
         else:
             self.setValue(0)
         self.blockSignals(False)
@@ -392,19 +359,21 @@ class LabeledFieldSliderGroup(QtWidgets.QWidget):
     """
     valueChanged = QtCore.Signal()  # value changed signal of custom widget
 
-    def __init__(self, label="", value=0.0, min=0.0, max=1.0):
+    def __init__(self, label="", value=0.0, minv=0.0, maxv=1.0):
         super(LabeledFieldSliderGroup, self).__init__()
-        self.dpiS = cmds.mayaDpiSetting(realScaleValue=True, q=True)
+        self.dpiS = get_dpi_scale()
+        self.min = 0.0
+        self.max = 1.0
 
         # create layout
         self.layout = QtWidgets.QHBoxLayout(self)
         self.layout.setContentsMargins(0, 0, 0, 0)
 
         # create label
-        l = QtWidgets.QLabel(label)
-        l.setMinimumWidth(140 * self.dpiS)
-        l.setAlignment(QtCore.Qt.AlignRight | QtCore.Qt.AlignVCenter)
-        self.layout.addWidget(l)
+        label = QtWidgets.QLabel(label)
+        label.setMinimumWidth(140 * self.dpiS)
+        label.setAlignment(QtCore.Qt.AlignRight | QtCore.Qt.AlignVCenter)
+        self.layout.addWidget(label)
 
         # create field
         self.field = QtWidgets.QDoubleSpinBox()
@@ -429,7 +398,7 @@ class LabeledFieldSliderGroup(QtWidgets.QWidget):
         self.layout.addWidget(self.slider)
 
         # save data variables
-        self.setRange(min, max)
+        self.set_range(minv, maxv)
 
         # set values
         self.field.setValue(value)
@@ -437,38 +406,37 @@ class LabeledFieldSliderGroup(QtWidgets.QWidget):
         self.internalValue = value
 
         # create connections
-        self.slider.valueChanged.connect(self.updateValue)
-        self.field.valueChanged.connect(self.updateValue)
+        self.slider.valueChanged.connect(self.update_value)
+        self.field.valueChanged.connect(self.update_value)
 
-
-    def setRange(self, min='', max=''):
+    def set_range(self, minv='', maxv=''):
         """
         Sets the range of the slider to min and max
         Args:
-            min (float): Minimum value of slider
-            max (float): Maximum value of slider
+            minv (float): Minimum value of slider
+            maxv (float): Maximum value of slider
         """
         import numbers
-        if isinstance(min, numbers.Number):
-            if isinstance(max, numbers.Number):
-                if min < max:
-                    self.min = min
+        if isinstance(minv, numbers.Number):
+            if isinstance(maxv, numbers.Number):
+                if minv < maxv:
+                    self.min = minv
                 else:
                     logger.warning("Minimum value is not less than maximum value")
             else:
-                if min < self.max:
-                    self.min = min
+                if minv < self.max:
+                    self.min = minv
                 else:
                     logger.warning("Minimum value is not less than maximum value")
             self.slider.setMinimum(self.min * 1000)
-        if isinstance(max, numbers.Number):
-            if max > self.min:
-                self.max = max
+        if isinstance(maxv, numbers.Number):
+            if maxv > self.min:
+                self.max = maxv
             else:
                 logger.warning("Maximum value is not more than minimum value")
             self.slider.setMaximum(self.max * 1000)
 
-    def updateValue(self):
+    def update_value(self):
         """ Update and synchronize the value between the spinbox and slider """
         if self.sender() == self.slider:
             value = self.sender().value() / 1000.0
@@ -480,9 +448,9 @@ class LabeledFieldSliderGroup(QtWidgets.QWidget):
             self.slider.blockSignals(True)
             # check if slider needs to be changed
             if value < self.min:
-                self.setRange(value, self.max)
+                self.set_range(value, self.max)
             if value > self.max:
-                self.setRange(self.min, value)
+                self.set_range(self.min, value)
             # set value
             self.slider.setValue(value * 1000)
             self.slider.blockSignals(False)
@@ -509,61 +477,61 @@ class FileBrowserGrp(QtWidgets.QWidget):
     """
     Create a line edit file browser group
     """
-    valueChanged = QtCore.Signal()  # value changed signal of custom widget
+    value_changed = QtCore.Signal()  # value changed signal of custom widget
 
-    def __init__(self, filePath='', placeholder='', button='...', startDir=''):
+    def __init__(self, file_path='', placeholder='', button='...', start_dir=''):
         super(FileBrowserGrp, self).__init__()
-        self.dpiS = cmds.mayaDpiSetting(realScaleValue=True, q=True)
-        self.internalValue = filePath
-        self.startDir = startDir
-        if not startDir:
-            self.startDir = cmds.workspace(q=True, rootDirectory=True)
+        self.dpi = get_dpi_scale()
+        self.internal_value = file_path
+        self.start_dir = start_dir
+        if not start_dir:
+            self.start_dir = cmds.workspace(q=True, rootDirectory=True)
 
         # create layout
         self.layout = QtWidgets.QHBoxLayout(self)
         self.layout.setContentsMargins(0, 0, 0, 0)
-        self.layout.setSpacing(2 * self.dpiS)
+        self.layout.setSpacing(2 * self.dpi)
 
         # create line edit
-        self.lineEdit = QtWidgets.QLineEdit(filePath)
-        self.lineEdit.setPlaceholderText(placeholder)
-        self.lineEdit.returnPressed.connect(self.updatePath)
-        sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Preferred, QtWidgets.QSizePolicy.Preferred)
-        sizePolicy.setHorizontalStretch(1)
-        self.lineEdit.setSizePolicy(sizePolicy)
+        self.line_edit = QtWidgets.QLineEdit(file_path)
+        self.line_edit.setPlaceholderText(placeholder)
+        self.line_edit.returnPressed.connect(self.update_path)
+        size_policy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Preferred, QtWidgets.QSizePolicy.Preferred)
+        size_policy.setHorizontalStretch(1)
+        self.line_edit.setSizePolicy(size_policy)
 
-        self.layout.addWidget(self.lineEdit)
+        self.layout.addWidget(self.line_edit)
         self.layout.addStretch()
 
         # create browse button
-        pushButton = QtWidgets.QPushButton(button)
-        pushButton.setMaximumWidth(len(str(button))*10*self.dpiS)
-        pushButton.released.connect(self.browseDialog)
-        self.layout.addWidget(pushButton)
+        push_button = QtWidgets.QPushButton(button)
+        push_button.setMaximumWidth(len(str(button)) * 10 * self.dpi)
+        push_button.released.connect(self.browse_dialog)
+        self.layout.addWidget(push_button)
         self.layout.addStretch()
 
-    def browseDialog(self):
+    def browse_dialog(self):
         """ Runs when the file browse button is released """
-        startDir = self.lineEdit.text()
-        if not startDir:
+        start_dir = self.line_edit.text()
+        if not start_dir:
             # get project filepath
-            startDir = self.startDir
-        elif startDir[0] == '/':
+            start_dir = self.start_dir
+        elif start_dir[0] == '/':
             # relative path, make absolute
-            startDir = os.path.join(self.startDir, startDir[1:])
-        saveDir = cmds.fileDialog2(dir=startDir, fileMode=1, cap="Select texture file:", dialogStyle=2)
-        if not saveDir:
+            start_dir = os.path.join(self.start_dir, start_dir[1:])
+        save_dir = cmds.fileDialog2(dir=start_dir, fileMode=1, cap="Select texture file:", dialogStyle=2)
+        if not save_dir:
             cmds.error("Filename not specified")
             return
-        saveDir = relativePath(saveDir[0])
-        self.internalValue = saveDir
-        self.lineEdit.setText(saveDir)
-        self.valueChanged.emit()
+        save_dir = relative_path(save_dir[0])
+        self.internal_value = save_dir
+        self.line_edit.setText(save_dir)
+        self.value_changed.emit()
 
-    def updatePath(self):
+    def update_path(self):
         """ Runs when the line edit field is updated """
-        self.internalValue = self.lineEdit.text()
-        self.valueChanged.emit()
+        self.internal_value = self.line_edit.text()
+        self.value_changed.emit()
 
     def value(self):
         """
@@ -571,7 +539,7 @@ class FileBrowserGrp(QtWidgets.QWidget):
         Returns:
             str: the current path to a file
         """
-        return self.internalValue
+        return self.internal_value
 
 
 class WidgetGroup(QtWidgets.QWidget):
@@ -579,31 +547,33 @@ class WidgetGroup(QtWidgets.QWidget):
     Simple widget group class object with embedded layout and batch widget assignment
     """
 
-    def __init__(self, qWidgets=[], qLayout=None, parent=None, margins=0):
+    def __init__(self, q_widgets=None, q_layout=None, parent=None, margins=0):
         """
         Widget Group constructor
         Args:
-            qWidgets (lst): List of QWidgets to group (default -> [])
-            qLayout: QtWidgets Layout object -> layout of group (default -> QtWidgets.QVBoxLayout())
-            parent: QtWidgets object -> parent QtWidgets object (default -> None)
+            q_widgets (list): List of widgets to group (default: [])
+            q_layout (QLayout): Layout object -> layout of group (default: QtWidgets.QVBoxLayout())
+            parent (QWidget): Parent object (default: None)
         """
         super(WidgetGroup, self).__init__(parent)
-        if not qLayout:
-            qLayout = QtWidgets.QVBoxLayout()
-        self.groupLayout = qLayout
-        self.setLayout(self.groupLayout)
-        self.groupLayout.setContentsMargins(margins, margins, margins, margins)
-        self.addWidgets(qWidgets)
+        if q_widgets is None:
+            q_widgets = []
+        if not q_layout:
+            q_layout = QtWidgets.QVBoxLayout()
+        self.group_layout = q_layout
+        self.setLayout(self.group_layout)
+        self.group_layout.setContentsMargins(margins, margins, margins, margins)
+        self.add_widgets(q_widgets)
 
-    def addWidget(self, widget):
+    def add_widget(self, widget):
         """
         Add a single widget to the group
         Args:
             widget (QWidget): Widget to be added
         """
-        self.groupLayout.addWidget(widget)
+        self.group_layout.addWidget(widget)
 
-    def addWidget(self, widget, row, column):
+    def add_widget_into(self, widget, row, column):
         """
         Add a single widget into (row, column) of the group (has to be a QGridLayout)
         Args:
@@ -611,9 +581,9 @@ class WidgetGroup(QtWidgets.QWidget):
             row (int): row to insert into
             column (int): column to insert into
         """
-        self.groupLayout.addWidget(widget, row, column)
+        self.group_layout.addWidget(widget, row, column)
 
-    def addWidgets(self, widgets):
+    def add_widgets(self, widgets):
         """
         Adds a list of widgets to the group
         Args:
@@ -621,55 +591,55 @@ class WidgetGroup(QtWidgets.QWidget):
         """
         for widget in widgets:
             if widget == "stretch":
-                self.groupLayout.addStretch()
+                self.group_layout.addStretch()
             else:
-                self.groupLayout.addWidget(widget)
+                self.group_layout.addWidget(widget)
 
 
 class CollapsibleGrp(QtWidgets.QWidget):
     """
     Create a collapsible group similar to what you can find in the attribute editor
     """
+
     def __init__(self, title=''):
         super(CollapsibleGrp, self).__init__()
-        self.dpiS = cmds.mayaDpiSetting(realScaleValue=True, q=True)
+        self.dpi = get_dpi_scale()
         self.title = title
 
         # create layout
         self.layout = QtWidgets.QVBoxLayout(self)
         self.layout.setContentsMargins(0, 0, 0, 0)
         self.layout.setSpacing(0)
-        # self.layout.setSpacing(2 * self.dpiS)
 
         # create toggle button
-        self.toggleButton = QtWidgets.QPushButton(u'  \u25BC    ' + self.title)
-        self.toggleButton.setObjectName("toggler")
+        self.toggle_button = QtWidgets.QPushButton(u'  \u25BC    ' + self.title)
+        self.toggle_button.setObjectName("toggler")
         self.setStyleSheet('QPushButton#toggler {'
                            'text-align: left;'
                            'font-weight: bold;'
                            'background-color: #5d5d5d;'
                            'padding: 0.3em;'
                            'border-radius: 0.2em;}')
-        self.toggleButton.released.connect(self.toggleContent)
-        self.layout.addWidget(self.toggleButton)
+        self.toggle_button.released.connect(self.toggle_content)
+        self.layout.addWidget(self.toggle_button)
 
         # content widget
         self.content = QtWidgets.QGroupBox()
-        self.contentLayout = QtWidgets.QVBoxLayout(self.content)
+        self.content_layout = QtWidgets.QVBoxLayout(self.content)
         self.layout.addWidget(self.content)
 
-    def addWidget(self, widget):
+    def add_widget(self, widget):
         """ Adds a widget to the content of the collapsible group """
-        self.contentLayout.addWidget(widget)
+        self.content_layout.addWidget(widget)
 
-    def toggleContent(self):
+    def toggle_content(self):
         """ Toggles the content of the collapsible group """
         if self.content.isVisible():
             self.content.setVisible(False)
-            self.toggleButton.setText(u'  \u25B6    ' + self.title)
+            self.toggle_button.setText(u'  \u25B6    ' + self.title)
         else:
             self.content.setVisible(True)
-            self.toggleButton.setText(u'  \u25BC    ' + self.title)
+            self.toggle_button.setText(u'  \u25BC    ' + self.title)
 
 
 class SplashView(QWebEngineView):
@@ -680,7 +650,7 @@ class SplashView(QWebEngineView):
 
 
 class WebEnginePage(QWebEnginePage):
-    def acceptNavigationRequest(self, url,  _type, isMainFrame):
+    def acceptNavigationRequest(self, url, _type, is_main_frame):
         if _type == QWebEnginePage.NavigationTypeLinkClicked:
             print("Opening: {}".format(url.toString()))
             QtGui.QDesktopServices.openUrl(url)
@@ -698,20 +668,21 @@ class ProgressDialog(QtWidgets.QProgressDialog):
         self.setAutoClose(True)
         self.setAutoReset(True)
         self.setRange(0, 100)
-        self.floatValue = 0
-        self.setValue(int(self.floatValue))
+        self.float_value = 0
+        self.setValue(int(self.float_value))
         self.show()
-        processEvents()
+        process_events()
 
     def add(self, v, item):
         if self.wasCanceled():
             return False
-        self.floatValue += v
-        self.setValue(int(self.floatValue))
+        self.float_value += v
+        self.setValue(int(self.float_value))
         self.setLabelText("Processing {}".format(item))
-        processEvents()
+        process_events()
         return True
 
-def processEvents():
+
+def process_events():
     """ Processes all queued Qt events """
     QtCore.QCoreApplication.processEvents()
