@@ -17,7 +17,11 @@ import os, sys, subprocess, shutil, re, logging, json, math, traceback, platform
 from functools import wraps
 import maya.mel as mel
 import maya.cmds as cmds
-import maya.api.OpenMaya as om  # python api 2.0
+
+# python api 2.0
+import maya.api.OpenMaya as om
+def maya_useNewAPI():
+    pass
 
 try:
     basestring  # Python 2
@@ -1148,6 +1152,7 @@ def deleteVertexColorSets(shapes, colorSets, quiet=True):
                     cmds.delete(nodes2Delete)
                 logger.debug("Vertex color set {0} deleted for: {1}".format(colorSet, shape))
     logger.setLevel(logging.DEBUG)
+
 
 def bakeVertexColors(shapes):
     """

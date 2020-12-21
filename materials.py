@@ -82,29 +82,37 @@ def get_shading_engines(objects):
         (list): Shading engines of objects
     """
     shapes = clib.getShapes(objects, l=True)
-    shading_engines = clib.ListUtils.removeDuplicates(cmds.listConnections(shapes, type="shadingEngine"))
+    shading_engines = clib.ListUtils.removeDuplicates(cmds.listConnections(shapes, type="shadingEngine") or [])
     return shading_engines
 
 
-def set_material(mat, objects):
+def set_material(mat, objects, quiet=True):
     """
     Set material onto objects
     Args:
         mat (unicode): Name of material to set to objects
         objects (list): List of objects that the material is assigned to
+        quiet (bool): If the function should print what its doing
     """
-    mat = clib.u_stringify(mat)
-    shading_engines = get_shading_engines(objects)
-    if shading_engines:
-        for shadingEngine in shading_engines:
-            if not cmds.isConnected("{0}.outColor".format(mat), "{0}.surfaceShader".format(shadingEngine)):
-                cmds.connectAttr("{0}.outColor".format(mat), "{0}.surfaceShader".format(shadingEngine), f=True)
-    else:
-        # fallback to hypershade cmd
+    def hypershade_fallback():
         selection = cmds.ls(sl=True, l=True)
         cmds.select(objects, r=True)
         cmds.hyperShade(assign=mat)
         cmds.select(selection, r=True)
+
+    mat = clib.u_stringify(mat)
+    if not quiet:
+        print("set_material(): setting {} onto {}".format(mat, objects))
+    shading_engines = get_shading_engines(objects)
+    if shading_engines:
+        for shading_engine in shading_engines:
+            if not cmds.isConnected("{0}.outColor".format(mat), "{0}.surfaceShader".format(shading_engine)):
+                if objects == cmds.sets(shading_engine, q=True):  # replace material
+                    cmds.connectAttr("{0}.outColor".format(mat), "{0}.surfaceShader".format(shading_engine), f=True)
+                else:
+                    hypershade_fallback()  # assign
+    else:
+        hypershade_fallback()
 
 
 def separate_materials(objects=None, new_name=""):

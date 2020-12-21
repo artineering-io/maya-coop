@@ -477,7 +477,7 @@ class FileBrowserGrp(QtWidgets.QWidget):
     """
     Create a line edit file browser group
     """
-    value_changed = QtCore.Signal()  # value changed signal of custom widget
+    valueChanged = QtCore.Signal()  # value changed signal of custom widget
 
     def __init__(self, file_path='', placeholder='', button='...', start_dir=''):
         super(FileBrowserGrp, self).__init__()
@@ -526,12 +526,12 @@ class FileBrowserGrp(QtWidgets.QWidget):
         save_dir = relative_path(save_dir[0])
         self.internal_value = save_dir
         self.line_edit.setText(save_dir)
-        self.value_changed.emit()
+        self.valueChanged.emit()
 
     def update_path(self):
         """ Runs when the line edit field is updated """
         self.internal_value = self.line_edit.text()
-        self.value_changed.emit()
+        self.valueChanged.emit()
 
     def value(self):
         """
