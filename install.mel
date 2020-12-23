@@ -2,7 +2,7 @@
 //
 // @license:       MIT
 // @repository:    https://github.com/artineering-io/maya-coop
-// @summary:       Drag and drop plugin installer
+// @summary:       Drag and drop module installer
 // @run:           Drag and drop install.mel file onto the viewport to add paths and
 //                 install dependencies
 //
@@ -20,9 +20,9 @@
       python ("sys.path.insert(0, '" + $scriptsDir + "')") ;
   }
 
-  python ("import coopSetup");
-  python ("reload(coopSetup)");  // convenience to reload coopSetup upon change
-  python ("coopSetup.run('" + $fileDir + "')");
+  python ("import coop.setup");
+  python ("reload(coop.setup)");  // convenience to reload coopSetup upon change
+  python ("coop.setup.run('" + $fileDir + "')");
 
   global proc string installScriptLocation () {
       string $whatIs=`whatIs installScriptLocation`;

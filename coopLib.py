@@ -208,7 +208,7 @@ def checkAboveVersion(year):
     return False
 
 
-def mayaVersion():
+def maya_version():
     """
     Returns the current Maya version (E.g. 2017.0, 2018.0, 2019.0, etc)
     """
@@ -238,14 +238,29 @@ def plugin_ext():
     return extensions[localOS()]
 
 
-def getEnvDir():
+def get_env_dir():
     """
     Gets the environment directory
     Returns:
         directory (str): the directory of the Maya.env file
     """
-    envDir = os.path.abspath(cmds.about(env=True, q=True))
-    return os.path.dirname(envDir)
+    env_dir = os.path.abspath(cmds.about(env=True, q=True))
+    return os.path.dirname(env_dir)
+
+
+def get_module_path(module):
+    """
+    Gets the path of a Maya module, if it exists
+    Args:
+        module (unicode): Name of the module
+
+    Returns:
+        (unicode): Path to the module (empty if it doesn't exist)
+    """
+    try:
+        return cmds.moduleInfo(path=True, moduleName=module)
+    except RuntimeError:
+        return ""
 
 
 def getLibDir():
@@ -255,19 +270,6 @@ def getLibDir():
         directory (str): the directory where the coopLib is found at
     """
     return Path(__file__).parent().path
-
-
-def createDirectory(directory):
-    """
-    Creates the given directory if it doesn't exist already
-    Args:
-        directory (str): The directory to create
-    """
-    if directory:
-        if not os.path.exists(directory):
-            os.makedirs(directory)
-    else:
-        raise ValueError("No directory has been given to create.")
 
 
 def openUrl(url):
@@ -322,7 +324,8 @@ def restartDialog(brute=True):
         brute (bool): True if the Maya process should stop, False if Maya should be exited normally
     """
     restart = cmds.confirmDialog(title='Restart Maya',
-                                 message='Maya needs to be restarted in order to show changes\nWould you like to restart maya now?',
+                                 message='Maya needs to be restarted in order to show changes\n'
+                                         'Would you like to restart maya now?',
                                  button=['Yes', 'No'], defaultButton='Yes', cancelButton='No', dismissString='No',
                                  ma='center')
     if restart == 'Yes':
@@ -516,7 +519,7 @@ def deleteShelves(shelvesDict=None, restart=True):
     Raises:
         restartDialog()
     """
-    envDir = getEnvDir()
+    envDir = get_env_dir()
     if not shelvesDict:
         cmds.error('No shelf array given')
     # Maya creates all default shelves in prefs only after each has been opened (initialized)
@@ -553,7 +556,7 @@ def restoreShelves():
     Raises:
         restartDialog()
     """
-    shelfDir = os.path.join(getEnvDir(), 'prefs', 'shelves')
+    shelfDir = os.path.join(get_env_dir(), 'prefs', 'shelves')
     for shelf in os.listdir(shelfDir):
         if shelf.endswith('.deleted'):
             restoredShelf = os.path.join(shelfDir, shelf.split('.deleted')[0])
@@ -1464,7 +1467,7 @@ def displayInfo(info):
     Args:
         info (unicode): Information to be displayed
     """
-    if mayaVersion() > 2018:
+    if maya_version() > 2018:
         m = '<span style="color:#82C99A;">{}</span>'.format(info)
         cmds.inViewMessage(msg=m, pos="midCenter", fade=True)
     printInfo(info)
@@ -1485,7 +1488,7 @@ def displayWarning(warning):
     Args:
         warning (unicode): Warning to be displayed
     """
-    if mayaVersion() > 2018:
+    if maya_version() > 2018:
         m = '<span style="color:#F4FA58;">Warning: </span><span style="color:#DDD">{}</span>'.format(warning)
         cmds.inViewMessage(msg=m, pos="midCenter", fade=True)
     printWarning(warning)
@@ -1512,7 +1515,7 @@ def displayError(error, traceback=False):
         error (unicode): Error to be displayed
         traceback (bool): If python should error our and show a traceback
     """
-    if mayaVersion() > 2018:
+    if maya_version() > 2018:
         m = '<span style="color:#F05A5A;">Error: </span><span style="color:#DDD">{}</span>'.format(error)
         cmds.inViewMessage(msg=m, pos="midCenterBot", fade=True)
     printError(error, traceback)
