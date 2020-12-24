@@ -23,7 +23,7 @@ def get_assigned_meshes(objects=None, shapes=True, l=False):
     assigned_meshes = []
     if not objects:
         objects = cmds.ls(sl=True, l=True)
-    materials = cmat.get_materials(objects)
+    materials = get_materials(objects)
     shading_engines = cmds.listConnections(materials, type="shadingEngine") or []
     for shading_engine in shading_engines:
         meshes = cmds.sets(shading_engine, q=True) or []  # meshes
@@ -176,6 +176,8 @@ def _get_material_of_components(components):
             # Note: we could have used set() above, but the order of elements can be important for certain tools
             for se in shading_engines:
                 s = cmds.sets(se, q=True)
+                if len(cmds.ls(c, flatten=True)) == 1:
+                    s = cmds.ls(s, flatten=True)
                 if c in s:
                     materials.extend(cmds.ls(cmds.listConnections(se), mat=True))
     # components might not have a material
