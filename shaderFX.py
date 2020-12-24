@@ -5,7 +5,8 @@
 @repository:    https://github.com/artineering-io/maya-coop
 """
 import maya.cmds as cmds
-import coopLib as clib
+import lib as clib
+import materials as cmat
 
 
 def get_id(material, unique_node_name, quiet=False):
@@ -25,7 +26,7 @@ def get_id(material, unique_node_name, quiet=False):
             node_id = cmds.shaderfx(sfxnode=material, getNodeIDByName=unique_node_name)
         except RuntimeError:
             if not quiet:
-                clib.printWarning("Node {0} was not found in the material {1}".format(unique_node_name, material))
+                clib.print_warning("Node {0} was not found in the material {1}".format(unique_node_name, material))
     return node_id
 
 
@@ -58,7 +59,7 @@ def set_node_value(material, unique_node_name, value, quiet=False):
         cmds.select(selection, r=True)
     else:
         if not quiet:
-            clib.printWarning("Setting of {0} node to {1} has failed".format(unique_node_name, value))
+            clib.print_warning("Setting of {0} node to {1} has failed".format(unique_node_name, value))
     return node_id
 
 
@@ -80,53 +81,50 @@ def get_node_value(material, unique_node_name, quiet=False):
     return value
 
 
-def reference_check(mat, prompt_viewed=False):
+def create_material(name, graph_dir="", custom_graph=""):
     """
-    Checks if the material is referenced and processes it accordingly
+    Create a shaderFX material
     Args:
-        mat (unicode): material to check
-        prompt_viewed (bool): if the reference prompt has been viewed
-    """
-    # check if material is referenced
-    if cmds.referenceQuery(mat, isNodeReferenced=True) and not prompt_viewed:
-        message = "Referenced ShaderFX materials may not save correctly\n" \
-                  "Do you wish to convert them to local materials instead?"
-        button = ['Yes', 'Yes, convert ALL', 'No']
-        reply = cmds.confirmDialog(t="Referenced materials", m=message, b=button, icn="warning", ma="center")
-        prompt_viewed = True
-        if "Yes" in reply:
-            if "Yes" == reply:
-                if clib.getAssignedMeshes(mat):
-                    mat = dereference_material(mat)
-            else:
-                materials = cmds.ls(type="ShaderfxShader")
-                for m in materials:
-                    if m != mat:
-                        if clib.getAssignedMeshes(m):
-                            dereference_material(m)
-                if clib.getAssignedMeshes(mat):
-                    mat = dereference_material(mat)
-    return mat
-
-
-def dereference_material(mat):
-    """
-    Creates a local material with the same name if mat is referenced
-    Args:
-        mat (unicode): Material name to check and dereference
+        name (unicode): Name of the new material
+        graph_dir (unicode): Directory of where custom graphs are located
+        custom_graph (unicode): Name of custom_graph
 
     Returns:
-        (unicode): Local material name
+        (unicode): Name of new material
     """
-    if cmds.referenceQuery(mat, isNodeReferenced=True):
-        new_material = mat.split(':')[-1]
-        objects = clib.getAssignedMeshes(mat, shapes=True, l=True)
-        # duplicate the material and assign it to objects
-        new_material = cmds.duplicate(mat, n=new_material)[0]
-        clib.setMaterial(new_material, objects)
-        return new_material
+    graph = ""
+    if graph_dir and custom_graph:
+        graph_path = clib.Path(graph_dir).child(custom_graph)
+        if graph_path.exists():
+            graph = graph_path.path
+        else:
+            clib.print_error("No custom graph was found in {}".format(graph_path.path))
+    # resolve name clashes with SFX
+    if cmds.objExists(name):
+        if "_SFX" not in name:
+            name += "_SFX"
+    # create node and load custom_graph if available
+    shader = cmds.shadingNode('ShaderfxShader', asShader=True, name=name)
+    if graph:
+        cmds.shaderfx(sfxnode=shader, loadGraph=graph)
+    return shader
+
+
+def refresh_materials(objects=None):
+    """ Forces an update of assigned shaderFX materials """
+    if objects:
+        materials = cmat.get_materials(objects)
     else:
-        return mat
+        materials = cmds.ls(type="ShaderfxShader")
+    selection = cmds.ls(sl=True, l=True)
+    restore_selection = False
+    for mat in materials:
+        if cmds.objectType(mat) == 'ShaderfxShader':
+            cmds.select(mat, r=True)  # needs to be selected
+            restore_selection = True
+            cmds.shaderfx(sfxnode=mat, update=True)
+    if restore_selection:
+        cmds.select(selection, r=True)
 
 
 def filepath_check(text=None, fix=False):
@@ -147,52 +145,6 @@ def filepath_check(text=None, fix=False):
                 "{}.{} is {}".format(sfx, attr, path)
             except UnicodeEncodeError:
                 # there are characters that Maya doesn't support
-                clib.printWarning("{}.{} has an unsupported file path".format(sfx, attr))
+                clib.print_warning("{}.{} has an unsupported file path".format(sfx, attr))
                 if fix:
                     cmds.setAttr("{}.{}".format(sfx, attr), "", type="string")
-
-
-def create_material(name, graph_dir="", custom_graph=""):
-    """
-    Create a shaderFX material
-    Args:
-        name (unicode): Name of the new material
-        graph_dir (unicode): Directory of where custom graphs are located
-        custom_graph (unicode): Name of custom_graph
-
-    Returns:
-        (unicode): Name of new material
-    """
-    graph = ""
-    if graph_dir and custom_graph:
-        graph_path = clib.Path(graph_dir).child(custom_graph)
-        if graph_path.exists():
-            graph = graph_path.path
-        else:
-            clib.printError("No custom graph was found in {}".format(graph_path.path))
-    # resolve name clashes with SFX
-    if cmds.objExists(name):
-        if "_SFX" not in name:
-            name += "_SFX"
-    # create node and load custom_graph if available
-    shader = cmds.shadingNode('ShaderfxShader', asShader=True, name=name)
-    if graph:
-        cmds.shaderfx(sfxnode=shader, loadGraph=graph)
-    return shader
-
-
-def refresh_materials(objects=None):
-    """ Forces an update of assigned shaderFX materials """
-    if objects:
-        materials = clib.getMaterials(objects)
-    else:
-        materials = cmds.ls(type="ShaderfxShader")
-    selection = cmds.ls(sl=True, l=True)
-    restore_selection = False
-    for mat in materials:
-        if cmds.objectType(mat) == 'ShaderfxShader':
-            cmds.select(mat, r=True)  # needs to be selected
-            restore_selection = True
-            cmds.shaderfx(sfxnode=mat, update=True)
-    if restore_selection:
-        cmds.select(selection, r=True)

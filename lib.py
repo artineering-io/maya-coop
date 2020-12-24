@@ -23,6 +23,7 @@ import maya.api.OpenMaya as om
 def maya_useNewAPI():
     pass
 
+
 try:
     basestring  # Python 2
 except NameError:
@@ -73,14 +74,14 @@ def timer(f):
     @wraps(f)  # timer = wraps(timer) | helps wrap the docstring of original function
     def wrapper(*args, **kwargs):
         import time
-        timeStart = time.time()
+        time_start = time.time()
         try:
             return f(*args, **kwargs)
         except:
             traceback.print_exc()
         finally:
-            timeEnd = time.time()
-            logger.debug("[Time elapsed at {0}:    {1:.4f} sec]".format(f.__name__, timeEnd - timeStart))
+            time_end = time.time()
+            logger.debug("[Time elapsed at {0}:    {1:.4f} sec]".format(f.__name__, time_end - time_start))
 
     return wrapper
 
@@ -94,8 +95,9 @@ def undo(f):
     Returns:
         wrapped function within an undo chunk
     """
+
     @wraps(f)
-    def undoWrapper(*args, **kwargs):
+    def undo_wrapper(*args, **kwargs):
         try:
             # start an undo chunk
             cmds.undoInfo(openChunk=True, cn="{0}".format(f))
@@ -106,7 +108,7 @@ def undo(f):
             # after calling the func, end the undo chunk
             cmds.undoInfo(closeChunk=True, cn="{0}".format(f))
 
-    return undoWrapper
+    return undo_wrapper
 
 
 #    _     _     _   _   _ _   _ _
@@ -119,44 +121,46 @@ def undo(f):
 # It works in a similar way to set(), but it keeps the order of its elements
 class ListUtils(object):
     @staticmethod
-    def removeDuplicates(objList):
+    def remove_duplicates(obj_list):
         """
-        Remove duplicate entries in lists
+        Remove duplicate entries in list and keep order of entries
         Args:
-            lst (list): List to remove duplicate entries from
+            obj_list (list): List to remove duplicate entries from
 
         Returns:
             New List
         """
-        if not objList:
-            objList = []
-        newList = []
-        newSet = set()  # working with sets speeds up the workflow
-        for obj in objList:
-            if obj not in newSet:
-                newSet.add(obj)
-                newList.append(obj)
-        return newList
+        if not obj_list:
+            obj_list = []
+        new_list = []
+        new_set = set()  # working with sets speeds up the workflow
+        for obj in obj_list:
+            if obj not in new_set:
+                new_set.add(obj)
+                new_list.append(obj)
+        return new_list
 
     @staticmethod
-    def add(objList, obj):
+    def add(obj_list, obj):
         """
         Adds object if it didn't exist before
         Args:
-            obj (str): object to be added
+            obj_list (list): List to add element onto
+            obj (unicode): object to be added
         """
-        if obj not in objList:
-            objList.append(obj)
+        if obj not in obj_list:
+            obj_list.append(obj)
 
     @staticmethod
-    def update(objList, updateList):
+    def update(obj_list, update_list):
         """
         Adds each object within a list if it didn't exist before
         Args:
-            objList (list): list of objects to be added
+            obj_list (list): List to update with elements of update_list
+            update_list (list): List to add to obj_list
         """
-        for obj in updateList:
-            ListUtils.add(objList, obj)
+        for obj in update_list:
+            ListUtils.add(obj_list, obj)
 
 
 ######################################################################################
@@ -175,7 +179,7 @@ def get_host():
         return "Blender"
 
 
-def pyVersion(version=0):
+def get_py_version(version=0):
     """
     Checks for the version of python currently running
     Args:
@@ -185,37 +189,22 @@ def pyVersion(version=0):
         Version check (bool): True if current version is higher than the given version. False if not
     """
     v = platform.python_version()
-    fV = float(v[:v.rindex('.')])
+    f_v = float(v[:v.rindex('.')])
     if not version:
-        return fV
-    if fV >= float(version):
+        return f_v
+    if f_v >= float(version):
         return True
     return False
 
 
-def checkAboveVersion(year):
-    """
-    Checks if Maya is above a certain version
-    Args:
-        year (float): year to check
-    Returns:
-        bool: True or False depending on the Maya version
-    """
-    version = os.path.basename(os.path.dirname(os.path.dirname(cmds.internalVar(usd=True))))
-    vYear = version.split('-')[0]
-    if float(vYear) > float(year):
-        return True
-    return False
-
-
-def maya_version():
+def get_maya_version():
     """
     Returns the current Maya version (E.g. 2017.0, 2018.0, 2019.0, etc)
     """
     return mel.eval("getApplicationVersionAsFloat")
 
 
-def localOS():
+def get_local_os():
     """
     Returns the operating system (OS) of the local machine
     Returns:
@@ -235,14 +224,14 @@ def plugin_ext():
         (unicode): Either "mll", "bundle" or "so"
     """
     extensions = {"win": "mll", "mac": "bundle", "linux": "so"}
-    return extensions[localOS()]
+    return extensions[get_local_os()]
 
 
 def get_env_dir():
     """
     Gets the environment directory
     Returns:
-        directory (str): the directory of the Maya.env file
+        directory (unicode): the directory of the Maya.env file
     """
     env_dir = os.path.abspath(cmds.about(env=True, q=True))
     return os.path.dirname(env_dir)
@@ -263,20 +252,20 @@ def get_module_path(module):
         return ""
 
 
-def getLibDir():
+def get_lib_dir():
     """
     Gets the coop library directory
     Returns:
-        directory (str): the directory where the coopLib is found at
+        directory (unicode): the directory where the coopLib is found at
     """
     return Path(__file__).parent().path
 
 
-def openUrl(url):
+def open_url(url):
     """
     Opens the url in the default browser
     Args:
-        url (str): The URL to open
+        url (unicode): The URL to open
     """
     import webbrowser
     webbrowser.open(url, new=2, autoraise=True)
@@ -302,22 +291,22 @@ def downloader(url, dest):
     return True
 
 
-def restartMaya(brute=True):
+def restart_maya(brute=True):
     """
     Restarts maya (CAUTION)
     Args:
         brute (bool): True if the Maya process should stop, False if Maya should be exited normally
     """
     if not brute:
-        mayaPyDir = Path(sys.executable).parent().child("mayapy.exe")
-        scriptDir = Path(__file__).parent().child("coopRestart.py")
-        subprocess.Popen([mayaPyDir.path, scriptDir.path])
+        maya_py_dir = Path(sys.executable).parent().child("mayapy.exe")
+        script_dir = Path(__file__).parent().child("coopRestart.py")
+        subprocess.Popen([maya_py_dir.path, script_dir.path])
         cmds.quit(force=True)
     else:
         os.execl(sys.executable, sys.executable, *sys.argv)
 
 
-def restartDialog(brute=True):
+def dialog_restart(brute=True):
     """
     Opens restart dialog to restart maya
     Args:
@@ -329,7 +318,7 @@ def restartDialog(brute=True):
                                  button=['Yes', 'No'], defaultButton='Yes', cancelButton='No', dismissString='No',
                                  ma='center')
     if restart == 'Yes':
-        restartMaya(brute)
+        restart_maya(brute)
 
 
 def dialog_save(starting_directory="", title="Save as...", file_filter="All Files (*.*)"):
@@ -346,10 +335,10 @@ def dialog_save(starting_directory="", title="Save as...", file_filter="All File
     if not starting_directory:
         starting_directory = cmds.workspace(rd=True, q=True)
     save_path = cmds.fileDialog2(fileFilter=file_filter, fileMode=0,
-                                  startingDirectory=starting_directory,
-                                  cap=title, dialogStyle=2)
+                                 startingDirectory=starting_directory,
+                                 cap=title, dialogStyle=2)
     if not save_path:
-        displayError("Filepath not specified", True)
+        display_error("Filepath not specified", True)
         return ""
     return save_path[0]
 
@@ -368,28 +357,28 @@ def dialog_open(starting_directory="", title="Open file", file_filter="All Files
     if not starting_directory:
         starting_directory = cmds.workspace(rd=True, q=True)
     open_path = cmds.fileDialog2(fileFilter=file_filter, fileMode=1,
-                                  startingDirectory=starting_directory,
-                                  cap=title, dialogStyle=2)
+                                 startingDirectory=starting_directory,
+                                 cap=title, dialogStyle=2)
     if not open_path:
-        displayError("No path specified", True)
+        display_error("No path specified", True)
     return open_path[0]
 
 
 ######################################################################################
 # MAYA UTILITIES
 ######################################################################################
-def createEmptyNode(inputName):
+def create_empty_node(input_name):
     """
     Creates a completely empty node
     Args:
-         inputName (str): Name of the new empty node
+         input_name (unicode): Name of the new empty node
     """
     cmds.select(cl=True)
-    cmds.group(em=True, name=inputName)
-    nodeName = cmds.ls(sl=True)
-    keyableAttributes = cmds.listAttr(nodeName, k=True)
-    for attribute in keyableAttributes:
-        cmds.setAttr('{0}.{1}'.format(nodeName[0], attribute), l=True, k=False)
+    cmds.group(em=True, name=input_name)
+    node_name = cmds.ls(sl=True)
+    keyable_attributes = cmds.listAttr(node_name, k=True)
+    for attribute in keyable_attributes:
+        cmds.setAttr('{0}.{1}'.format(node_name[0], attribute), l=True, k=False)
 
 
 def get_node_data(node_name, settable=True, quiet=False):
@@ -408,7 +397,7 @@ def get_node_data(node_name, settable=True, quiet=False):
     for attr in node_attrs:
         try:
             if cmds.attributeQuery(attr, node=node_name, attributeType=True) != "compound":
-                    data[attr] = cmds.getAttr("{}.{}".format(node_name, attr))
+                data[attr] = cmds.getAttr("{}.{}".format(node_name, attr))
             else:
                 for sub_attr in cmds.attributeQuery(attr, node=node_name, listChildren=True):
                     data[sub_attr] = cmds.getAttr("{}.{}".format(node_name, sub_attr))
@@ -426,10 +415,10 @@ def set_node_data(node_name, node_data):
         node_data (dict): Dictionary of node data {attribute: value}
     """
     for attr in node_data:
-        setAttr(node_name, attr, node_data[attr])
+        set_attr(node_name, attr, node_data[attr])
 
 
-def purgeMissing(objects):
+def purge_missing(objects):
     """
     Deletes non-existing objects within a list of objects
     Args:
@@ -440,136 +429,131 @@ def purgeMissing(objects):
     objs = []
     for obj in objects:
         if isinstance(obj, list) or isinstance(obj, tuple):
-            objs.extend(purgeMissing(obj))
+            objs.extend(purge_missing(obj))
         else:
             if cmds.objExists(obj):
                 objs.append(obj)
     return objs
 
 
-def getActiveModelPanel():
+def get_active_model_panel():
     """
     Get the active model editor panel
     Returns:
-        modelPanel name (str)
+        modelPanel name (unicode)
     """
-    activePanel = cmds.getPanel(wf=True)
-    if cmds.getPanel(typeOf=activePanel) == 'modelPanel':
-        return activePanel
+    active_panel = cmds.getPanel(wf=True)
+    if cmds.getPanel(typeOf=active_panel) == 'modelPanel':
+        return active_panel
     else:
         return cmds.playblast(ae=True)
 
 
-def detachShelf():
+def detach_shelf():
     """
     Detaches the current shelves
     """
-    shelfTopLevel = mel.eval('$tempMelVar=$gShelfTopLevel')
-    shelfName = cmds.shelfTabLayout(shelfTopLevel, st=True, q=True)
-    shelfPaths = os.path.abspath(cmds.internalVar(ush=True)).split(';')
-    shelfFile = "shelf_{0}.mel".format(shelfName)
+    shelf_top_level = mel.eval('$tempMelVar=$gShelfTopLevel')
+    shelf_name = cmds.shelfTabLayout(shelf_top_level, st=True, q=True)
+    shelf_paths = os.path.abspath(cmds.internalVar(ush=True)).split(';')
+    shelf_file = "shelf_{0}.mel".format(shelf_name)
 
     # find path of shelf
-    shelfFilePath = ""
-    for shelfPath in shelfPaths:
+    shelf_file_path = ""
+    for shelfPath in shelf_paths:
         files = os.listdir(shelfPath)
-        if shelfFile in files:
-            shelfFilePath = os.path.join(shelfPath, shelfFile)
-    if not shelfFilePath:
-        displayError("Can't detach shelf, try closing Maya with the shelf open and try again")
+        if shelf_file in files:
+            shelf_file_path = os.path.join(shelfPath, shelf_file)
+    if not shelf_file_path:
+        display_error("Can't detach shelf, try closing Maya with the shelf open and try again")
         return
 
     # read mel shelf file
-    with open(shelfFilePath, 'r') as file:
-        text = file.read()
+    with open(shelf_file_path, 'r') as shelf_file:
+        text = shelf_file.read()
     # build new mel command
-    melCommands = ""
+    mel_commands = ""
     buttons = 0
     lines = [line for line in text.splitlines() if line]  # get rid of empty lines
     for line in lines:
         if line.strip() == "shelfButton":
             buttons += 1
         if buttons > 0:
-            melCommands += line
-    melCommands = melCommands[:-2]
+            mel_commands += line
+    mel_commands = mel_commands[:-2]
 
     # check if window doesn't already exist
-    windowTitle = "{} popup shelf".format(shelfName)
-    windowName = "{}_popup_shelf".format(shelfName)
-    if cmds.window(windowName, exists=True):
-        cmds.showWindow(windowName)
+    window_title = "{} popup shelf".format(shelf_name)
+    window_name = "{}_popup_shelf".format(shelf_name)
+    if cmds.window(window_name, exists=True):
+        cmds.showWindow(window_name)
         return
 
     # make a window, give it a layout, then make a model editor
-    window = cmds.window(windowTitle, w=800, h=46, rtf=True)
+    window = cmds.window(window_title, w=800, h=46, rtf=True)
     cmds.shelfLayout(spa=5)
-    mel.eval(melCommands)
+    mel.eval(mel_commands)
     cmds.setParent('..')
 
     # show window
-    cmds.window(window, w=46*buttons, e=True)
+    cmds.window(window, w=46 * buttons, e=True)
     cmds.showWindow(window)
 
 
-def deleteShelves(shelvesDict=None, restart=True):
+def delete_shelves(shelves_dict=None, restart=True):
     """
     Delete shelves specified in dictionary
     Args:
-        shelvesDict (dict): Dictionary of shelf name and mel file without prefix: e.g. {"Animation" : "Animation.mel"}
-    Raises:
-        restartDialog()
+        shelves_dict (dict): Dictionary of shelf name and mel file without prefix: e.g. {"Animation" : "Animation.mel"}
+        restart (bool): If a restart dialog should appear in the end
     """
-    envDir = get_env_dir()
-    if not shelvesDict:
+    env_dir = get_env_dir()
+    if not shelves_dict:
         cmds.error('No shelf array given')
     # Maya creates all default shelves in prefs only after each has been opened (initialized)
-    for shelf in shelvesDict:
+    for shelf in shelves_dict:
         try:
             mel.eval('jumpToNamedShelf("{0}");'.format(shelf))
         except:
             continue
     mel.eval('saveAllShelves $gShelfTopLevel;')  # all shelves loaded (save them)
     # time to delete them
-    shelfTopLevel = mel.eval('$tempMelVar=$gShelfTopLevel') + '|'
-    for shelf in shelvesDict:
-        shelfLayout = shelvesDict[shelf].split('.mel')[0]
-        if cmds.shelfLayout(shelfTopLevel + shelfLayout, q=True, ex=True):
-            cmds.deleteUI(shelfTopLevel + shelfLayout, layout=True)
+    shelf_top_level = mel.eval('$tempMelVar=$gShelfTopLevel') + '|'
+    for shelf in shelves_dict:
+        shelf_layout = shelves_dict[shelf].split('.mel')[0]
+        if cmds.shelfLayout(shelf_top_level + shelf_layout, q=True, ex=True):
+            cmds.deleteUI(shelf_top_level + shelf_layout, layout=True)
     # mark them as deleted to avoid startup loading
-    shelfDir = os.path.join(envDir, 'prefs', 'shelves')
-    for shelf in shelvesDict:
-        shelfName = os.path.join(shelfDir, 'shelf_' + shelvesDict[shelf])
-        deletedShelfName = shelfName + '.deleted'
-        if os.path.isfile(shelfName):
+    shelf_dir = os.path.join(env_dir, 'prefs', 'shelves')
+    for shelf in shelves_dict:
+        shelf_name = os.path.join(shelf_dir, 'shelf_' + shelves_dict[shelf])
+        deleted_shelf_name = shelf_name + '.deleted'
+        if os.path.isfile(shelf_name):
             # make sure the deleted file doesn't already exist
-            if os.path.isfile(deletedShelfName):
-                os.remove(shelfName)
+            if os.path.isfile(deleted_shelf_name):
+                os.remove(shelf_name)
                 continue
-            os.rename(shelfName, deletedShelfName)
+            os.rename(shelf_name, deleted_shelf_name)
     if restart:
-        restartDialog()
+        dialog_restart()
 
 
-def restoreShelves():
-    """
-    Restores previously deleted shelves
-    Raises:
-        restartDialog()
-    """
-    shelfDir = os.path.join(get_env_dir(), 'prefs', 'shelves')
-    for shelf in os.listdir(shelfDir):
+def restore_shelves():
+    """ Restores previously deleted shelves """
+    shelf_dir = os.path.join(get_env_dir(), 'prefs', 'shelves')
+    for shelf in os.listdir(shelf_dir):
         if shelf.endswith('.deleted'):
-            restoredShelf = os.path.join(shelfDir, shelf.split('.deleted')[0])
-            deletedShelf = os.path.join(shelfDir, shelf)
+            restored_shelf = os.path.join(shelf_dir, shelf.split('.deleted')[0])
+            deleted_shelf = os.path.join(shelf_dir, shelf)
             # check if it has not been somehow restored
-            if os.path.isfile(restoredShelf):
-                os.remove(deletedShelf)
+            if os.path.isfile(restored_shelf):
+                os.remove(deleted_shelf)
             else:
-                os.rename(deletedShelf, restoredShelf)
-    restartDialog()
+                os.rename(deleted_shelf, restored_shelf)
+    dialog_restart()
 
 
-def getShapes(objects, renderable=False, l=False, quiet=False):
+def get_shapes(objects, renderable=False, l=False, quiet=False):
     """
     Get shapes of objects/components
     Args:
@@ -589,39 +573,39 @@ def getShapes(objects, renderable=False, l=False, quiet=False):
         objs.add(comp.split(".")[0])  # to also work with components of multiple objects
     if not objs:
         if not quiet:
-            printError("Please select a mesh or component to extract the shape from")
+            print_error("Please select a mesh or component to extract the shape from")
             return []
 
-    objs = purgeMissing(objs)  # make sure all objects exist
+    objs = purge_missing(objs)  # make sure all objects exist
 
     shapes = []
     for obj in objs:
-        potentialShape = []
+        potential_shape = []
         # check if its a mesh object
-        objType = cmds.objectType(obj)
-        if objType == "mesh" or objType == "nurbsSurface":
-            potentialShape = cmds.ls(obj, l=l)  # make an array
+        obj_type = cmds.objectType(obj)
+        if obj_type == "mesh" or obj_type == "nurbsSurface":
+            potential_shape = cmds.ls(obj, l=l)  # make an array
         else:
-            potentialShape = cmds.listRelatives(obj, shapes=True, noIntermediate=True, path=True, fullPath=l) or []
+            potential_shape = cmds.listRelatives(obj, shapes=True, noIntermediate=True, path=True, fullPath=l) or []
             # shapes.extend(shp)
         # check if renderable
-        if renderable and potentialShape:
-            if not isRenderable(potentialShape[0]):
+        if renderable and potential_shape:
+            if not is_renderable(potential_shape[0]):
                 continue
         # add potential shape to list
-        shapes.extend(potentialShape)
+        shapes.extend(potential_shape)
 
     if not shapes and not quiet:
-        printWarning("No shape nodes found in {0}".format(objects))
+        print_warning("No shape nodes found in {0}".format(objects))
 
     return shapes
 
 
-def isRenderable(obj, quiet=True):
+def is_renderable(obj, quiet=True):
     """
     Checks if object is renderable
     Args:
-        obj (str): Name of object to verify
+        obj (unicode): Name of object to verify
         quiet (bool): If the function should keep quiet (default=True)
     Returns:
         (bool) if its renderable or not
@@ -661,80 +645,57 @@ def isRenderable(obj, quiet=True):
     # check parents
     parent = cmds.listRelatives(obj, parent=True, path=True)
     if parent:
-        renderable = renderable and isRenderable(parent[0])
+        renderable = renderable and is_renderable(parent[0])
     return renderable
 
 
-def getTransforms(objects, fullPath=False):
+def get_transforms(objects, full_path=False):
     """
     Get transform nodes of objects
     Args:
         objects (list): List of objects
-        fullPath (bool): If full path or not
+        full_path (bool): If full path or not
     Returns:
         List of transform nodes
     """
     transforms = []
     for node in objects:
-        transforms.append(getTransform(node, fullPath))
+        transforms.append(get_transform(node, full_path))
     return transforms
 
 
-def getTransform(node, fullPath=False):
+def get_transform(node, full_path=False):
     """
     Get transform node of object
     Args:
-        node (str): Name of node
-        fullPath (bool): If full path or not
+        node (unicode): Name of node
+        full_path (bool): If full path or not
     Returns:
         Name of transform node
     """
     if 'transform' != cmds.nodeType(node):
-        return cmds.listRelatives(node, fullPath=fullPath, parent=True)[0]
+        return cmds.listRelatives(node, fullPath=full_path, parent=True)[0]
     else:
         return node
 
 
-def changeAttributes(attributes, value):
-    """
-    Batch change attributes of selected objects:
-    e.g. lib.changeAttributes(['jointOrientX', 'jointOrientY', 'jointOrientZ'], 0)
-    Args:
-        attributes (list): List of attributes (str)
-        value: Value to set into attributes
-    """
-    selected = cmds.ls(sl=True)
-    for sel in selected:
-        for attribute in attributes:
-            try:
-                cmds.setAttr("{0}.{1}".format(sel, attribute), value)
-            except:
-                cmds.warning(
-                    "There is an issue with {0}.{1}. The value {2} could not be set".format(sel, attribute, value))
-
-
-def copyAttributes(attributes):
+def copy_attributes(attributes):
     """
     Batch copy attributes of first selected object to the rest of selected objects:
     e.g. lib.copyAttributes(['jointOrientX', 'jointOrientY', 'jointOrientZ'])
     Args:
-        attributes (list): List of attributes (str)
+        attributes (list): List of attributes (unicode)
     """
     selected = cmds.ls(sl=True)
     if selected:
         source = selected.pop(0)
         for attribute in attributes:
-            sourceValue = cmds.getAttr("{0}.{1}".format(source, attribute))
+            source_value = cmds.getAttr("{0}.{1}".format(source, attribute))
             for target in selected:
-                try:
-                    cmds.setAttr("{0}.{1}".format(target, attribute), sourceValue)
-                except:
-                    cmds.warning(
-                        "There is an issue with {0}.{1}. The value {2} could not be set".format(target, attribute,
-                                                                                                sourceValue))
+                set_attr(target, attribute, source_value)
 
 
-def setAttr(obj, attr, value, silent=False):
+def set_attr(obj, attr, value, silent=False):
     """
     Generic setAttr convenience function which changes the Maya command depending on the data type
     Args:
@@ -754,13 +715,13 @@ def setAttr(obj, attr, value, silent=False):
             elif len(value) == 1:
                 # check for list within a list generated by getAttr command
                 if isinstance(value[0], list) or isinstance(value[0], tuple):
-                    setAttr(obj, attr, value[0])
+                    set_attr(obj, attr, value[0])
                     return
                 cmds.setAttr("{0}.{1}".format(obj, attr), value[0])
             elif cmds.attributeQuery(attr, node=obj, attributeType=True) == "compound":
                 idx = 0
                 for sub_attr in cmds.attributeQuery(attr, node=obj, listChildren=True):
-                    setAttr(obj, sub_attr, value[idx])
+                    set_attr(obj, sub_attr, value[idx])
                     idx += 1
             else:
                 cmds.setAttr("{0}.{1}".format(obj, attr), tuple(value), type="doubleArray")
@@ -774,12 +735,12 @@ def setAttr(obj, attr, value, silent=False):
         return False
 
 
-def getNextFreeMultiIndex(node, attr, idx=0):
+def get_next_free_multi_index(node, attr, idx=0):
     """
     Find the next unconnected multi index starting at the passed index
     Args:
-        node (str): node to search in
-        attr (str): attribute to search in
+        node (unicode): node to search in
+        attr (unicode): attribute to search in
         idx (int): starting index to search from
     Returns:
         The next free index
@@ -792,12 +753,12 @@ def getNextFreeMultiIndex(node, attr, idx=0):
     return 0
 
 
-def getNextFreeMultiIndexConsideringChildren(node, attr, idx=0):
+def get_next_free_multi_index_considering_children(node, attr, idx=0):
     """
     Find the next unconnected multi index, considering children attributes, starting at the passed index
     Args:
-        node (str): node to search in
-        attr (str): attribute to search in
+        node (unicode): node to search in
+        attr (unicode): attribute to search in
         idx (int): starting index to search from
     Returns:
         The next free index
@@ -805,10 +766,11 @@ def getNextFreeMultiIndexConsideringChildren(node, attr, idx=0):
     while idx < 10000000:  # assume a max of 10 million connections
         if len(cmds.listConnections('{0}.{1}[{2}]'.format(node, attr, idx)) or []) == 0:
             free = True
-            childAttrs = cmds.attributeQuery(attr, n=node, listChildren=True) or []
-            for childAttr in childAttrs:
+            child_attrs = cmds.attributeQuery(attr, n=node, listChildren=True) or []
+            for childAttr in child_attrs:
                 if cmds.attributeQuery(childAttr, n="{0}.{1}".format(node, attr), multi=True):
-                    if getNextFreeMultiIndexConsideringChildren("{0}.{1}[{2}]".format(node, attr, idx), childAttr) > 0:
+                    if get_next_free_multi_index_considering_children("{0}.{1}[{2}]".format(node, attr, idx),
+                                                                      childAttr) > 0:
                         free = False
                         break
             if free:
@@ -818,29 +780,29 @@ def getNextFreeMultiIndexConsideringChildren(node, attr, idx=0):
     return 0
 
 
-def distanceBetween(obj1, obj2):
+def distance_between(obj1, obj2):
     """
     Distance between objects
     Args:
-        obj1 (str): object 1
-        obj2 (str): object 2
+        obj1 (unicode): object 1
+        obj2 (unicode): object 2
 
     Returns:
         Distance between the objects (in world space)
     """
-    v1World = cmds.xform('{0}'.format(obj1), q=True, worldSpace=True, piv=True)  # list with 6 elements
-    v2World = cmds.xform('{0}'.format(obj2), q=True, worldSpace=True, piv=True)  # list with 6 elements
-    return distance(v1World, v2World)
+    v1_world = cmds.xform('{0}'.format(obj1), q=True, worldSpace=True, piv=True)  # list with 6 elements
+    v2_world = cmds.xform('{0}'.format(obj2), q=True, worldSpace=True, piv=True)  # list with 6 elements
+    return distance(v1_world, v2_world)
 
 
-def snap(source='', targets=[], type="translation"):
+def snap(source='', targets=None, snap_type="translation"):
     """
     Snap targets objects to source object
     If not specified, the first selected object is considered as source, the rest as targets
     Args:
-        source (str): Source transform name
-        targets (list): List of target transform names (str)
-        type: Either "translation" (default), "rotation" or "position" (translation + rotation)
+        source (unicode): Source transform name
+        targets (list): List of target transform names (unicode)
+        snap_type: Either "translation" (default), "rotation" or "position" (translation + rotation)
     Note:
         Targets should not have their transformations frozen
     """
@@ -863,27 +825,27 @@ def snap(source='', targets=[], type="translation"):
 
     # using xform brings pr
     # proceed to snap
-    if type == "translation":
-        worldTranslateXform = cmds.xform('{0}'.format(source), q=True, worldSpace=True,
-                                         piv=True)  # list with 6 elements
+    if snap_type == "translation":
+        world_translate_xform = cmds.xform('{0}'.format(source), q=True, worldSpace=True,
+                                           piv=True)  # list with 6 elements
         for target in targets:
             cmds.xform('{0}'.format(target), worldSpace=True,
-                       t=(worldTranslateXform[0], worldTranslateXform[1], worldTranslateXform[2]))
-        printInfo("Translation snapped")
+                       t=(world_translate_xform[0], world_translate_xform[1], world_translate_xform[2]))
+        print_info("Translation snapped")
 
-    if type == "rotation":
-        sourceXform = cmds.xform('{0}'.format(source), q=True, worldSpace=True, ro=True)
+    if snap_type == "rotation":
+        source_xform = cmds.xform('{0}'.format(source), q=True, worldSpace=True, ro=True)
         for target in targets:
-            cmds.xform('{0}'.format(target), worldSpace=True, ro=(sourceXform[0], sourceXform[1], sourceXform[2]))
-        printInfo("Rotation snapped")
+            cmds.xform('{0}'.format(target), worldSpace=True, ro=(source_xform[0], source_xform[1], source_xform[2]))
+        print_info("Rotation snapped")
 
-    if type == "position":
-        sourcePos = cmds.xform('{0}'.format(source), q=True, worldSpace=True, piv=True)  # list with 6 elements
-        sourceRot = cmds.xform('{0}'.format(source), q=True, worldSpace=True, ro=True)
+    if snap_type == "position":
+        source_pos = cmds.xform('{0}'.format(source), q=True, worldSpace=True, piv=True)  # list with 6 elements
+        source_rot = cmds.xform('{0}'.format(source), q=True, worldSpace=True, ro=True)
         for target in targets:
-            cmds.xform('{0}'.format(target), worldSpace=True, t=(sourcePos[0], sourcePos[1], sourcePos[2]))
-            cmds.xform('{0}'.format(target), worldSpace=True, ro=(sourceRot[0], sourceRot[1], sourceRot[2]))
-        printInfo("Position snapped")
+            cmds.xform('{0}'.format(target), worldSpace=True, t=(source_pos[0], source_pos[1], source_pos[2]))
+            cmds.xform('{0}'.format(target), worldSpace=True, ro=(source_rot[0], source_rot[1], source_rot[2]))
+        print_info("Position snapped")
 
 
 ######################################################################################
@@ -892,163 +854,6 @@ def snap(source='', targets=[], type="translation"):
 IMGFORMATS = {'.jpg': 8, '.png': 32, '.tif': 3, '.exr': 40, '.iff': 7}
 IMGFORMATS_ORDER = ['.png', '.jpg', '.exr', '.tif', '.iff']
 QUALITIES_ORDER = {'Standard', 'FXAA', '4x SSAA', 'TAA'}
-
-
-def getMaterials(objects):
-    """
-    Get materials of objects
-    Args:
-        objects (list, unicode): List of objects/components to get the materials from
-    Returns:
-        List of materials
-    """
-    objects = u_enlist(objects)
-    materials = cmds.ls(objects, l=True, mat=True)
-    transforms = cmds.ls(objects, l=True, et="transform")
-    shapes = cmds.ls(objects, l=True, s=True, noIntermediate=True)
-
-    if not materials and not transforms and not shapes:
-        # are these components?
-        return getMaterialOfComponents(objects)
-
-    # get shapes from transforms
-    if transforms:
-        ListUtils.update(shapes, cmds.ls(transforms, o=True, dag=True, s=True, noIntermediate=True))
-
-    if shapes:
-        # get materials from shading engines
-        cleanShadingEngines(shapes)
-        shadingEngines = ListUtils.removeDuplicates(cmds.listConnections(shapes, type="shadingEngine"))
-        for se in shadingEngines:
-            mats = cmds.ls(cmds.listConnections(se), mat=True)
-            if not mats:
-                # connect the default material to the shading engine
-                defaultMat = "lambert1"
-                logger.info("No material connected to {0}. Connecting default material".format(se))
-                cmds.connectAttr("{0}.outColor".format(defaultMat), "{0}.surfaceShader".format(se), f=True)
-            ListUtils.update(materials, mats)
-
-    return materials
-
-
-def getMaterialOfComponents(components):
-    """
-    Get materials of components
-    Args:
-        components (list): List of components to get materials from
-    Returns:
-        List of materials
-    """
-    materials = []
-    for c in components:
-        if is_component(c):
-            obj = cmds.ls(c, objectsOnly=True)
-            shadingEngines = ListUtils.removeDuplicates(cmds.listConnections(obj, type="shadingEngine"))
-            for se in shadingEngines:
-                s = cmds.sets(se, q=True)
-                if c in s:
-                    materials.extend(cmds.ls(cmds.listConnections(se), mat=True))
-    if not materials:
-        # components might not have a material
-        for c in components:
-            if is_component(c):
-                materials = getMaterials(cmds.ls(components, objectsOnly=True))
-                if not materials:
-                    displayWarning("No materials on {}, assigning default Lambert material".format(components))
-                    cmds.hyperShade(assign="lambert1")
-                    return cmds.ls(sl=True)
-    return materials
-
-
-def setMaterial(mat, objects):
-    """
-    Set material onto objects
-    Args:
-        mat (unicode): Name of material to set to objects
-        objects (list): List of objects that the material is assigned to
-    """
-    mat = u_stringify(mat)
-    shadingEngines = cleanShadingEngines(objects)
-    if shadingEngines:
-        for shadingEngine in shadingEngines:
-            if not cmds.isConnected("{0}.outColor".format(mat), "{0}.surfaceShader".format(shadingEngine)):
-                cmds.connectAttr("{0}.outColor".format(mat), "{0}.surfaceShader".format(shadingEngine), f=True)
-    else:
-        # fallback to hypershade cmd
-        selection = cmds.ls(sl=True, l=True)
-        cmds.select(objects, r=True)
-        cmds.hyperShade(assign=mat)
-        cmds.select(selection, r=True)
-
-
-def cleanShadingEngines(objs, quiet=True):
-    """
-    Makes sure the shading engines are clean
-    Args:
-        objs (list): Objects to clean shading engines from
-
-    Returns:
-        (list) shading engines connected to objs
-    """
-    shadingEngines = []
-    shapes = []
-    for obj in objs:
-        if cmds.objectType(obj) != "mesh":
-            shapes.append(getShapes(obj, l=True))
-        else:
-            shapes.append(obj)
-    for shape in shapes:
-        shadingEngines = ListUtils.removeDuplicates(cmds.listConnections(shape, type="shadingEngine"))
-        if "MNPRX_SE" in shadingEngines:
-            shadingEngines.remove("MNPRX_SE")  # MNPRX instance shading engine
-        if len(shadingEngines) > 1:
-            if not quiet:
-                logger.warning("Two shading engines in {0}".format(shape))
-            # remove initialShadingGroup if still available
-            if "initialShadingGroup" in shadingEngines:
-                shadingEngines.remove("initialShadingGroup")
-                destinations = cmds.listConnections(shape, t='shadingEngine', plugs=True)
-                for dest in destinations:
-                    if "initialShadingGroup" in dest:
-                        try:
-                            source = cmds.listConnections(dest, s=True, plugs=True)[0]
-                            cmds.disconnectAttr(source, dest)
-                            logger.debug("initialShadingGroup has been removed from {0}".format(shape))
-                            break
-                        except RuntimeError:
-                            logger.warning("Couldn't disconnect {0} from {1}".format(shape, dest))
-    return shadingEngines
-
-
-def getAssignedMeshes(materials, shapes=True, l=False):
-    """
-    Get the assigned meshes (shapes) out of a material
-    Args:
-        materials (list, unicode): Material name/s to get meshes from
-        shapes (bool): Return shapes or transform node names (default = Shapes)
-        l (bool): Long names of meshes (default = False)
-    Returns:
-        (list): List of meshes
-    """
-    assigned_meshes = []
-    u_enlist(materials)
-    # get shading engines
-    shadingEngines = cmds.listConnections(materials, type="shadingEngine") or []
-    for shadingEngine in shadingEngines:
-        meshes = cmds.sets(shadingEngine, q=True) or []  # meshes
-        meshes = cmds.ls(meshes, l=l)
-        if meshes:
-            if not shapes:
-                # get transforms instead (unless component are assigned)
-                for mesh in meshes:
-                    if is_component(mesh):
-                        assigned_meshes.append(mesh)
-                    else:
-                        mesh = cmds.listRelatives(mesh, parent=True, fullPath=l)  # transforms
-                        assigned_meshes.extend(mesh)
-            else:
-                assigned_meshes.extend(meshes)
-    return assigned_meshes
 
 
 def is_component(obj):
@@ -1065,42 +870,44 @@ def is_component(obj):
     return False
 
 
-def setVertexColorSets(shapes, colorSets, value=[0.0, 0.0, 0.0, 0.0]):
+def set_vertex_color_sets(shapes, color_sets, value=None):
     """
     Set and create vertex color sets on shapes
     Args:
-        shapes (lst): Shapes to delete vertex color sets from
-        colorSets (lst): Vertex color sets to delete
+        shapes (list): Shapes to delete vertex color sets from
+        color_sets (list): Vertex color sets to delete
         value (list): List of values to set (default [0.0, 0.0, 0.0, 0.0])
     Warning: Saving vertex colors using the Maya API doesn't save on references
     """
     # unit tests
     if isinstance(shapes, basestring):
         shapes = [shapes]
-    if isinstance(colorSets, basestring):
-        colorSets = [colorSets]
+    if isinstance(color_sets, basestring):
+        color_sets = [color_sets]
+    if value is None:
+        value = [0.0, 0.0, 0.0, 0.0]
     # doIt
     for shape in shapes:
         if cmds.objectType(shape) != "mesh":
-            printInfo("{0} is not a mesh, skipping it".format(shape))
+            print_info("{0} is not a mesh, skipping it".format(shape))
             continue
-        shapeColorSets = cmds.polyColorSet(shape, query=True, allColorSets=True) or []
-        for colorSet in colorSets:
-            if colorSet not in shapeColorSets:
+        shape_color_sets = cmds.polyColorSet(shape, query=True, allColorSets=True) or []
+        for colorSet in color_sets:
+            if colorSet not in shape_color_sets:
                 logger.debug("Creating {0} vertex color set for {1}".format(colorSet, shape))
                 cmds.polyColorSet(shape, cs=colorSet, representation="RGBA", create=True)
-            oShape = getMObject(shape)
-            fnMesh = om.MFnMesh(oShape)  # access mesh data (oShape can also be replaced by MDagPath of shape)
-            oVertexColorArray = fnMesh.getVertexColors(colorSet)  # MColorArray
-            vertexListLength = len(oVertexColorArray)
-            vertexIndexArray = list(xrange(vertexListLength))
-            for vertex in vertexIndexArray:
-                oVertexColorArray[vertex].r = value[0]
-                oVertexColorArray[vertex].g = value[1]
-                oVertexColorArray[vertex].b = value[2]
-                oVertexColorArray[vertex].a = value[3]
-            fnMesh.setCurrentColorSetName(colorSet)
-            fnMesh.setVertexColors(oVertexColorArray, vertexIndexArray)
+            o_shape = get_m_object(shape)
+            fn_mesh = om.MFnMesh(o_shape)  # access mesh data (oShape can also be replaced by MDagPath of shape)
+            o_vertex_color_array = fn_mesh.getVertexColors(colorSet)  # MColorArray
+            vertex_list_length = len(o_vertex_color_array)
+            vertex_index_array = list(xrange(vertex_list_length))
+            for vertex in vertex_index_array:
+                o_vertex_color_array[vertex].r = value[0]
+                o_vertex_color_array[vertex].g = value[1]
+                o_vertex_color_array[vertex].b = value[2]
+                o_vertex_color_array[vertex].a = value[3]
+            fn_mesh.setCurrentColorSetName(colorSet)
+            fn_mesh.setVertexColors(o_vertex_color_array, vertex_index_array)
             # with face vertex color
             """
             # get mesh data
@@ -1120,49 +927,50 @@ def setVertexColorSets(shapes, colorSets, value=[0.0, 0.0, 0.0, 0.0]):
             fnMesh.setFaceVertexColors(vertexColorArray, faceIndexArray, localVertexIndexArray)
             """
             logger.info("Vertex color set {0} set for: {1}".format(colorSet, shape))
-        deleteColorSetHistory(shape)
+        delete_color_set_history(shape)
 
 
 @undo
-def deleteVertexColorSets(shapes, colorSets, quiet=True):
+def delete_vertex_color_sets(shapes, color_sets, quiet=True):
     """
     Delete the vertex color set and its history
     Args:
-        shapes (lst): Shapes to delete vertex color sets from
-        colorSets (lst): Vertex color sets to delete
+        shapes (list): Shapes to delete vertex color sets from
+        color_sets (list): Vertex color sets to delete
+        quiet (bool): If the function should prompt debug messages
     """
     if quiet:
         logger.setLevel(logging.INFO)
     shapes = u_enlist(shapes)  # put in list
-    colorSets = u_enlist(colorSets)  # put in list
+    color_sets = u_enlist(color_sets)  # put in list
     for shape in shapes:
-        shapeColorSets = cmds.polyColorSet(shape, query=True, allColorSets=True) or []
-        for colorSet in colorSets:
-            if colorSet in shapeColorSets:
+        shape_color_sets = cmds.polyColorSet(shape, query=True, allColorSets=True) or []
+        for colorSet in color_sets:
+            if colorSet in shape_color_sets:
                 cmds.polyColorSet(shape, colorSet=colorSet, delete=True)
                 history = cmds.listHistory(shape)
-                nodes2Delete = []
+                nodes2delete = []
                 for node in history:
                     # check if attribute exists
                     if not cmds.attributeQuery('colorSetName', n=node, ex=True):
                         continue
                     # attribute exists, check name of color set name
-                    colorSetName = cmds.getAttr("{0}.colorSetName".format(node))
-                    if colorSetName == colorSet:
-                        nodes2Delete.append(node)
+                    color_set_name = cmds.getAttr("{0}.colorSetName".format(node))
+                    if color_set_name == colorSet:
+                        nodes2delete.append(node)
                         logger.debug("{0} node scheduled for deletion".format(node))
-                if nodes2Delete:
-                    cmds.delete(nodes2Delete)
+                if nodes2delete:
+                    cmds.delete(nodes2delete)
                 logger.debug("Vertex color set {0} deleted for: {1}".format(colorSet, shape))
     logger.setLevel(logging.DEBUG)
 
 
-def bakeVertexColors(shapes):
+def bake_vertex_colors(shapes):
     """
     Bake vertex colors into shape nodes (not working, set issue in AREA Forum)
     https://forums.autodesk.com/t5/maya-programming/baking-vertex-colors-onto-shape-node/td-p/9119416
     Args:
-        shapes (lst): Shapes to bake vertex colors
+        shapes (list): Shapes to bake vertex colors
     """
     # unit tests
     if isinstance(shapes, basestring):
@@ -1175,8 +983,8 @@ def bakeVertexColors(shapes):
                 print("Baking {0}".format(node))
                 # GET
                 # get color set name
-                colorSetName = cmds.getAttr("{0}.colorSetName".format(node))
-                print("Color set name: {0}".format(colorSetName))
+                color_set_name = cmds.getAttr("{0}.colorSetName".format(node))
+                print("Color set name: {0}".format(color_set_name))
                 # get representation
                 representation = cmds.getAttr("{0}.representation".format(node))
                 print("Representation: {0}".format(representation))
@@ -1194,233 +1002,121 @@ def bakeVertexColors(shapes):
                 print(blues)
                 # SET
                 # get which color set in shape
-                colorSets = cmds.getAttr("{0}.colorSet[*].colorName".format(shape))
+                color_sets = cmds.getAttr("{0}.colorSet[*].colorName".format(shape))
                 # make sure its in an array
-                if isinstance(colorSets, basestring):
-                    colorSets = [colorSets]
-                colorSetIndex = colorSets.index(colorSetName)
-                print("Color set index is {0}".format(colorSetIndex))
-                setAttr(shape, "colorSet[{0}].colorName".format(colorSetIndex), colorSetName)
-                setAttr(shape, "colorSet[{0}].representation".format(colorSetIndex), representation)
-                setAttr(shape, "colorSet[{0}].clamped".format(colorSetIndex), clamped)
+                if isinstance(color_sets, basestring):
+                    color_sets = [color_sets]
+                color_set_index = color_sets.index(color_set_name)
+                print("Color set index is {0}".format(color_set_index))
+                set_attr(shape, "colorSet[{0}].colorName".format(color_set_index), color_set_name)
+                set_attr(shape, "colorSet[{0}].representation".format(color_set_index), representation)
+                set_attr(shape, "colorSet[{0}].clamped".format(color_set_index), clamped)
                 for i in range(len(alphas)):
                     """
                     attr = "colorSet[{0}].colorSetPoints[{1}]".format(colorSetIndex, i)
                     setAttr(shape, attr, [reds[i], greens[i], blues[i], alphas[i]])
                     """
-                    attr = "colorSet[{0}].colorSetPoints[{1}].colorSetPointsR".format(colorSetIndex, i)
-                    #setAttr(shape, attr, reds[i])
+                    attr = "colorSet[{0}].colorSetPoints[{1}].colorSetPointsR".format(color_set_index, i)
+                    # setAttr(shape, attr, reds[i])
                     cmds.setAttr("{0}.{1}".format(shape, attr), reds[i])
-                    attr = "colorSet[{0}].colorSetPoints[{1}].colorSetPointsG".format(colorSetIndex, i)
-                    #setAttr(shape, attr, greens[i])
+                    attr = "colorSet[{0}].colorSetPoints[{1}].colorSetPointsG".format(color_set_index, i)
+                    # setAttr(shape, attr, greens[i])
                     cmds.setAttr("{0}.{1}".format(shape, attr), greens[i])
-                    attr = "colorSet[{0}].colorSetPoints[{1}].colorSetPointsB".format(colorSetIndex, i)
+                    attr = "colorSet[{0}].colorSetPoints[{1}].colorSetPointsB".format(color_set_index, i)
                     # setAttr(shape, attr, blues[i])
                     cmds.setAttr("{0}.{1}".format(shape, attr), blues[i])
-                    attr = "colorSet[{0}].colorSetPoints[{1}].colorSetPointsA".format(colorSetIndex, i)
-                    #setAttr(shape, attr, alphas[i])
+                    attr = "colorSet[{0}].colorSetPoints[{1}].colorSetPointsA".format(color_set_index, i)
+                    # setAttr(shape, attr, alphas[i])
                     cmds.setAttr("{0}.{1}".format(shape, attr), alphas[i])
                 # add to shape
-                faceN = cmds.polyEvaluate(shape, face=True)  # query amount of faces
-                melCmd = 'setAttr -s {0} "{1}.fc[0:{2}]" -type "polyFaces"'.format(faceN, shape, faceN-1)
-                # melCmd = 'setAttr -s {0} -ch {1} "{2}.fc[0:{3}]" -type "polyFaces" '.format(faceN, faceN*4, shape, faceN-1)
+                face_no = cmds.polyEvaluate(shape, face=True)  # query amount of faces
+                mel_cmd = 'setAttr -s {0} "{1}.fc[0:{2}]" -type "polyFaces"'.format(face_no, shape, face_no - 1)
+                # mel_cmd = 'setAttr -s {0} -ch {1} "{2}.fc[0:{3}]" -type "polyFaces" '\
+                #     .format(face_no, face_no*4, shape, face_no-1)
                 # melCmd = 'setAttr {0}.polyFaceAttr -type polyFaces '.format(shape, colorSetIndex)
                 fv = 0
-                for f in range(faceN):
+                for f in range(face_no):
                     # find adjacent vertices
-                    vString = cmds.polyInfo("{0}.f[{1}]".format(shape, f), fv=True)[0]
-                    vertices = vString.split(':')[1].split()
-                    melCmd += ' mc {0} {1}'.format(colorSetIndex, len(vertices))
+                    v_string = cmds.polyInfo("{0}.f[{1}]".format(shape, f), fv=True)[0]
+                    vertices = v_string.split(':')[1].split()
+                    mel_cmd += ' mc {0} {1}'.format(color_set_index, len(vertices))
                     for v in vertices:
-                        melCmd += " {0}".format(fv)
+                        mel_cmd += " {0}".format(fv)
                         fv += 1
-                melCmd += ';'
-                print(melCmd)
-                mel.eval(melCmd)  # we run the mel command here
+                mel_cmd += ';'
+                print(mel_cmd)
+                mel.eval(mel_cmd)  # we run the mel command here
                 # delete polyColorPerVertex nodes that pertain this colorSet
                 cmds.delete(node)
-                logger.debug("Vertex color set {0} baked on {1}".format(colorSetName, shape))
+                logger.debug("Vertex color set {0} baked on {1}".format(color_set_name, shape))
             if cmds.objectType(node) == "createColorSet":
                 cmds.delete(node)  # no need for them in history
 
 
-def deleteColorSetHistory(shapes=[]):
+def delete_color_set_history(shapes=None):
     """
     Deletes unnecessary history nodes created by color sets
     Args:
-        shapes (list): shapes to delete history nodes from
+        shapes (unicode, list): shapes to delete history nodes from
     """
+    if shapes is None:
+        return
     shapes = u_enlist(shapes)  # unit tests
-    nodes2Delete = []
+    nodes2delete = []
     for shape in shapes:
         # go through history
         history = cmds.listHistory(shape)
         for node in history:
             if cmds.objectType(node) == "createColorSet":
-                nodes2Delete.append(node)
-    if nodes2Delete:
-        cmds.delete(nodes2Delete)
+                nodes2delete.append(node)
+    if nodes2delete:
+        cmds.delete(nodes2delete)
         # logger.debug("Deleted the following nodes {0}".format(nodes2Delete))
 
 
-def changeTexturePath(path):
+def change_texture_path(path):
     """
     Change all texture paths
     Useful when moving around the textures of the scene
     Args:
-        path (string): Relative path from project (e.g. "sourceimages\house)
+        path (string): Relative path from project (e.g. "sourceimages/house")
     """
-    allFileNodes = cmds.ls(et='file')
-    for node in allFileNodes:
-        filePath = cmds.getAttr("{0}.fileTextureName".format(node))
-        fileName = os.path.basename(filePath)
-        cmds.setAttr("{0}.fileTextureName".format(node), "{0}/{1}".format(path, fileName), type='string')
+    all_file_nodes = cmds.ls(et='file')
+    for node in all_file_nodes:
+        file_path = cmds.getAttr("{0}.fileTextureName".format(node))
+        file_name = os.path.basename(file_path)
+        cmds.setAttr("{0}.fileTextureName".format(node), "{0}/{1}".format(path, file_name), type='string')
 
 
-def screenshot(fileDir, width, height, format=".jpg", override="", ogs=True):
+def screenshot(file_dir, width, height, img_format=".jpg", override="", ogs=True):
     # check if fileDir has image format
-    if format not in fileDir:
-        fileDir += format
+    if img_format not in file_dir:
+        file_dir += img_format
 
     # get existing values
-    prevFormat = cmds.getAttr("defaultRenderGlobals.imageFormat")
-    prevOverride = cmds.getAttr("hardwareRenderingGlobals.renderOverrideName")
+    prev_format = cmds.getAttr("defaultRenderGlobals.imageFormat")
+    prev_override = cmds.getAttr("hardwareRenderingGlobals.renderOverrideName")
 
     # set render settings
-    cmds.setAttr("defaultRenderGlobals.imageFormat", IMGFORMATS[format])
+    cmds.setAttr("defaultRenderGlobals.imageFormat", IMGFORMATS[img_format])
     if override:
         cmds.setAttr("hardwareRenderingGlobals.renderOverrideName", override, type="string")
 
     if ogs:
         # render viewport
-        renderedDir = cmds.ogsRender(cv=True, w=width, h=height)  # render the frame
-        shutil.move(os.path.abspath(renderedDir), os.path.abspath(fileDir))  # move to specified dir
+        rendered_dir = cmds.ogsRender(cv=True, w=width, h=height)  # render the frame
+        shutil.move(os.path.abspath(rendered_dir), os.path.abspath(file_dir))  # move to specified dir
     else:
         frame = cmds.currentTime(q=True)
-        cmds.playblast(cf=fileDir, fo=True, fmt='image', w=width, h=height,
+        cmds.playblast(cf=file_dir, fo=True, fmt='image', w=width, h=height,
                        st=frame, et=frame, v=False, os=True)
 
     # bring everything back to normal
-    cmds.setAttr("defaultRenderGlobals.imageFormat", prevFormat)
-    cmds.setAttr("hardwareRenderingGlobals.renderOverrideName", prevOverride, type="string")
+    cmds.setAttr("defaultRenderGlobals.imageFormat", prev_format)
+    cmds.setAttr("hardwareRenderingGlobals.renderOverrideName", prev_override, type="string")
 
-    printInfo("Image saved successfully in {0}".format(fileDir))
-    return fileDir
-
-
-#    _                            _        __                             _
-#   (_)_ __ ___  _ __   ___  _ __| |_     / /   _____  ___ __   ___  _ __| |_
-#   | | '_ ` _ \| '_ \ / _ \| '__| __|   / /   / _ \ \/ / '_ \ / _ \| '__| __|
-#   | | | | | | | |_) | (_) | |  | |_   / /   |  __/>  <| |_) | (_) | |  | |_
-#   |_|_| |_| |_| .__/ \___/|_|   \__| /_/     \___/_/\_\ .__/ \___/|_|   \__|
-#               |_|                                     |_|
-def exportVertexColors(objs, path):
-    """
-    Exports vertex colors of objs to a json file at path
-    Args:
-        objs: objects to export from
-        path: path to save json file to
-    """
-    # initialize variables
-    namespace = False
-    namespacePrompt = False
-
-    # get shapes, its control sets and colors
-    shapeDict = {}
-    shapes = getShapes(objs)
-    for shape in shapes:
-        print("Extracting vertex colors from {0}".format(shape))
-        shapeName = "{0}".format(shape)
-
-        # check for namespaces
-        namespacePos = shape.rfind(":")
-        namespaceQuery = namespacePos > 0
-        if not namespacePrompt and namespaceQuery:
-            # ask if shapes should be exported with namespaces
-            result = cmds.confirmDialog(title="Wait a second...",
-                                        icon="question",
-                                        message="Would you like to export vertex colors with namespace?",
-                                        button=['Yes', 'No'], defaultButton='No', cancelButton='No', dismissString='No',
-                                        ma='center')
-            if result == "Yes":
-                namespace = True
-            namespacePrompt = True
-        # change shape name accordingly
-        if not namespace:
-            if namespaceQuery:
-                shapeName = shape[namespacePos + 1:]
-
-        # get data
-        colorSetDict = {}
-        oShape = getMObject(shape)  # grabs the MObject of the shape
-        fnMesh = om.MFnMesh(oShape)  # access mesh data (oShape can also be replaced by MDagPath)
-        colorSets = cmds.polyColorSet(shape, query=True, allColorSets=True)
-        if colorSets:
-            for colorSet in colorSets:
-                oVertexColorArray = fnMesh.getVertexColors(colorSet)  # MColorArray
-                colorSetDict[colorSet] = [vtxColor.getColor() for vtxColor in oVertexColorArray]
-            shapeDict[shapeName] = colorSetDict
-
-    # write and save json info
-    with open(path, 'w') as f:
-        json.dump(shapeDict, f, separators=(',', ':'), indent=2)
-
-    printInfo("Vertex colors successfully exported")
-
-
-def importVertexColors(path):
-    """
-    Import vertex colors from a json file at path
-    Args:
-        path: path of json file with vertex color information
-    """
-    # initialize variables
-    namespace = ""
-    namespacePrompt = False
-
-    # load json file
-    with open(path, 'r') as f:
-        shapeDict = json.load(f)
-
-    # assign vertex color parameters on each shape
-    for shape in shapeDict:
-        print("Importing parameters to {0}".format(shape))
-        shapeName = "{0}".format(shape)
-        if namespace:
-            shapeName = "{0}:{1}".format(namespace, shapeName)
-
-        # check for namespaces
-        if not cmds.objExists(shape) and not namespacePrompt:
-            result = cmds.promptDialog(title='Possible namespace issues',
-                                       message='Some shapes where not found in the scene. Could they be under a different namespace?',
-                                       button=['Change namespace', 'No'], defaultButton='Change namespace',
-                                       cancelButton='No', dismissString='No')
-            if result == 'Change namespace':
-                namespace = cmds.promptDialog(query=True, text=True)
-                shapeName = "{0}:{1}".format(namespace, shapeName)
-            namespacePrompt = True
-
-        if cmds.objExists(shapeName):
-            oShape = getMObject(shapeName)  # grabs the MObject of the shape
-            fnMesh = om.MFnMesh(oShape)  # access mesh data (oShape can also be replaced by MDagPath)
-            colorSets = cmds.polyColorSet(shapeName, query=True, allColorSets=True)
-            if colorSets == None:
-                colorSets = []
-            for colorSet in shapeDict[shape]:
-                if colorSet not in colorSets:
-                    cmds.polyColorSet(shapeName, newColorSet=colorSet)
-                oVertexColorArray = fnMesh.getVertexColors(colorSet)  # MColorArray
-                vertexListLength = len(oVertexColorArray)
-                vertexIndexArray = list(xrange(vertexListLength))
-                vertexIndex = 0
-                for vertexColor in shapeDict[shape][colorSet]:
-                    oVertexColorArray[vertexIndex] = vertexColor
-                    vertexIndex += 1
-                fnMesh.setCurrentColorSetName(colorSet)
-                fnMesh.setVertexColors(oVertexColorArray, vertexIndexArray)
-        else:
-            logger.debug("No {0} shape exists in the scene".format(shapeName))
-    printInfo("Vertex colors successfully exported from {0}".format(os.path.basename(path)))
+    print_info("Image saved successfully in {0}".format(file_dir))
+    return file_dir
 
 
 #    __  __                           _    ____ ___     ____    ___
@@ -1429,7 +1125,7 @@ def importVertexColors(path):
 #   | |  | | (_| | |_| | (_| |     / ___ \|  __/| |     / __/ | |_| |
 #   |_|  |_|\__,_|\__, |\__,_|    /_/   \_\_|  |___|   |_____(_)___/
 #                 |___/
-def getMObject(node, getType=False):
+def get_m_object(node, getType=False):
     """
     Gets mObject of a node (Python API 2.0)
     Args:
@@ -1437,22 +1133,22 @@ def getMObject(node, getType=False):
     Returns:
         Node of the object
     """
-    selectionList = om.MSelectionList()
-    selectionList.add(node)
-    oNode = selectionList.getDependNode(0)
+    selection_list = om.MSelectionList()
+    selection_list.add(node)
+    o_node = selection_list.getDependNode(0)
     if not getType:
-        return oNode
+        return o_node
     else:
-        return oNode.apiTypeStr
+        return o_node.apiTypeStr
 
 
-def scheduleRefreshAllViews():
+def schedule_refresh_all_views():
     """ Schedules a refresh of all views """
     import maya.OpenMayaUI as omUI
     omUI.M3dView.scheduleRefreshAllViews()
 
 
-def printInfo(info):
+def print_info(info):
     """
     Prints the information statement in the command response (to the right of the command line)
     Args:
@@ -1460,20 +1156,21 @@ def printInfo(info):
     """
     om.MGlobal.displayInfo(info)
 
-def displayInfo(info):
+
+def display_info(info):
     """
     Displays the information on the viewport
     Prints the information statement in the command response (to the right of the command line)
     Args:
         info (unicode): Information to be displayed
     """
-    if maya_version() > 2018:
+    if get_maya_version() > 2018:
         m = '<span style="color:#82C99A;">{}</span>'.format(info)
         cmds.inViewMessage(msg=m, pos="midCenter", fade=True)
-    printInfo(info)
+    print_info(info)
 
 
-def printWarning(warning):
+def print_warning(warning):
     """
     Prints the warning statement in the command response (to the right of the command line)
     Args:
@@ -1481,44 +1178,46 @@ def printWarning(warning):
     """
     om.MGlobal.displayWarning(warning)
 
-def displayWarning(warning):
+
+def display_warning(warning):
     """
     Displays a warning on the viewport
     Prints the warning statement in the command response (to the right of the command line)
     Args:
         warning (unicode): Warning to be displayed
     """
-    if maya_version() > 2018:
+    if get_maya_version() > 2018:
         m = '<span style="color:#F4FA58;">Warning: </span><span style="color:#DDD">{}</span>'.format(warning)
         cmds.inViewMessage(msg=m, pos="midCenter", fade=True)
-    printWarning(warning)
+    print_warning(warning)
 
 
-def printError(error, traceback=False):
+def print_error(error, show_traceback=False):
     """
     Prints the error statement in the command response (to the right of the command line)
     Args:
         error (unicode): Error to be displayed
+        show_traceback (bool): If the error should stop the execution and show a traceback
     """
-    if not traceback:
+    if not show_traceback:
         om.MGlobal.displayError(error)
     else:
-        cmds.evalDeferred(lambda: printError(error))
+        cmds.evalDeferred(lambda: print_error(error))
         raise RuntimeError(error)
 
 
-def displayError(error, traceback=False):
+def display_error(error, show_traceback=False):
     """
     Displays an error on the viewport
     Prints the error statement in the command response (to the right of the command line)
     Args:
         error (unicode): Error to be displayed
-        traceback (bool): If python should error our and show a traceback
+        show_traceback (bool): If python should error our and show a traceback
     """
-    if maya_version() > 2018:
+    if get_maya_version() > 2018:
         m = '<span style="color:#F05A5A;">Error: </span><span style="color:#DDD">{}</span>'.format(error)
         cmds.inViewMessage(msg=m, pos="midCenterBot", fade=True)
-    printError(error, traceback)
+    print_error(error, show_traceback)
 
 
 #                _   _
@@ -1534,7 +1233,7 @@ class Path(object):
         elif isinstance(path, unicode):
             self.path = path
         else:
-            printError("{} is not a string".format(path), True)
+            print_error("{} is not a string".format(path), True)
 
     def parent(self):
         """
@@ -1552,7 +1251,7 @@ class Path(object):
         self.path = os.path.abspath(os.path.join(self.path, child))
         return self
 
-    def createDir(self):
+    def create_dir(self):
         """
         Creates the directory of the path, if it doesn't exist already
         """
@@ -1589,21 +1288,21 @@ class Path(object):
         """
         return os.path.exists(self.path)
 
-    def swapExtension(self, newExtension):
+    def swap_extension(self, new_extension):
         """
         Swaps the current file extension, if available
         Returns:
             Path (obj): modified path obj
         """
         self.path, ext = os.path.splitext(self.path)
-        self.path += newExtension
+        self.path += new_extension
         return self
 
-    def slashPath(self):
+    def slash_path(self):
         """
         Returns the path with forward slashes
         Returns:
-            path (str): path with forward slashes
+            path (unicode): path with forward slashes
         """
         return self.path.replace(os.sep, '/')
 
@@ -1637,8 +1336,9 @@ class Path(object):
             (float): Size of the file in MB
         """
         if self.exists():
-            return os.path.getsize(self.path)/1024.0/1024.0
+            return os.path.getsize(self.path) / 1024.0 / 1024.0
         return 0
+
 
 #        _        _
 #    ___| |_ _ __(_)_ __   __ _
@@ -1646,22 +1346,22 @@ class Path(object):
 #   \__ \ |_| |  | | | | | (_| |
 #   |___/\__|_|  |_|_| |_|\__, |
 #                         |___/
-def toCamelCase(text):
+def to_camel_case(text):
     """
     Converts text to camel case, e.g. ("the camel is huge" => "theCamelIsHuge")
     Args:
         text (string): Text to be camel-cased
     """
-    camelCaseText = text
+    camel_case_text = text
     splitter = text.split()
     if splitter:
-        camelCaseText = splitter[0]
+        camel_case_text = splitter[0]
         for index in xrange(1, len(splitter)):
-            camelCaseText += splitter[index].capitalize()
-    return camelCaseText
+            camel_case_text += splitter[index].capitalize()
+    return camel_case_text
 
 
-def deCamelize(text):
+def de_camelize(text):
     """
     Converts camel case to normal case, e.g. ("theCamelIsHuge" => "the camel is huge")
     Args:
@@ -1677,18 +1377,18 @@ def deCamelize(text):
 #   | | | | | | (_| | |_| | | |
 #   |_| |_| |_|\__,_|\__|_| |_|
 #
-def clamp(minV, maxV, value):
+def clamp(min_v, max_v, value):
     """
     Clamps a value between a min and max value
     Args:
-        minV: Minimum value
-        maxV: Maximum value
+        min_v: Minimum value
+        max_v: Maximum value
         value: Value to be clamped
 
     Returns:
         Returns the clamped value
     """
-    return minV if value < minV else maxV if value > maxV else value
+    return min_v if value < min_v else max_v if value > max_v else value
 
 
 def lerp(value1=0.0, value2=1.0, parameter=0.5):
@@ -1717,18 +1417,18 @@ def saturate(value):
     return clamp(0.0, 1.0, value)
 
 
-def linstep(minV=0.0, maxV=1.0, value=0.5):
+def linstep(min_v=0.0, max_v=1.0, value=0.5):
     """
     Linear step function
     Args:
-        minV: minimum value
-        maxV: maximum value
+        min_v: minimum value
+        max_v: maximum value
         value: value to calculate the step in
 
     Returns:
         The percentage [between 0 and 1] of the distance between min and max (e.g. linstep(1, 3, 2.5) -> 0.75).
     """
-    return saturate((value - min) / (max - min))
+    return saturate((value - min_v) / (max_v - min_v))
 
 
 def distance(v1, v2):
@@ -1745,20 +1445,20 @@ def distance(v1, v2):
     return math.sqrt(v1_v2[0] * v1_v2[0] + v1_v2[1] * v1_v2[1] + v1_v2[2] * v1_v2[2])
 
 
-def remap(value, oldMin, oldMax, newMin, newMax):
+def remap(value, old_min, old_max, new_min, new_max):
     """
     Remaps the value to a new min and max value
     Args:
         value: value to remap
-        oldMin: old min of range
-        oldMax: old max of range
-        newMin: new min of range
-        newMax: new max of range
+        old_min: old min of range
+        old_max: old max of range
+        new_min: new min of range
+        new_max: new max of range
 
     Returns:
         The remapped value in the new range
     """
-    return newMin + (((value - oldMin) / (oldMax - oldMin)) * (newMax - newMin))
+    return new_min + (((value - old_min) / (old_max - old_min)) * (new_max - new_min))
 
 
 #
@@ -1767,11 +1467,11 @@ def remap(value, oldMin, oldMax, newMin, newMax):
 #   | | | | (_| | | | | | |  __/\__ \ |_) | (_| | (_|  __/\__ \
 #   |_| |_|\__,_|_| |_| |_|\___||___/ .__/ \__,_|\___\___||___/
 #                                   |_|
-def getNamespaces(objects=[]):
+def get_namespaces(objects=None):
     """
     Get a list of all namespaces within objects or of the entire scene
     Args:
-        objects (list): List of objects to get namespaces from
+        objects (unicode, list): List of objects to get namespaces from
 
     Returns:
         List of namespaces
@@ -1805,43 +1505,43 @@ def getNamespaces(objects=[]):
     return list(namespaces)
 
 
-def changeNamespace(objectName, changeDict):
+def change_namespace(object_name, change_dict):
     """
     Changes the namespaces of the object
     Args:
-        objectName (str): Name to change namespace
-        changeDict (dict): Dictionary of keys {str), values (str) to change namespaces to (key->value)
+        object_name (unicode): Name to change namespace
+        change_dict (dict): Dictionary of keys {str), values (unicode) to change namespaces to (key->value)
 
     Returns:
         String with the namespaces changed
     """
-    namespace = getNamespaces(objectName)
+    namespace = get_namespaces(object_name)
     if namespace:
         namespace = namespace[0] + ":"
-        if namespace in changeDict:
-            objectName = objectName.replace(namespace, changeDict[namespace])
-    return objectName
+        if namespace in change_dict:
+            object_name = object_name.replace(namespace, change_dict[namespace])
+    return object_name
 
 
-def removeNamespaceFromString(objectName):
+def remove_namespace_from_string(object_name):
     """
     Removes the namespace from string
     Args:
-        objectName (str): Object name to remove namespace from
+        object_name (unicode): Object name to remove namespace from
 
     Returns:
         String: New name without namespaces
     """
-    if len(objectName) == 1:
-        objectName = objectName[0]
+    if len(object_name) == 1:
+        object_name = object_name[0]
 
-    if isinstance(objectName, basestring):
-        parts = objectName.split(':')
+    if isinstance(object_name, basestring):
+        parts = object_name.split(':')
         if len(parts) > 1:
             return parts[-1]
         return parts[-1]
     else:
-        printWarning("No string found in {0}".format(objectName))
+        print_warning("No string found in {0}".format(object_name))
         return ""
 
 
@@ -1891,7 +1591,7 @@ def u_internet():
     """
     try:
         import httplib
-    except:
+    except ImportError:
         import http.client as httplib
     conn = httplib.HTTPConnection("microsoft.com", timeout=5)
     try:
@@ -1901,6 +1601,7 @@ def u_internet():
     except:
         conn.close()
         return False
+
 
 #        _
 #    ___(_)_ __
@@ -1912,22 +1613,22 @@ def save_zip():
     """
     Compress the saved opened scene file within the same directory
     Returns:
-        Path (str): Path to saved zip file
+        Path (unicode): Path to saved zip file
     """
     import zipfile
-    fileName = cmds.file(q=True, sn=True, shn=True)
-    if not fileName:
-        printError("Current scene has not been saved before")
+    file_name = cmds.file(q=True, sn=True, shn=True)
+    if not file_name:
+        print_error("Current scene has not been saved before")
         return
-    filePath = Path(cmds.file(q=True, sn=True))
-    zipPath = Path(filePath.path).swapExtension(".zip")
-    zip = zipfile.ZipFile(zipPath.path, 'w', zipfile.ZIP_DEFLATED)
+    file_path = Path(cmds.file(q=True, sn=True))
+    zip_path = Path(file_path.path).swap_extension(".zip")
+    zip_out = zipfile.ZipFile(zip_path.path, 'w', zipfile.ZIP_DEFLATED)
     try:
-        zip.write(filePath.path, fileName)
+        zip_out.write(file_path.path, file_name)
     finally:
-        zip.close()
-        logger.info("Saved scene compressed as: {0}".format(zipPath.path))
-    return zipPath.path
+        zip_out.close()
+        logger.info("Saved scene compressed as: {0}".format(zip_path.path))
+    return zip_path.path
 
 
 #     __ _
@@ -1936,12 +1637,12 @@ def save_zip():
 #   |  _| |>  <  __/\__ \
 #   |_| |_/_/\_\___||___/
 #
-def removeCallback(procedure):
+def remove_callback(procedure):
     """
     Remove callbacks that do not exist anymore (created for example from a plugin which you don't have)
-    E.g., removeProcedure("CgAbBlastPanelOptChangeCallback")
+    E.g., remove_callback("CgAbBlastPanelOptChangeCallback")
     Args:
-        procedure (str): Name of callback procedure
+        procedure (unicode): Name of callback procedure
 
     Returns:
     """
@@ -1952,4 +1653,4 @@ def removeCallback(procedure):
         if callback == procedure:
             # Remove the callbacks from the editor
             cmds.modelEditor(mp, edit=True, editorChanged="")
-            printInfo("{0} successfully removed".format(procedure))
+            print_info("{0} successfully removed".format(procedure))

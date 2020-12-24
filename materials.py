@@ -7,7 +7,7 @@
 from __future__ import print_function
 from __future__ import unicode_literals
 import maya.cmds as cmds
-import coopLib as clib
+import lib as clib
 
 
 def get_assigned_meshes(objects=None, shapes=True, l=False):
@@ -23,7 +23,7 @@ def get_assigned_meshes(objects=None, shapes=True, l=False):
     assigned_meshes = []
     if not objects:
         objects = cmds.ls(sl=True, l=True)
-    materials = clib.getMaterials(objects)
+    materials = cmat.get_materials(objects)
     shading_engines = cmds.listConnections(materials, type="shadingEngine") or []
     for shading_engine in shading_engines:
         meshes = cmds.sets(shading_engine, q=True) or []  # meshes
@@ -59,13 +59,14 @@ def get_materials(objects):
         clib.ListUtils.update(shapes, cmds.ls(transforms, o=True, dag=True, s=True, noIntermediate=True))
 
     if shapes:
+        # _clean_shading_engines(shapes)
         shading_engines = get_shading_engines(shapes)
         for se in shading_engines:
             mats = cmds.ls(cmds.listConnections(se), mat=True)
             if not mats:
                 # connect the default material to the shading engine
                 default_material = "lambert1"
-                clib.printWarning("No material connected to {}. Connecting default material.".format(se))
+                clib.print_warning("No material connected to {}. Connecting default material.".format(se))
                 cmds.connectAttr("{}.outColor".format(default_material), "{}.surfaceShader".format(se), f=True)
             clib.ListUtils.update(materials, mats)
 
@@ -81,8 +82,8 @@ def get_shading_engines(objects):
     Returns:
         (list): Shading engines of objects
     """
-    shapes = clib.getShapes(objects, l=True)
-    shading_engines = clib.ListUtils.removeDuplicates(cmds.listConnections(shapes, type="shadingEngine") or [])
+    shapes = clib.get_shapes(objects, l=True)
+    shading_engines = clib.ListUtils.remove_duplicates(cmds.listConnections(shapes, type="shadingEngine") or [])
     return shading_engines
 
 
@@ -171,7 +172,7 @@ def _get_material_of_components(components):
     for c in components:
         if clib.is_component(c):
             obj = cmds.ls(c, objectsOnly=True)
-            shading_engines = clib.ListUtils.removeDuplicates(cmds.listConnections(obj, type="shadingEngine"))
+            shading_engines = clib.ListUtils.remove_duplicates(cmds.listConnections(obj, type="shadingEngine"))
             # Note: we could have used set() above, but the order of elements can be important for certain tools
             for se in shading_engines:
                 s = cmds.sets(se, q=True)
@@ -183,7 +184,7 @@ def _get_material_of_components(components):
             if clib.is_component(c):
                 materials = get_materials(cmds.ls(components, objectsOnly=True))
                 if not materials:
-                    clib.displayWarning("No materials on {}, assigning default Lambert material".format(components))
+                    clib.display_warning("No materials on {}, assigning default Lambert material".format(components))
                     default_material = "lambert1"
                     set_material(default_material, c)
                     if default_material not in materials:
@@ -204,11 +205,11 @@ def _clean_shading_engines(objects):
     shapes = []
     for obj in objects:
         if cmds.objectType(obj) != "mesh":
-            shapes.append(clib.getShapes(obj, l=True))
+            shapes.append(clib.get_shapes(obj, l=True))
         else:
             shapes.append(obj)
     for shape in shapes:
-        shading_engines = clib.ListUtils.removeDuplicates(cmds.listConnections(shape, type="shadingEngine"))
+        shading_engines = clib.ListUtils.remove_duplicates(cmds.listConnections(shape, type="shadingEngine"))
         if "MNPRX_SE" in shading_engines:
             shading_engines.remove("MNPRX_SE")  # MNPRX instance shading engine
         if len(shading_engines) > 1:
@@ -221,8 +222,8 @@ def _clean_shading_engines(objects):
                         try:
                             source = cmds.listConnections(dest, s=True, plugs=True)[0]
                             cmds.disconnectAttr(source, dest)
-                            clib.printWarning("initialShadingGroup has been removed from {0}".format(shape))
+                            clib.print_warning("initialShadingGroup has been removed from {0}".format(shape))
                             break
                         except RuntimeError:
-                            clib.printWarning("Couldn't disconnect {0} from {1}".format(shape, dest))
+                            clib.print_warning("Couldn't disconnect {0} from {1}".format(shape, dest))
     return shading_engines

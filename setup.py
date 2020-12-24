@@ -8,12 +8,12 @@ from __future__ import print_function
 from __future__ import unicode_literals
 import os, shutil, io, pprint
 import maya.cmds as cmds
-import coopLib as clib
+import lib as clib
 
 
 # SETTLE OS DEPENDENT CASES
 SEP = ':'         # separator
-if clib.localOS() == "win":
+if clib.get_local_os() == "win":
     SEP = ';'
 
 
@@ -41,7 +41,7 @@ def install(install_dir, all_users=False):
         # replace environment file
         shutil.move(temp_file_path.path, maya_env_path)
 
-    clib.displayInfo("-> Installation complete <-")
+    clib.display_info("-> Installation complete <-")
     _restart_dialog()
 
 
@@ -70,7 +70,7 @@ def uninstall(install_dir, module_name):
     shutil.move(temp_file_path.path, maya_env_path)
 
     # delete shelves
-    clib.deleteShelves({"{}".format(module_name): "{}.mel".format(module_name)}, False)
+    clib.delete_shelves({"{}".format(module_name): "{}.mel".format(module_name)}, False)
     _restart_dialog()
 
 

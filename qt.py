@@ -17,7 +17,7 @@ import maya.cmds as cmds
 import maya.OpenMayaUI as omUI
 from PySide2 import QtCore, QtGui, QtWidgets
 from shiboken2 import wrapInstance
-import coopLib as clib
+import lib as clib
 
 try:
     from PySide2.QtWebEngineWidgets import QWebEngineView, QWebEnginePage  # Doesn't work with Maya 2017
@@ -45,7 +45,7 @@ FONT_FOOTER = QtGui.QFont('MS Shell dlg 2', 8)
 
 
 # WINDOW
-def get_Maya_window():
+def get_maya_window():
     """
     Get the pointer to a maya window and wrap the instance as a QWidget
     Returns:
@@ -108,7 +108,7 @@ def get_dpi_scale():
         (float): DPI scaling factor of the Maya interface
     TODO: MacOS and Linux version
     """
-    if clib.localOS() == "win":
+    if clib.get_local_os() == "win":
         return cmds.mayaDpiSetting(realScaleValue=True, q=True)
     return 1.0
 
@@ -132,7 +132,7 @@ def relative_path(path):
 class CoopMayaUI(QtWidgets.QDialog):
 
     def __init__(self, title, dock=False, rebuild=False, brand="studio.coop", tooltip="", show=True,
-                 parent=get_Maya_window()):
+                 parent=get_maya_window()):
 
         # check if parent is given, otherwise, get Maya
         if isinstance(parent, basestring):
@@ -141,7 +141,7 @@ class CoopMayaUI(QtWidgets.QDialog):
                 parent = wrapInstance(long(ptr), QtWidgets.QWidget)  # wrapper
             else:
                 cmds.warning("No window with name {} was found, parenting to Maya window")
-                parent = get_Maya_window()
+                parent = get_maya_window()
 
         super(CoopMayaUI, self).__init__(parent)
         # check if window exists
@@ -235,15 +235,15 @@ class IconButton(QtWidgets.QLabel):
     """
     Icon Button class object
     """
-    clicked = QtCore.Signal(str)
+    clicked = QtCore.Signal(unicode)
     active = False
 
     def __init__(self, image, tooltip='', size=None, parent=None, b_color=(68, 68, 68), h_color=(200, 200, 200)):
         """
         Icon Button constructor
         Args:
-            image (str): relative image path ("images/butIcon.png")
-            tooltip (str): tooltip of button (default -> "")
+            image (unicode): relative image path ("images/butIcon.png")
+            tooltip (unicode): tooltip of button (default -> "")
             size {lst): List of unsigned integers -> size of button in pixels (default -> [25, 25])
             parent (QWidget): Parent widget (default -> None)
         """
@@ -438,12 +438,12 @@ class LabeledFieldSliderGroup(QtWidgets.QWidget):
 
     def update_value(self):
         """ Update and synchronize the value between the spinbox and slider """
+        value = self.sender().value()
         if self.sender() == self.slider:
-            value = self.sender().value() / 1000.0
+            value /= 1000.0
             # print("{0} with value: {1}".format(self.sender().objectName(), value))
             self.field.setValue(value)
         if self.sender() == self.field:
-            value = self.sender().value()
             # print("{0} with value: {1}".format(self.sender().objectName(), value))
             self.slider.blockSignals(True)
             # check if slider needs to be changed
@@ -587,7 +587,7 @@ class WidgetGroup(QtWidgets.QWidget):
         """
         Adds a list of widgets to the group
         Args:
-            widgets (lst): List of QWidgets to be added
+            widgets (list): List of QWidgets to be added
         """
         for widget in widgets:
             if widget == "stretch":

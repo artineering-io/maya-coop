@@ -1,7 +1,7 @@
 from __future__ import print_function
 from __future__ import unicode_literals
 from PySide2 import QtWidgets, QtCore, QtGui
-import coopLib as clib
+import lib as clib
 import qt as cqt
 import setup
 
@@ -25,7 +25,7 @@ class SetupUI(cqt.CoopMayaUI):
         """ This method builds the UI """
 
         # check supported OS
-        if clib.localOS() not in self.supported_os:
+        if clib.get_local_os() not in self.supported_os:
             error_layout = QtWidgets.QVBoxLayout()
             error_layout.setAlignment(QtCore.Qt.AlignCenter)
             not_supported_lbl = QtWidgets.QLabel("{} doesn't work on this operating system.".format(self.module_name))
