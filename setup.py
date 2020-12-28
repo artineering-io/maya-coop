@@ -45,7 +45,7 @@ def install(install_dir, all_users=False):
     _restart_dialog()
 
 
-def uninstall(install_dir, module_name):
+def uninstall(install_dir, module_name, reinstall=False):
     """
     Uninstalls the module
     Args:
@@ -69,9 +69,9 @@ def uninstall(install_dir, module_name):
     # replace environment file
     shutil.move(temp_file_path.path, maya_env_path)
 
-    # delete shelves
-    clib.delete_shelves({"{}".format(module_name): "{}.mel".format(module_name)}, False)
-    _restart_dialog()
+    if not reinstall:
+        clib.delete_shelves({"{}".format(module_name): "{}.mel".format(module_name)}, False)
+        _restart_dialog()
 
 
 def parse_environment_variables(maya_env_path):

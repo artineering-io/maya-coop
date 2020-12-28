@@ -14,6 +14,7 @@ class SetupUI(cqt.CoopMayaUI):
         self.module_name = module_name
         self.module_path = clib.get_module_path(module_name)
         self.install_dir = install_dir
+        self.reinstall = False
 
         self.supported_os = supported_os
         if self.supported_os is None:
@@ -70,6 +71,7 @@ class SetupUI(cqt.CoopMayaUI):
             method_layout.addWidget(uninstall_rad)
             method_layout.addWidget(cqt.HLine())
             install_txt = "Re-install"
+            self.reinstall = True
             self.resize(600, 250)
         else:
             self.resize(600, 200)
@@ -104,9 +106,11 @@ class SetupUI(cqt.CoopMayaUI):
         option = options[self.button_grp.checkedId()]
         if option == "Uninstall":
             print("Uninstalling {}".format(self.module_name))
-            setup.uninstall(self.install_dir, self.module_name)
+            setup.uninstall(self.module_path, self.module_name)
         elif option == "Install":
             print("Installing {} for current user".format(self.module_name))
+            if self.reinstall:
+                setup.uninstall(self.module_path, self.module_name, self.reinstall)
             setup.install(self.install_dir, all_users=False)
         else:
             print("Installing {} for all users".format(self.module_name))
