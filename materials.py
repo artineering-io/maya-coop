@@ -229,3 +229,12 @@ def _clean_shading_engines(objects):
                         except RuntimeError:
                             clib.print_warning("Couldn't disconnect {0} from {1}".format(shape, dest))
     return shading_engines
+
+
+def delete_unused_materials():
+    materials = cmds.ls(mat=True)
+    schedule = []
+    for mat in materials:
+        if not get_assigned_meshes(mat):
+            schedule.append(mat)
+    cmds.delete(schedule)

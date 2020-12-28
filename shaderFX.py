@@ -148,3 +148,35 @@ def filepath_check(text=None, fix=False):
                 clib.print_warning("{}.{} has an unsupported file path".format(sfx, attr))
                 if fix:
                     cmds.setAttr("{}.{}".format(sfx, attr), "", type="string")
+
+
+def check_corrupted(attr_name="Cangiante", delete=False):
+    """
+    Checks all ShaderFX materials for corruption
+    Args:
+        attr_name (unicode): Attribute name that should exist
+        delete (bool): If the corrupted ShaderFX materials should also be deleted
+    """
+    sfx_materials = cmds.ls(exactType='ShaderfxShader')
+    scheduled = []
+    for mat in sfx_materials:
+        if is_corrupted(mat, attr_name):
+            print("{} is corrupted, scheduling deletion".format(mat))
+            scheduled.append(mat)
+    if scheduled and delete:
+        cmds.delete(scheduled)
+
+
+def is_corrupted(material, attr_name="Cangiante"):
+    """
+    Checks if the ShaderFX material is corrupted
+    Args:
+        material (unicode): Name of material to check
+        attr_name (unicode): Attribute name that should exist
+
+    Returns:
+        (bool): True if it is corrupted
+    """
+    if not cmds.attributeQuery(attr_name, node=material, exists=True):
+        return True
+    return False
