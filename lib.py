@@ -306,6 +306,22 @@ def restart_maya(brute=True):
         os.execl(sys.executable, sys.executable, *sys.argv)
 
 
+def run_cmd(cmd, cwd):
+    """
+    Run a command in a separate shell and print its results
+    Args:
+        cmd (unicode): Command to run in a shell
+        cwd (unicode): Current working directory (path where command will be executed from)
+    """
+    print("> {}".format(cmd))
+    process = subprocess.Popen(cmd, cwd=cwd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True)
+    (output, error) = process.communicate()
+    if output:
+        print("Output: {}".format(output))
+    if error:
+        print("Error: {}".format(error))
+
+
 def dialog_restart(brute=True):
     """
     Opens restart dialog to restart maya
@@ -1272,7 +1288,7 @@ class Path(object):
             except:
                 # it is most likely a file
                 os.remove(self.path)
-        return self.parent()
+        return self
 
     def basename(self):
         """
@@ -1563,6 +1579,10 @@ def u_enlist(arg, silent=True):
     if isinstance(arg, basestring):
         if not silent:
             logger.info("{0} is a string, enlisting it".format(arg))
+        return [arg]
+    elif isinstance(arg, int):
+        if not silent:
+            logger.info("{0} is an int, enlisting it".format(arg))
         return [arg]
     return arg
 
