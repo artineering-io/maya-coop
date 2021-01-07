@@ -1584,6 +1584,8 @@ def u_enlist(arg, silent=True):
         if not silent:
             logger.info("{0} is an int, enlisting it".format(arg))
         return [arg]
+    elif arg is None:
+        return []
     return arg
 
 
