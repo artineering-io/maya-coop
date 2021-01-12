@@ -90,6 +90,18 @@ def get_dock(name=''):
     return ptr
 
 
+def wrap_instance(qt_ptr):
+    """
+    Wrap pointer as a QWidget
+    Args:
+        qt_ptr (ptr): Pointer to QWidget
+
+    Returns:
+        (QWidget): QWidget
+    """
+    return wrapInstance(long(qt_ptr), QtWidgets.QWidget)
+
+
 def delete_dock(name=''):
     """
     Deletes a docked UI
@@ -143,7 +155,11 @@ class CoopMayaUI(QtWidgets.QDialog):
             cmds.warning("No window with name {} was found, parenting to Maya window")
             parent = get_maya_window()
 
-        super(CoopMayaUI, self).__init__(parent)
+        if clib.get_py_version() > 3:
+            super().__init__(parent)
+        else:
+            super(CoopMayaUI, self).__init__(parent)
+
         # check if window exists
         if cmds.window(title, exists=True):
             if not rebuild:
