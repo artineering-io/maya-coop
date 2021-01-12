@@ -132,16 +132,16 @@ def relative_path(path):
 class CoopMayaUI(QtWidgets.QDialog):
 
     def __init__(self, title, dock=False, rebuild=False, brand="studio.coop", tooltip="", show=True,
-                 parent=get_maya_window()):
+                 parent=None):
 
-        # check if parent is given, otherwise, get Maya
-        if isinstance(parent, basestring):
-            if cmds.window(parent, exists=True, query=True):
-                ptr = omUI.MQtUtil.findWindow(parent)
-                parent = wrapInstance(long(ptr), QtWidgets.QWidget)  # wrapper
-            else:
-                cmds.warning("No window with name {} was found, parenting to Maya window")
-                parent = get_maya_window()
+        if parent is None:
+            parent = get_maya_window()
+        elif cmds.window(clib.u_stringify(parent), exists=True, query=True):
+            ptr = omUI.MQtUtil.findWindow(parent)
+            parent = wrapInstance(long(ptr), QtWidgets.QWidget)  # wrapper
+        else:
+            cmds.warning("No window with name {} was found, parenting to Maya window")
+            parent = get_maya_window()
 
         super(CoopMayaUI, self).__init__(parent)
         # check if window exists
