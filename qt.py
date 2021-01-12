@@ -235,7 +235,7 @@ class IconButton(QtWidgets.QLabel):
     """
     Icon Button class object
     """
-    clicked = QtCore.Signal(unicode)
+    clicked = QtCore.Signal()
     active = False
 
     def __init__(self, image, tooltip='', size=None, parent=None, b_color=(68, 68, 68), h_color=(200, 200, 200)):
@@ -260,7 +260,7 @@ class IconButton(QtWidgets.QLabel):
 
     def mouseReleaseEvent(self, event):
         self.toggle()
-        self.clicked.emit("emit the signal")
+        self.clicked.emit()
 
     def change_icon(self, image):
         self.setPixmap(image)

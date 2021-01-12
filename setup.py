@@ -24,10 +24,10 @@ def install(install_dir, all_users=False):
         install_dir (unicode): Root directory of the module file
         all_users (bool): If the installation should be for all users
     """
-    unicode_dir = install_dir.decode('unicode-escape')  # convert to unicode
+    install_dir = clib.u_decode(install_dir)
     if not all_users:
         print("-> Installing module for current user")
-        new_variables = {'MAYA_MODULE_PATH': [os.path.abspath(unicode_dir)]}
+        new_variables = {'MAYA_MODULE_PATH': [os.path.abspath(install_dir)]}
         maya_env_path = _check_maya_env()
 
         # get and merge environment variables
@@ -95,7 +95,7 @@ def parse_environment_variables(maya_env_path):
             breakdown = line.split('=')
             if len(breakdown) == 1:  # no equal sign could be used
                 breakdown = line.split(' ')  # split by empty spaces
-                breakdown = filter(None, breakdown)  # get rid of empty string list elements
+                breakdown = list(filter(None, breakdown))  # get rid of empty string list elements
             if len(breakdown) != 2:
                 if not breakdown:
                     cmds.warning("Empty line found in Maya.env file, skipping line")
@@ -105,7 +105,7 @@ def parse_environment_variables(maya_env_path):
 
             # get values of variable
             values = breakdown[1].split(SEP)
-            values = filter(None, values)
+            values = list(filter(None, values))
             stored_values = list()
             for val in values:
                 try:

@@ -1245,7 +1245,7 @@ def display_error(error, show_traceback=False):
 class Path(object):
     def __init__(self, path):
         if isinstance(path, str):
-            self.path = path.decode(sys.getfilesystemencoding())
+            self.path = u_decode(path)
         elif isinstance(path, unicode):
             self.path = path
         else:
@@ -1603,6 +1603,17 @@ def u_stringify(arg, silent=False):
             logger.info("{0} is a list/tuple, taking first element".format(arg))
         arg = arg[0]
     return arg
+
+
+def u_decode(text):
+    """
+    Unit test to make sure text is decoded
+    Args:
+        text (unicode, str)
+    """
+    if sys.getfilesystemencoding() != "utf-8":
+        text = text.decode()
+    return text
 
 
 def u_internet():

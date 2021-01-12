@@ -21,7 +21,15 @@
   }
 
   python ("import coop.setup");
-  python ("reload(coop.setup)");  // convenience to reload coopSetup upon change
+  // convenience to reload setup to check for changes
+  python("import sys");
+  if (python("sys.version_info.major") >= 3) {
+    python ("import importlib");
+    python ("importlib.reload(coop.setup)");
+  } else {
+    python ("reload(coop.setup)");
+  }
+
   python ("coop.setup.run('" + $fileDir + "')");
 
   global proc string installScriptLocation () {
