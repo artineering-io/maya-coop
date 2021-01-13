@@ -19,15 +19,11 @@ from PySide2 import QtCore, QtGui, QtWidgets
 from shiboken2 import wrapInstance
 import lib as clib
 
+# Python 2-3 checks
 try:
     from PySide2.QtWebEngineWidgets import QWebEngineView, QWebEnginePage  # Doesn't work with Maya 2017
 except ImportError:
     from PySide2.QtWebKitWidgets import QWebView as QWebEngineView
-
-try:
-    basestring  # Python 2
-except NameError:
-    basestring = (str,)  # Python 3
 
 try:
     long  # Python 2
@@ -52,7 +48,22 @@ def get_maya_window():
         (QWidget): Maya window as a QWidget instance
     """
     ptr = omUI.MQtUtil.mainWindow()  # pointer to main window
-    return wrapInstance(long(ptr), QtWidgets.QWidget)  # wrapper
+    return wrap_instance(ptr)
+
+
+def wrap_instance(qt_ptr, q_widget=None):
+    """
+    Wrap pointer as a QWidget
+    Args:
+        qt_ptr (ptr): Pointer to QWidget
+        q_widget (class): Class to wrap pointer as
+
+    Returns:
+        (QWidget): QWidget
+    """
+    if q_widget is None:
+        q_widget = QtWidgets.QWidget
+    return wrapInstance(long(qt_ptr), q_widget)
 
 
 def is_minimized(window):
@@ -66,7 +77,7 @@ def is_minimized(window):
     """
     if cmds.window(window, exists=True, query=True):
         ptr = omUI.MQtUtil.findWindow(window)  # pointer to window
-        q_window = wrapInstance(long(ptr), QtWidgets.QWidget)  # wrapper
+        q_window = wrap_instance(ptr)
         return q_window.windowState() == QtCore.Qt.WindowMinimized
 
 
@@ -85,21 +96,8 @@ def get_dock(name=''):
     # used to be called dockControl
     # ctrl = cmds.workspaceControl(name, dockToMainWindow=('left', True), label=name)
     ctrl = cmds.dockControl(name, con=name, area='left', label=name)
-    qt_ctrl = omUI.MQtUtil.findControl(ctrl)
-    ptr = wrapInstance(long(qt_ctrl), QtWidgets.QWidget)
-    return ptr
-
-
-def wrap_instance(qt_ptr):
-    """
-    Wrap pointer as a QWidget
-    Args:
-        qt_ptr (ptr): Pointer to QWidget
-
-    Returns:
-        (QWidget): QWidget
-    """
-    return wrapInstance(long(qt_ptr), QtWidgets.QWidget)
+    ptr = omUI.MQtUtil.findControl(ctrl)
+    return wrap_instance(ptr)
 
 
 def delete_dock(name=''):
@@ -150,7 +148,7 @@ class CoopMayaUI(QtWidgets.QDialog):
             parent = get_maya_window()
         elif cmds.window(clib.u_stringify(parent), exists=True, query=True):
             ptr = omUI.MQtUtil.findWindow(parent)
-            parent = wrapInstance(long(ptr), QtWidgets.QWidget)  # wrapper
+            parent = wrap_instance(ptr)
         else:
             cmds.warning("No window with name {} was found, parenting to Maya window")
             parent = get_maya_window()
@@ -224,7 +222,7 @@ def refresh_window(window_title, quiet=True):
     """
     if cmds.window(window_title, exists=True):
         ptr = omUI.MQtUtil.findWindow(window_title)  # pointer to main window
-        window = wrapInstance(long(ptr), QtWidgets.QWidget)  # wrapper
+        window = wrap_instance(ptr)
         main_layout = window.layout()
         clear_layout(main_layout)  # delete all widgets within main layout
         window.window().buildUI()
