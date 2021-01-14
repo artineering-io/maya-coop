@@ -1590,6 +1590,8 @@ def u_stringify(arg, silent=False):
         if not silent:
             LOG.info("{0} is a list/tuple, taking first element".format(arg))
         arg = arg[0]
+    elif arg is None:
+        arg = ""
     return arg
 
 

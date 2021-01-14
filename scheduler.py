@@ -23,7 +23,7 @@ def ae_update_schedule():
 
     global AE_UPDATE_SCHEDULED
     if not AE_UPDATE_SCHEDULED:
-        cmds.evalDeferred(update_ae())
+        cmds.evalDeferred(lambda: update_ae())
         AE_UPDATE_SCHEDULED = True
 
 
