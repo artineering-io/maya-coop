@@ -1,23 +1,18 @@
 """
-@license:       MIT
-@repository:    https://github.com/artineering-io/maya-coop
-#                           ___  _
-#     ___ ___   ___  _ __  / _ \| |_
-#    / __/ _ \ / _ \| '_ \| | | | __|
-#   | (_| (_) | (_) | |_) | |_| | |_
-#    \___\___/ \___/| .__/ \__\_\\__|
-#                   |_|
 @summary:       Maya cooperative qt library
 @run:           import coop.coopQt as qt (suggested)
+@license:       MIT
+@repository:    https://github.com/artineering-io/maya-coop
 """
 from __future__ import print_function
 from __future__ import unicode_literals
-import logging, time, threading, os
+import time, threading, os
 import maya.cmds as cmds
 import maya.OpenMayaUI as omUI
 from PySide2 import QtCore, QtGui, QtWidgets
 from shiboken2 import wrapInstance
 import lib as clib
+import logger as clog
 
 # Python 2-3 checks
 try:
@@ -30,12 +25,7 @@ try:
 except NameError:
     long = int  # Python 3
 
-# LOGGING
-logging.basicConfig()  # errors and everything else (2 separate log groups)
-logger = logging.getLogger("coopQt")  # create a logger for this file
-logger.setLevel(logging.DEBUG)  # defines the logging level (INFO for releases)
-
-# STYLES
+LOG = clog.logger("coop.qt")
 FONT_HEADER = QtGui.QFont('MS Shell dlg 2', 15)
 FONT_FOOTER = QtGui.QFont('MS Shell dlg 2', 8)
 
@@ -107,7 +97,7 @@ def delete_dock(name=''):
         name (unicode): Name of the dock to delete
     """
     if cmds.dockControl(name, query=True, exists=True):  # workspaceControl on 2017
-        logger.debug("The dock should be deleted next")
+        LOG.debug("The dock should be deleted next")
         cmds.deleteUI(name)
 
 
@@ -204,7 +194,7 @@ class CoopMayaUI(QtWidgets.QDialog):
         if not dock and show:
             self.show()
 
-        logger.debug("{0} was successfully generated".format(title))
+        LOG.debug("{0} was successfully generated".format(title))
 
     def populateUI(self):
         pass
@@ -228,7 +218,7 @@ def refresh_window(window_title, quiet=True):
         window.window().buildUI()
     else:
         if not quiet:
-            logger.debug("{0} window doesn't exist".format(window_title))
+            LOG.debug("{0} window doesn't exist".format(window_title))
 
 
 def clear_layout(layout):
@@ -436,18 +426,18 @@ class LabeledFieldSliderGroup(QtWidgets.QWidget):
                 if minv < maxv:
                     self.min = minv
                 else:
-                    logger.warning("Minimum value is not less than maximum value")
+                    LOG.warning("Minimum value is not less than maximum value")
             else:
                 if minv < self.max:
                     self.min = minv
                 else:
-                    logger.warning("Minimum value is not less than maximum value")
+                    LOG.warning("Minimum value is not less than maximum value")
             self.slider.setMinimum(self.min * 1000)
         if isinstance(maxv, numbers.Number):
             if maxv > self.min:
                 self.max = maxv
             else:
-                logger.warning("Maximum value is not more than minimum value")
+                LOG.warning("Maximum value is not more than minimum value")
             self.slider.setMaximum(self.max * 1000)
 
     def update_value(self):

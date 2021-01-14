@@ -1,9 +1,17 @@
+"""
+@summary:       Module setup view
+@run:           SetupUI(title, module, root_dir, brand, supported_os, rebuild=True)
+@license:       MIT
+@repository:    https://github.com/artineering-io/maya-coop
+"""
 from __future__ import print_function
 from __future__ import unicode_literals
 from PySide2 import QtWidgets, QtCore, QtGui
 import lib as clib
 import qt as cqt
 import setup
+import logger as clog
+LOG = clog.logger("coop.setup_view")
 
 
 class SetupUI(cqt.CoopMayaUI):
@@ -105,14 +113,14 @@ class SetupUI(cqt.CoopMayaUI):
         options = ["Uninstall", "Install", "Install for all"]
         option = options[self.button_grp.checkedId()]
         if option == "Uninstall":
-            print("Uninstalling {}".format(self.module_name))
+            LOG.info("Uninstalling {}".format(self.module_name))
             setup.uninstall(self.module_path, self.module_name)
         elif option == "Install":
-            print("Installing {} for current user".format(self.module_name))
+            LOG.info("Installing {} for current user".format(self.module_name))
             if self.reinstall:
                 setup.uninstall(self.module_path, self.module_name, self.reinstall)
             setup.install(self.install_dir, all_users=False)
         else:
-            print("Installing {} for all users".format(self.module_name))
+            LOG.info("Installing {} for all users".format(self.module_name))
 
         self.accept()

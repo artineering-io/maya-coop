@@ -1,5 +1,5 @@
 """
-@summary:       Maya cooperative ShaderFX library
+@summary:       ShaderFX library
 @run:           import coop.shaderFX as csfx (suggested)
 @license:       MIT
 @repository:    https://github.com/artineering-io/maya-coop
@@ -79,6 +79,35 @@ def get_node_value(material, unique_node_name, quiet=False):
         else:
             value = cmds.shaderfx(sfxnode=material, getPropertyValue=(node_id, "options"))[-1]
     return value
+
+
+def get_node_name(material, node_id):
+    """
+    Get the name of a node based on its id
+    Args:
+        material (unicode): Material to get node name from
+        node_id (int): Node id to get name of
+    """
+    return cmds.shaderfx(sfxnode=material, getPropertyValue=(node_id, "name"))
+
+
+def list_node_ids(material, node_type=None):
+    """
+    List nodes of a certain type
+    Args:
+        material (unicode): Name of the shaderFX material
+        node_type (unicode): Type to list (Type names correspond to names in ShaderFX node panel)
+    """
+    node_count = cmds.shaderfx(sfxnode=material, getNodeCount=True)
+    ids = []
+    for node_id in range(node_count):
+        if node_type is None:
+            ids.append(node_id)
+        else:
+            class_name = cmds.shaderfx(sfxnode=material, getNodeClassName=node_id)
+            if node_type == class_name:
+                ids.append(node_id)
+    return ids
 
 
 def create_material(name, graph_dir="", custom_graph=""):

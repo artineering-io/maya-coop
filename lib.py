@@ -1,28 +1,22 @@
 # -*- coding: utf-8 -*-
 """
-@license:       MIT
-@repository:    https://github.com/artineering-io/maya-coop
-#                          _     _ _
-#     ___ ___   ___  _ __ | |   (_) |__
-#    / __/ _ \ / _ \| '_ \| |   | | '_ \
-#   | (_| (_) | (_) | |_) | |___| | |_) |
-#    \___\___/ \___/| .__/|_____|_|_.__/
-#                   |_|
 @summary:       Maya cooperative python library
 @run:           import coop.coopLib as lib (suggested)
+@license:       MIT
+@repository:    https://github.com/artineering-io/maya-coop
 """
 from __future__ import print_function
 from __future__ import unicode_literals
-import os, sys, subprocess, shutil, re, logging, json, math, traceback, platform
+import os, sys, subprocess, shutil, re, math, traceback, platform
 from functools import wraps
 import maya.mel as mel
 import maya.cmds as cmds
+import logger as clog
 
 # python api 2.0
 import maya.api.OpenMaya as om
 def maya_useNewAPI():
     pass
-
 
 try:
     basestring  # Python 2
@@ -33,11 +27,6 @@ try:
     xrange  # Python 2
 except NameError:
     xrange = range  # Python 3
-
-# LOGGING
-logging.basicConfig()  # errors and everything else (2 separate log groups)
-logger = logging.getLogger("coopLib")  # create a logger for this file
-logger.setLevel(logging.DEBUG)  # defines the logging level (INFO for releases)
 
 # Please follow google style docstrings!
 """
@@ -53,6 +42,8 @@ Returns:
 Raises:
     KeyError: Raises an exception.
 """
+
+LOG = clog.logger("coop.lib")
 
 
 #        _                          _
@@ -81,7 +72,7 @@ def timer(f):
             traceback.print_exc()
         finally:
             time_end = time.time()
-            logger.debug("[Time elapsed at {0}:    {1:.4f} sec]".format(f.__name__, time_end - time_start))
+            LOG.debug("[Time elapsed at {0}:    {1:.4f} sec]".format(f.__name__, time_end - time_start))
 
     return wrapper
 
@@ -530,7 +521,7 @@ def delete_shelves(shelves_dict=None, restart=True):
     for shelf in shelves_dict:
         try:
             mel.eval('jumpToNamedShelf("{0}");'.format(shelf))
-        except:
+        except RuntimeError:
             continue
     mel.eval('saveAllShelves $gShelfTopLevel;')  # all shelves loaded (save them)
     # time to delete them
@@ -633,28 +624,28 @@ def is_renderable(obj, quiet=True):
         if len(obj) == 1:
             obj = obj[0]
         else:
-            logger.error("isRenderable - {0} cannot be checked".format(obj))
+            LOG.error("isRenderable - {0} cannot be checked".format(obj))
             return False
     if not cmds.objExists(obj):
         if not quiet:
-            logger.error("{0} does not exist, skipping it".format(obj))
+            LOG.error("{0} does not exist, skipping it".format(obj))
         return False
     # doIt
     if cmds.getAttr("{0}.template".format(obj)):
         if not quiet:
-            logger.error("{0} is a template object, skipping it".format(obj))
+            LOG.error("{0} is a template object, skipping it".format(obj))
         return False
     if not cmds.getAttr("{0}.visibility".format(obj)):
         # Let's check if it has any in-connection (its animated)
         if not cmds.listConnections("{0}.visibility".format(obj)):
             if not quiet:
-                logger.error("{0} is not visible, skipping it".format(obj))
+                LOG.error("{0} is not visible, skipping it".format(obj))
             return False
     if not cmds.getAttr("{0}.lodVisibility".format(obj)):
         # Let's check if it has any in-connection (its animated)
         if not cmds.listConnections("{0}.lodVisibility".format(obj)):
             if not quiet:
-                logger.error("{0} has no lodVisibility, skipping it".format(obj))
+                LOG.error("{0} has no lodVisibility, skipping it".format(obj))
             return False
     # TODO Display layer override check
     renderable = True
@@ -747,7 +738,7 @@ def set_attr(obj, attr, value, silent=False):
     except RuntimeError:
         if not silent:
             cmds.warning("{0}.{1} could not be set to {2}.".format(obj, attr, value))
-            logger.debug("Attribute of type: {0}.".format(type(value)))
+            LOG.debug("Attribute of type: {0}.".format(type(value)))
         return False
 
 
@@ -910,7 +901,7 @@ def set_vertex_color_sets(shapes, color_sets, value=None):
         shape_color_sets = cmds.polyColorSet(shape, query=True, allColorSets=True) or []
         for colorSet in color_sets:
             if colorSet not in shape_color_sets:
-                logger.debug("Creating {0} vertex color set for {1}".format(colorSet, shape))
+                LOG.debug("Creating {0} vertex color set for {1}".format(colorSet, shape))
                 cmds.polyColorSet(shape, cs=colorSet, representation="RGBA", create=True)
             o_shape = get_m_object(shape)
             fn_mesh = om.MFnMesh(o_shape)  # access mesh data (oShape can also be replaced by MDagPath of shape)
@@ -942,7 +933,7 @@ def set_vertex_color_sets(shapes, color_sets, value=None):
             fnMesh.setCurrentColorSetName(colorSet)
             fnMesh.setFaceVertexColors(vertexColorArray, faceIndexArray, localVertexIndexArray)
             """
-            logger.info("Vertex color set {0} set for: {1}".format(colorSet, shape))
+            LOG.info("Vertex color set {0} set for: {1}".format(colorSet, shape))
         delete_color_set_history(shape)
 
 
@@ -952,11 +943,9 @@ def delete_vertex_color_sets(shapes, color_sets, quiet=True):
     Delete the vertex color set and its history
     Args:
         shapes (list): Shapes to delete vertex color sets from
-        color_sets (list): Vertex color sets to delete
+        color_sets (list, unicode): Vertex color sets to delete
         quiet (bool): If the function should prompt debug messages
     """
-    if quiet:
-        logger.setLevel(logging.INFO)
     shapes = u_enlist(shapes)  # put in list
     color_sets = u_enlist(color_sets)  # put in list
     for shape in shapes:
@@ -974,11 +963,10 @@ def delete_vertex_color_sets(shapes, color_sets, quiet=True):
                     color_set_name = cmds.getAttr("{0}.colorSetName".format(node))
                     if color_set_name == colorSet:
                         nodes2delete.append(node)
-                        logger.debug("{0} node scheduled for deletion".format(node))
+                        LOG.debug("{0} node scheduled for deletion".format(node))
                 if nodes2delete:
                     cmds.delete(nodes2delete)
-                logger.debug("Vertex color set {0} deleted for: {1}".format(colorSet, shape))
-    logger.setLevel(logging.DEBUG)
+                LOG.debug("Vertex color set {0} deleted for: {1}".format(colorSet, shape))
 
 
 def bake_vertex_colors(shapes):
@@ -1056,7 +1044,7 @@ def bake_vertex_colors(shapes):
                     v_string = cmds.polyInfo("{0}.f[{1}]".format(shape, f), fv=True)[0]
                     vertices = v_string.split(':')[1].split()
                     mel_cmd += ' mc {0} {1}'.format(color_set_index, len(vertices))
-                    for v in vertices:
+                    for _ in vertices:
                         mel_cmd += " {0}".format(fv)
                         fv += 1
                 mel_cmd += ';'
@@ -1064,7 +1052,7 @@ def bake_vertex_colors(shapes):
                 mel.eval(mel_cmd)  # we run the mel command here
                 # delete polyColorPerVertex nodes that pertain this colorSet
                 cmds.delete(node)
-                logger.debug("Vertex color set {0} baked on {1}".format(color_set_name, shape))
+                LOG.debug("Vertex color set {0} baked on {1}".format(color_set_name, shape))
             if cmds.objectType(node) == "createColorSet":
                 cmds.delete(node)  # no need for them in history
 
@@ -1087,7 +1075,7 @@ def delete_color_set_history(shapes=None):
                 nodes2delete.append(node)
     if nodes2delete:
         cmds.delete(nodes2delete)
-        # logger.debug("Deleted the following nodes {0}".format(nodes2Delete))
+        # LOGGER.debug("Deleted the following nodes {0}".format(nodes2Delete))
 
 
 def change_texture_path(path):
@@ -1141,27 +1129,22 @@ def screenshot(file_dir, width, height, img_format=".jpg", override="", ogs=True
 #   | |  | | (_| | |_| | (_| |     / ___ \|  __/| |     / __/ | |_| |
 #   |_|  |_|\__,_|\__, |\__,_|    /_/   \_\_|  |___|   |_____(_)___/
 #                 |___/
-def get_m_object(node, getType=False):
+def get_m_object(node, get_type=False):
     """
     Gets mObject of a node (Python API 2.0)
     Args:
-        node (unicode): name of node
+        node (unicode): Name of node
+        get_type (bool): If the api type should be returned
     Returns:
-        Node of the object
+        (MObject, unicode): The MObject of the node or its API type
     """
     selection_list = om.MSelectionList()
     selection_list.add(node)
     o_node = selection_list.getDependNode(0)
-    if not getType:
+    if not get_type:
         return o_node
     else:
         return o_node.apiTypeStr
-
-
-def schedule_refresh_all_views():
-    """ Schedules a refresh of all views """
-    import maya.OpenMayaUI as omUI
-    omUI.M3dView.scheduleRefreshAllViews()
 
 
 def print_info(info):
@@ -1328,7 +1311,12 @@ class Path(object):
         Returns:
             (list): list with everything in the directory
         """
-        return os.listdir(self.path)
+        contents = []
+        try:
+            contents = os.listdir(self.path)
+        except WindowsError:
+            traceback.print_exc()
+        return contents
 
     def find_all(self, filename, relative=True):
         """
@@ -1578,11 +1566,11 @@ def u_enlist(arg, silent=True):
     """
     if isinstance(arg, basestring):
         if not silent:
-            logger.info("{0} is a string, enlisting it".format(arg))
+            LOG.info("{0} is a string, enlisting it".format(arg))
         return [arg]
     elif isinstance(arg, int):
         if not silent:
-            logger.info("{0} is an int, enlisting it".format(arg))
+            LOG.info("{0} is an int, enlisting it".format(arg))
         return [arg]
     elif arg is None:
         return []
@@ -1600,7 +1588,7 @@ def u_stringify(arg, silent=False):
     """
     if isinstance(arg, list) or isinstance(arg, tuple):
         if not silent:
-            logger.info("{0} is a list/tuple, taking first element".format(arg))
+            LOG.info("{0} is a list/tuple, taking first element".format(arg))
         arg = arg[0]
     return arg
 
@@ -1629,11 +1617,11 @@ def u_internet():
     conn = httplib.HTTPConnection("microsoft.com", timeout=5)
     try:
         conn.request("HEAD", "/")
-        conn.close()
         return True
     except:
-        conn.close()
         return False
+    finally:
+        conn.close()
 
 
 #        _
@@ -1660,7 +1648,7 @@ def save_zip():
         zip_out.write(file_path.path, file_name)
     finally:
         zip_out.close()
-        logger.info("Saved scene compressed as: {0}".format(zip_path.path))
+        LOG.info("Saved scene compressed as: {0}".format(zip_path.path))
     return zip_path.path
 
 

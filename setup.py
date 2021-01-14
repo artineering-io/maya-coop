@@ -6,10 +6,11 @@
 """
 from __future__ import print_function
 from __future__ import unicode_literals
-import os, shutil, io, pprint
+import os, shutil, pprint
 import maya.cmds as cmds
 import lib as clib
-
+import logger as clog
+LOG = clog.logger("coop.setup")
 
 # SETTLE OS DEPENDENT CASES
 SEP = ':'         # separator
@@ -26,7 +27,7 @@ def install(install_dir, all_users=False):
     """
     install_dir = clib.u_decode(install_dir)
     if not all_users:
-        print("-> Installing module for current user")
+        LOG.info("-> Installing module for current user")
         new_variables = {'MAYA_MODULE_PATH': [os.path.abspath(install_dir)]}
         maya_env_path = _check_maya_env()
 
@@ -51,6 +52,7 @@ def uninstall(install_dir, module_name, reinstall=False):
     Args:
         install_dir (unicode): Root directory of the module file
         module_name (unicode): Name of the module
+        reinstall (bool): If uninstalling happens because of a re-install
     """
     maya_env_path = _check_maya_env()
     env_variables, env_variables_order = parse_environment_variables(maya_env_path)
@@ -86,7 +88,7 @@ def parse_environment_variables(maya_env_path):
     # read Maya environment variables
     env_variables = dict()
     env_variables_order = []
-    with io.open(maya_env_path, mode='r') as f:
+    with open(maya_env_path, mode='r') as f:
         for line in f:
             # get rid of new line chars
             line = line.replace("\n", "").replace("\r", "")
@@ -119,7 +121,7 @@ def parse_environment_variables(maya_env_path):
             env_variables[var_name] = stored_values
             env_variables_order.append(var_name)
 
-    print("USER ENVIRONMENT VARIABLES:")
+    LOG.debug("USER ENVIRONMENT VARIABLES:")
     pprint.pprint(env_variables)
     print("")
     return env_variables, env_variables_order
@@ -151,7 +153,7 @@ def merge_variables(new_variables, env_variables, env_variables_order):
                     env_variables[var].insert(0, var_value)
                     # (optional) check for clashes of files with other variables
 
-    print("MERGED VARIABLES:")
+    LOG.debug("MERGED VARIABLES:")
     pprint.pprint(env_variables)
     print("")  # new line
 
@@ -170,7 +172,7 @@ def write_variables(file_path, variables, variables_order):
             line += "{}{}".format(value, SEP)
         return line[0:-1] + "\n"
 
-    with io.open(file_path, mode='a') as tmp:
+    with open(file_path, mode='a') as tmp:
         # the shelf environment variable must be the first
         shelf_variable = "MAYA_SHELF_PATH"
         if shelf_variable in variables:
@@ -178,14 +180,14 @@ def write_variables(file_path, variables, variables_order):
             if variables[shelf_variable]:
                 if shelf_variable in variables_order:
                     variables_order.remove(shelf_variable)
-                tmp.write(format_variable(shelf_variable, variables.pop(shelf_variable, [])))
+                tmp.write(str(format_variable(shelf_variable, variables.pop(shelf_variable, []))))
         # write the variables in a sorted fashion
         for var in variables_order:
             # check if no sorted variables have been deleted
             if var in variables:
                 # make sure that we are not saving an empty variable
                 if variables[var]:
-                    tmp.write(format_variable(var, variables[var]))
+                    tmp.write(str(format_variable(var, variables[var])))
 
 
 def _check_maya_env():

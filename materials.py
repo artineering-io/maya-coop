@@ -232,6 +232,7 @@ def _clean_shading_engines(objects):
 
 
 def delete_unused_materials():
+    """ Deletes unused materials from the scene """
     materials = cmds.ls(mat=True)
     schedule = []
     for mat in materials:
