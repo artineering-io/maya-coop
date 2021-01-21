@@ -18,7 +18,7 @@ class SetupUI(cqt.CoopMayaUI):
     """ Cross platform plugin setup """
 
     def __init__(self, title, module_name="", install_dir="", brand="Coop Installer",
-                 supported_os=None, rebuild=True):
+                 supported_os=None, supported_maya_versions=None, rebuild=True):
         self.module_name = module_name
         self.module_path = clib.get_module_path(module_name)
         self.install_dir = install_dir
@@ -27,6 +27,10 @@ class SetupUI(cqt.CoopMayaUI):
         self.supported_os = supported_os
         if self.supported_os is None:
             self.supported_os = ["win", "mac", "linux"]
+
+        self.supported_maya_versions = supported_maya_versions
+        if self.supported_maya_versions is None:
+            self.supported_maya_versions = [clib.get_maya_version()]
 
         super(SetupUI, self).__init__(title, dock=False, rebuild=rebuild, brand=brand, show=False)
 
@@ -95,7 +99,6 @@ class SetupUI(cqt.CoopMayaUI):
         method_layout.addWidget(user_install_rad)
 
         all_users_install_rad = QtWidgets.QRadioButton("Install for all users")
-        all_users_install_rad.setDisabled(True)
         self.button_grp.addButton(all_users_install_rad, 2)
         method_layout.addWidget(all_users_install_rad)
 
@@ -121,6 +124,7 @@ class SetupUI(cqt.CoopMayaUI):
                 setup.uninstall(self.module_path, self.module_name, self.reinstall)
             setup.install(self.install_dir, all_users=False)
         else:
+            setup.install(self.install_dir, all_users=True, maya_versions=self.supported_maya_versions)
             LOG.info("Installing {} for all users".format(self.module_name))
 
         self.accept()

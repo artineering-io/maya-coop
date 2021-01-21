@@ -6,41 +6,43 @@
 """
 from __future__ import print_function
 from __future__ import unicode_literals
-import os, shutil, pprint
+import os, shutil, pprint, ctypes, sys
 import maya.cmds as cmds
+import maya.mel as mel
 import lib as clib
 import logger as clog
+
 LOG = clog.logger("coop.setup")
 
-# SETTLE OS DEPENDENT CASES
-SEP = ':'         # separator
-if clib.get_local_os() == "win":
-    SEP = ';'
 
-
-def install(install_dir, all_users=False):
+def install(install_dir, all_users=False, maya_versions=None):
     """
     Install the module
     Args:
         install_dir (unicode): Root directory of the module file
         all_users (bool): If the installation should be for all users
+        maya_versions (list): Maya versions to install onto
     """
     install_dir = clib.u_decode(install_dir)
+    maya_versions = clib.u_enlist(maya_versions)
     if not all_users:
         LOG.info("-> Installing module for current user")
         new_variables = {'MAYA_MODULE_PATH': [os.path.abspath(install_dir)]}
         maya_env_path = _check_maya_env()
 
         # get and merge environment variables
-        env_variables, env_variables_order = parse_environment_variables(maya_env_path)
-        merge_variables(new_variables, env_variables, env_variables_order)
+        env_variables, env_variables_order = _parse_environment_variables(maya_env_path)
+        _merge_variables(new_variables, env_variables, env_variables_order)
 
         # write environment variables
         temp_file_path = clib.Path(maya_env_path).parent().child("maya.tmp")
-        write_variables(temp_file_path.path, env_variables, env_variables_order)
+        _write_variables(temp_file_path.path, env_variables, env_variables_order)
 
         # replace environment file
         shutil.move(temp_file_path.path, maya_env_path)
+    else:
+        LOG.info("-> Installing module for all users")
+        _install_all_users(install_dir, maya_versions)
 
     clib.display_info("-> Installation complete <-")
     _restart_dialog()
@@ -55,7 +57,7 @@ def uninstall(install_dir, module_name, reinstall=False):
         reinstall (bool): If uninstalling happens because of a re-install
     """
     maya_env_path = _check_maya_env()
-    env_variables, env_variables_order = parse_environment_variables(maya_env_path)
+    env_variables, env_variables_order = _parse_environment_variables(maya_env_path)
 
     if "MAYA_MODULE_PATH" in env_variables:
         module_paths = list(env_variables["MAYA_MODULE_PATH"])
@@ -66,7 +68,7 @@ def uninstall(install_dir, module_name, reinstall=False):
 
     # write environment variables
     temp_file_path = clib.Path(maya_env_path).parent().child("maya.tmp")
-    write_variables(temp_file_path.path, env_variables, env_variables_order)
+    _write_variables(temp_file_path.path, env_variables, env_variables_order)
 
     # replace environment file
     shutil.move(temp_file_path.path, maya_env_path)
@@ -76,7 +78,34 @@ def uninstall(install_dir, module_name, reinstall=False):
         _restart_dialog()
 
 
-def parse_environment_variables(maya_env_path):
+def get_common_module_dir():
+    """
+    Get Maya's common module dir
+    Returns:
+        (unicode): Directory to common modules
+    """
+    module_dirs = mel.eval("getenv MAYA_MODULE_PATH;").split(clib.get_os_separator())
+    for module_dir in module_dirs:
+        if clib.get_local_os() == "win":
+            if "Common Files" in module_dir:
+                return clib.Path(module_dir).parent().path
+        # TODO: Other OS
+    return ""
+
+
+def is_admin():
+    """
+    Returns true if script is run as admin
+    Returns:
+        (bool)
+    """
+    try:
+        return os.getuid() == 0  # if Unix
+    except AttributeError:
+        return ctypes.windll.shell32.IsUserAnAdmin()  # if Windows
+
+
+def _parse_environment_variables(maya_env_path):
     """
     Get the environment variables found in the Maya.env file
     Args:
@@ -106,7 +135,7 @@ def parse_environment_variables(maya_env_path):
                 continue
 
             # get values of variable
-            values = breakdown[1].split(SEP)
+            values = breakdown[1].split(clib.get_os_separator())
             values = list(filter(None, values))
             stored_values = list()
             for val in values:
@@ -127,7 +156,7 @@ def parse_environment_variables(maya_env_path):
     return env_variables, env_variables_order
 
 
-def merge_variables(new_variables, env_variables, env_variables_order):
+def _merge_variables(new_variables, env_variables, env_variables_order):
     """
     Merge new variables with existing environment variables
     Args:
@@ -158,7 +187,7 @@ def merge_variables(new_variables, env_variables, env_variables_order):
     print("")  # new line
 
 
-def write_variables(file_path, variables, variables_order):
+def _write_variables(file_path, variables, variables_order):
     """
     Write environment variables to file path
     Args:
@@ -166,10 +195,11 @@ def write_variables(file_path, variables, variables_order):
         variables (dict): Environment variables to save
         variables_order (list): List of environment variables in the right order
     """
+
     def format_variable(variable, values):
         line = "{}=".format(variable)
         for value in values:
-            line += "{}{}".format(value, SEP)
+            line += "{}{}".format(value, clib.get_os_separator())
         return line[0:-1] + "\n"
 
     with open(file_path, mode='a') as tmp:
@@ -188,6 +218,72 @@ def write_variables(file_path, variables, variables_order):
                 # make sure that we are not saving an empty variable
                 if variables[var]:
                     tmp.write(str(format_variable(var, variables[var])))
+
+
+def _install_all_users(install_dir, maya_versions):
+    """
+    Installs modules at install_dir for all users
+    Args:
+        install_dir (unicode): Directory where the .mod files are
+        maya_versions (list): List of Maya versions to install modules in
+    """
+    install_dir = clib.Path(install_dir)
+    modules = [module for module in install_dir.list_dir() if module.endswith(".mod")]
+
+    # create temporary .mod files
+    new_modules = []
+    for module in modules:
+        old_path = clib.Path(install_dir.path).child(module)
+        temp_path = clib.Path(install_dir.path).child("{}_temp".format(module))
+        modified_module = ""
+        with open(old_path.path, 'r') as mod_file:
+            for line in mod_file:
+                print(line)
+                modified_module += line.replace('./', install_dir.slash_path())
+        with open(temp_path.path, 'w') as new_mod_file:
+            new_mod_file.write(str(modified_module))
+        new_modules.append(temp_path.path)
+
+    if is_admin():
+        py_cmd = _py_cmd_install_all_users(maya_versions, new_modules)
+        eval(py_cmd)
+    elif clib.get_local_os() == "win":
+        py_cmd = _py_cmd_install_all_users(maya_versions, new_modules, close=True)
+        import subprocess
+        mayapy = clib.Path(sys.executable).parent().child("mayapy.exe").path
+        ctypes.windll.shell32.ShellExecuteW(None, "runas", mayapy,
+                                            subprocess.list2cmdline([str("-i"), str("-c"), py_cmd]), None, 1)
+    else:
+        # TODO: MacOS and Linux versions
+        clib.print_error("OS ({}) is not supported yet".format(clib.get_local_os()), True)
+
+    LOG.info("Installation finished")
+
+
+def _py_cmd_install_all_users(maya_versions, modules, close=False):
+    """
+    Creates the Python command to run with elevated permissions
+    Args:
+        maya_versions (list): List of Maya versions to install onto i.e., [2019, 2020]
+        modules (list): List of module paths
+        close (bool): If the application running this command should close
+    Returns:
+        (unicode): Python command
+    """
+    module_dir = get_common_module_dir()
+    py_cmd = "import shutil; "
+    for v in maya_versions:
+        shared_module_dir = clib.Path(module_dir).child(v)
+        if not shared_module_dir.exists():
+            py_cmd += "import os; os.makedirs('{}'); ".format(shared_module_dir.slash_path())
+        for module in modules:
+            mod = clib.Path(module).slash_path()
+            module_name = clib.Path(module).swap_extension(".mod").basename()
+            shared_module_path = clib.Path(shared_module_dir.path).child(module_name).slash_path()
+            py_cmd += "shutil.copyfile('{}', '{}'); ".format(mod, shared_module_path)
+    if close:
+        py_cmd += "import os; os.kill(os.getpid(), 9);"
+    return py_cmd
 
 
 def _check_maya_env():

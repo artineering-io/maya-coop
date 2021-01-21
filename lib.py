@@ -208,6 +208,18 @@ def get_local_os():
     return "win"
 
 
+def get_os_separator():
+    """
+    Returns the path separator for the operating system (OS) on the local machine
+    Returns:
+        (unicode): Either ':' or ';'
+    """
+    sep = ':'  # separator
+    if get_local_os() == "win":
+        sep = ';'
+    return sep
+
+
 def plugin_ext():
     """
     Returns the plugin extension depending on the local operating system
@@ -1247,7 +1259,7 @@ class Path(object):
         Args:
             child: folder to join to the path
         """
-        self.path = os.path.abspath(os.path.join(self.path, child))
+        self.path = os.path.abspath(os.path.join(self.path, u_stringify(child)))
         return self
 
     def create_dir(self):
@@ -1584,12 +1596,14 @@ def u_stringify(arg, silent=False):
         arg: argument to put into a string
         silent (bool): If the function should print warnings if the wrong data was given (default=False)
     Returns:
-        String: The argument in a string
+        (unicode): The argument in a string
     """
     if isinstance(arg, list) or isinstance(arg, tuple):
         if not silent:
             LOG.info("{0} is a list/tuple, taking first element".format(arg))
         arg = arg[0]
+    elif isinstance(arg, int):
+        arg = str(arg)
     elif arg is None:
         arg = ""
     return arg
