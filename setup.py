@@ -56,7 +56,7 @@ def uninstall(install_dir, module_name, reinstall=False):
         module_name (unicode): Name of the module
         reinstall (bool): If uninstalling happens because of a re-install
     """
-    if _is_installed_per_user(module_name):
+    if is_installed_per_user(module_name):
         maya_env_path = _check_maya_env()
         env_variables, env_variables_order = _parse_environment_variables(maya_env_path)
 
@@ -114,6 +114,22 @@ def is_admin():
         return os.getuid() == 0  # if Unix
     except AttributeError:
         return ctypes.windll.shell32.IsUserAnAdmin()  # if Windows
+
+
+def is_installed_per_user(module_name):
+    """
+    Checks if the module is installed per user or all users
+    Args:
+        module_name (unicode): Name of the module to check
+    Returns:
+        (bool): If the module is installed per user
+    """
+    installed_path = clib.Path(clib.get_module_path(module_name)).slash_path()
+    module_paths = mel.eval("getenv MAYA_MODULE_PATH;").split(clib.get_os_separator())
+    for path in module_paths:
+        if clib.Path(path).slash_path() == installed_path:
+            return True
+    return False
 
 
 def _parse_environment_variables(maya_env_path):
@@ -254,15 +270,11 @@ def _install_all_users(install_dir, maya_versions):
             new_mod_file.write(str(modified_module))
         new_modules.append(temp_path.path)
 
+    py_cmd = _py_cmd_install_all_users(maya_versions, new_modules)
     if is_admin():
-        py_cmd = _py_cmd_install_all_users(maya_versions, new_modules)
         eval(py_cmd)
     elif clib.get_local_os() == "win":
-        py_cmd = _py_cmd_install_all_users(maya_versions, new_modules, close=True)
-        import subprocess
-        mayapy = clib.Path(sys.executable).parent().child("mayapy.exe").path
-        ctypes.windll.shell32.ShellExecuteW(None, "runas", mayapy,
-                                            subprocess.list2cmdline([str("-i"), str("-c"), py_cmd]), None, 1)
+        clib.run_python_as_admin(py_cmd, close=True)
     else:
         # TODO: MacOS and Linux versions
         clib.print_error("OS ({}) is not supported yet".format(clib.get_local_os()), True)
@@ -278,24 +290,19 @@ def _uninstall_all_users(module_name):
     """
     module_dir = get_common_module_dir()
     modules = clib.Path(module_dir).find_all("{}.mod".format(module_name), relative=False)
+    py_cmd = _py_cmd_uninstall_all_users(modules)
     if is_admin():
-        py_cmd = _py_cmd_uninstall_all_users(modules)
         eval(py_cmd)
     else:
-        py_cmd = _py_cmd_uninstall_all_users(modules, close=True)
-        import subprocess
-        mayapy = clib.Path(sys.executable).parent().child("mayapy.exe").path
-        ctypes.windll.shell32.ShellExecuteW(None, "runas", mayapy,
-                                            subprocess.list2cmdline([str("-i"), str("-c"), py_cmd]), None, 1)
+        clib.run_python_as_admin(py_cmd, close=True)
 
 
-def _py_cmd_install_all_users(maya_versions, modules, close=False):
+def _py_cmd_install_all_users(maya_versions, modules):
     """
     Creates the Python command to run with elevated permissions
     Args:
         maya_versions (list): List of Maya versions to install onto i.e., [2019, 2020]
         modules (list): List of module paths
-        close (bool): If the application running this command should close
     Returns:
         (unicode): Python command
     """
@@ -313,25 +320,20 @@ def _py_cmd_install_all_users(maya_versions, modules, close=False):
     py_cmd += "import os; "
     for temp in modules:
         py_cmd += "os.remove('{}'); ".format(temp)
-    if close:
-        py_cmd += "os.kill(os.getpid(), 9);"
     return py_cmd
 
 
-def _py_cmd_uninstall_all_users(modules, close=False):
+def _py_cmd_uninstall_all_users(modules):
     """
     Creates the Python command to run with elevated permissions
     Args:
         modules (list): List of module file paths to delete
-        close (bool): If the application running this command should close
     Returns:
         (unicode): Python command
     """
     py_cmd = "import os; "
     for module in modules:
         py_cmd += "os.remove('{}'); ".format(clib.Path(module).slash_path())
-    if close:
-        py_cmd += "import os; os.kill(os.getpid(), 9);"
     return py_cmd
 
 
@@ -355,19 +357,3 @@ def _restart_dialog():
     cmds.confirmDialog(title='Restart Maya',
                        message='Installation successful!\nPlease restart Maya to make sure everything loads correctly',
                        icn='information', button='OK', ma='center')
-
-
-def _is_installed_per_user(module_name):
-    """
-    Checks if the module is installed per user or all users
-    Args:
-        module_name (unicode): Name of the module to check
-    Returns:
-        (bool): If the module is installed per user
-    """
-    installed_path = clib.Path(clib.get_module_path(module_name)).slash_path()
-    module_paths = mel.eval("getenv MAYA_MODULE_PATH;").split(clib.get_os_separator())
-    for path in module_paths:
-        if clib.Path(path).slash_path() == installed_path:
-            return True
-    return False

@@ -325,6 +325,24 @@ def run_cmd(cmd, cwd):
         print("Error: {}".format(error))
 
 
+def run_python_as_admin(py_cmd, close=True):
+    """
+    Runs a python command in a separate interactive python shell with admin rights prompt
+    Args:
+        py_cmd (unicode): One liner python command
+        close (bool): Close python shell if no errors occurred
+    """
+    import ctypes
+    py_cmd = py_cmd.rstrip()
+    if close:
+        if py_cmd[-1] != ';':
+            py_cmd += ';'
+        py_cmd += " import os; os.kill(os.getpid(), 9);"
+    mayapy = Path(sys.executable).parent().child("mayapy.exe").path
+    ctypes.windll.shell32.ShellExecuteW(None, "runas", mayapy,
+                                        subprocess.list2cmdline([str("-i"), str("-c"), py_cmd]), None, 1)
+
+
 def dialog_restart(brute=True):
     """
     Opens restart dialog to restart maya
