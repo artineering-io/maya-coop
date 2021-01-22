@@ -98,9 +98,11 @@ class SetupUI(cqt.CoopMayaUI):
         self.button_grp.addButton(user_install_rad, 1)
         method_layout.addWidget(user_install_rad)
 
-        all_users_install_rad = QtWidgets.QRadioButton("Install for all users")
-        self.button_grp.addButton(all_users_install_rad, 2)
-        method_layout.addWidget(all_users_install_rad)
+        self.all_users_install_rad = QtWidgets.QRadioButton("Install for all users")
+        self.all_users_install_rad.setAccessibleName("Install for all users")
+        self.button_grp.addButton(self.all_users_install_rad, 2)
+        self.button_grp.buttonReleased.connect(self.install_method_changed)
+        method_layout.addWidget(self.all_users_install_rad)
 
         dialog_buttons = QtWidgets.QDialogButtonBox()
         dialog_buttons.setOrientation(QtCore.Qt.Horizontal)
@@ -128,3 +130,11 @@ class SetupUI(cqt.CoopMayaUI):
             LOG.info("Installing {} for all users".format(self.module_name))
 
         self.accept()
+
+    def install_method_changed(self):
+        if self.all_users_install_rad.isChecked():
+            advice = self.all_users_install_rad.text() + \
+                     " -> Installation folder should be accessible for ALL users"
+            self.all_users_install_rad.setText(advice)
+        else:
+            self.all_users_install_rad.setText(self.all_users_install_rad.accessibleName())
