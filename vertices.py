@@ -114,7 +114,7 @@ def delete_color_sets(shapes, color_sets):
                         nodes2delete.append(node)
     if nodes2delete:
         cmds.delete(nodes2delete)
-    LOG.debug("Vertex color sets {} deleted for: {}".format(color_sets, shapes))
+        LOG.debug("Vertex color sets {} deleted for: {}".format(color_sets, shapes))
 
 
 def _bake_vertex_colors(shapes):
