@@ -188,7 +188,7 @@ class CoopMayaUI(QtWidgets.QDialog):
         self.brand.setToolTip(tooltip)
         self.brand.setStyleSheet("background-color: rgb(40,40,40); color: rgb(180,180,180); border:solid black 1px;")
         self.brand.setFont(FONT_FOOTER)
-        self.brand.setFixedHeight(15)
+        self.brand.setFixedHeight(15*self.dpi)
 
         self.buildUI()
         self.populateUI()
