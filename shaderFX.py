@@ -55,7 +55,7 @@ def set_node_value(material, unique_node_name, value, quiet=False):
         else:
             v = cmds.shaderfx(sfxnode=material, getPropertyValue=(node_id, "options"))[-1]
             if v is not value:
-                cmds.shaderfx(sfxnode=material, edit_stringlist=(node_id, "options", value))
+                cmds.shaderfx(sfxnode=material, edit_stringlist=(node_id, "options", int(value)))
         cmds.select(selection, r=True)
     else:
         if not quiet:
