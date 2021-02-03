@@ -176,6 +176,7 @@ class CoopMayaUI(QtWidgets.QDialog):
         self.layout = QtWidgets.QVBoxLayout(self)  # self -> apply to QDialog
         self.layout.setContentsMargins(0, 0, 0, 0)
         self.layout.setSpacing(0)
+        # self.layout.setSizeConstraint(QtWidgets.QLayout.SetFixedSize)
 
         header_margin = 10 * self.dpi
         self.header = QtWidgets.QLabel(title)
@@ -605,8 +606,12 @@ class CollapsibleGrp(QtWidgets.QWidget):
     """
     Create a collapsible group similar to what you can find in the attribute editor
     """
+    collapsed = {
+        True: u'  \u2BC8   ',
+        False: u'  \u2BC6   '
+    }
 
-    def __init__(self, title=''):
+    def __init__(self, title='', collapsed=False):
         super(CollapsibleGrp, self).__init__()
         self.dpi = get_dpi_scale()
         self.title = title
@@ -617,7 +622,7 @@ class CollapsibleGrp(QtWidgets.QWidget):
         self.layout.setSpacing(0)
 
         # create toggle button
-        self.toggle_button = QtWidgets.QPushButton(u'  \u25BC    ' + self.title)
+        self.toggle_button = QtWidgets.QPushButton("{}{}".format(self.collapsed[collapsed], self.title))
         self.toggle_button.setObjectName("toggler")
         self.setStyleSheet('QPushButton#toggler {'
                            'text-align: left;'
@@ -632,6 +637,7 @@ class CollapsibleGrp(QtWidgets.QWidget):
         self.content = QtWidgets.QGroupBox()
         self.content_layout = QtWidgets.QVBoxLayout(self.content)
         self.layout.addWidget(self.content)
+        self.content.setVisible(not collapsed)
 
     def add_widget(self, widget):
         """ Adds a widget to the content of the collapsible group """
@@ -641,10 +647,11 @@ class CollapsibleGrp(QtWidgets.QWidget):
         """ Toggles the content of the collapsible group """
         if self.content.isVisible():
             self.content.setVisible(False)
-            self.toggle_button.setText(u'  \u25B6    ' + self.title)
+            self.toggle_button.setText("{}{}".format(self.collapsed[True], self.title))
+            self.window().adjustSize()
         else:
             self.content.setVisible(True)
-            self.toggle_button.setText(u'  \u25BC    ' + self.title)
+            self.toggle_button.setText("{}{}".format(self.collapsed[False], self.title))
 
 
 class SplashView(QWebEngineView):
