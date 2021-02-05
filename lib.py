@@ -18,6 +18,7 @@ import maya.api.OpenMaya as om
 def maya_useNewAPI():
     pass
 
+
 try:
     basestring  # Python 2
 except NameError:
@@ -367,7 +368,7 @@ def dialog_save(starting_directory="", title="Save as...", file_filter="All File
         file_filter (unicode): File filter. (default: "All Files (*.*)")
 
     Returns:
-        Path (unicode) to save as
+        (unicode): Path to save as
     """
     if not starting_directory:
         starting_directory = cmds.workspace(rd=True, q=True)
@@ -385,11 +386,11 @@ def dialog_open(starting_directory="", title="Open file", file_filter="All Files
     Simple open dialog in Maya
     Args:
         starting_directory (unicode): Starting directory. (default: project root directory)
-        title (unicode): Dialog title. (default: "Save as...")
+        title (unicode): Dialog title. (default: "Open file")
         file_filter (unicode): File filter. (default: "All Files (*.*)")
 
     Returns:
-        Path (unicode) to open
+        (unicode): Path to open
     """
     if not starting_directory:
         starting_directory = cmds.workspace(rd=True, q=True)
@@ -399,6 +400,44 @@ def dialog_open(starting_directory="", title="Open file", file_filter="All Files
     if not open_path:
         display_error("No path specified", True)
     return open_path[0]
+
+
+def dialog_select_dir(starting_directory="", title="Open file"):
+    """
+    Simple browse and select dir dialog
+    Args:
+        starting_directory (unicode): Starting directory. (default: project root directory)
+        title (unicode): Dialog title. (default: "Select folder")
+
+    Returns:
+        (unicode): Path to selected directory
+    """
+    if not starting_directory:
+        starting_directory = cmds.workspace(rd=True, q=True)
+    selected_dir = cmds.fileDialog2(dir=starting_directory,
+                                    fileMode=3, cap=title,
+                                    dialogStyle=2)
+    if not selected_dir:
+        display_error("No directory specified", True)
+    return selected_dir[0]
+
+
+def dialog_yes_no(title="Confirmation", message="Are you sure?"):
+    """
+    Simple Yes/No confirmation dialog
+    Args:
+        title (unicode): Title of the dialog (default: Confirmation)
+        message (unicode): Dialog message (default: "Are you sure?")
+
+    Returns:
+        (unicode): "Yes" or "No"
+    """
+    confirm = cmds.confirmDialog(title=title, message=message,
+                              button=['Yes', 'No'], defaultButton='Yes', cancelButton='No', dismissString='No',
+                              ma='center')
+    if confirm == "Yes":
+        return True
+    return False
 
 
 ######################################################################################
@@ -991,7 +1030,7 @@ def display_info(info):
     Args:
         info (unicode): Information to be displayed
     """
-    if get_maya_version() > 2018:
+    if get_maya_version() > 2018 and not cmds.about(batch=True):
         m = '<span style="color:#82C99A;">{}</span>'.format(info)
         cmds.inViewMessage(msg=m, pos="midCenter", fade=True)
     print_info(info)
@@ -1013,7 +1052,7 @@ def display_warning(warning):
     Args:
         warning (unicode): Warning to be displayed
     """
-    if get_maya_version() > 2018:
+    if get_maya_version() > 2018 and not cmds.about(batch=True):
         m = '<span style="color:#F4FA58;">Warning: </span><span style="color:#DDD">{}</span>'.format(warning)
         cmds.inViewMessage(msg=m, pos="midCenter", fade=True)
     print_warning(warning)
@@ -1041,7 +1080,7 @@ def display_error(error, show_traceback=False):
         error (unicode): Error to be displayed
         show_traceback (bool): If python should error our and show a traceback
     """
-    if get_maya_version() > 2018:
+    if get_maya_version() > 2018 and not cmds.about(batch=True):
         m = '<span style="color:#F05A5A;">Error: </span><span style="color:#DDD">{}</span>'.format(error)
         cmds.inViewMessage(msg=m, pos="midCenterBot", fade=True)
     print_error(error, show_traceback)
