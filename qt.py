@@ -610,6 +610,7 @@ class CollapsibleGrp(QtWidgets.QWidget):
         True: u'  \u2BC8   ',
         False: u'  \u2BC6   '
     }
+    w_height = 0
 
     def __init__(self, title='', collapsed=False):
         super(CollapsibleGrp, self).__init__()
@@ -648,8 +649,11 @@ class CollapsibleGrp(QtWidgets.QWidget):
         if self.content.isVisible():
             self.content.setVisible(False)
             self.toggle_button.setText("{}{}".format(self.collapsed[True], self.title))
-            self.window().adjustSize()
+            if self.w_height:
+                self.window().resize(self.window().width(), self.w_height)  # TODO: make this somehow work
+                self.window().adjustSize()
         else:
+            self.w_height = self.window().height()
             self.content.setVisible(True)
             self.toggle_button.setText("{}{}".format(self.collapsed[False], self.title))
 
@@ -672,10 +676,11 @@ class WebEnginePage(QWebEnginePage):
 
 class ProgressDialog(QtWidgets.QProgressDialog):
     """ Simple progress dialog """
-    def __init__(self, parent, window_title):
+    def __init__(self, parent, window_title, prefix="Processing"):
         super(ProgressDialog, self).__init__(parent)
         self.setWindowModality(QtCore.Qt.WindowModal)
         self.setWindowTitle(window_title)
+        self.prefix = prefix
         self.setMinimumWidth(600)
         self.setAutoClose(True)
         self.setAutoReset(True)
@@ -690,7 +695,7 @@ class ProgressDialog(QtWidgets.QProgressDialog):
             return False
         self.float_value += v
         self.setValue(int(self.float_value))
-        self.setLabelText("Processing {}".format(item))
+        self.setLabelText("{} {}".format(self.prefix, item))
         process_events()
         return True
 
