@@ -87,6 +87,22 @@ def get_shading_engines(objects):
     return shading_engines
 
 
+def create_material(mat_type, name=""):
+    """
+    Create a material of a specific type
+    Args:
+        mat_type (unicode): Material type i.e., 'anisotropic', 'blinn'
+        name (unicode): Name of the material
+
+    Returns:
+        (unicode): Name of the material
+    """
+    if name:
+        return cmds.shadingNode(mat_type, asShader=True, n=name)
+    else:
+        return cmds.shadingNode(mat_type, asShader=True)
+
+
 def set_material(mat, objects, quiet=True):
     """
     Set material onto objects
