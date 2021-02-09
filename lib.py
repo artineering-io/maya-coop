@@ -655,14 +655,9 @@ def get_shapes(objects, renderable=False, l=False, quiet=False):
 
     shapes = []
     for obj in objs:
-        potential_shape = []
-        # check if its a mesh object
-        obj_type = cmds.objectType(obj)
-        if obj_type == "mesh" or obj_type == "nurbsSurface":
-            potential_shape = cmds.ls(obj, l=l)  # make an array
-        else:
+        potential_shape = cmds.ls(obj, shapes=True, l=l)
+        if not potential_shape:
             potential_shape = cmds.listRelatives(obj, shapes=True, noIntermediate=True, path=True, fullPath=l) or []
-            # shapes.extend(shp)
         # check if renderable
         if renderable and potential_shape:
             if not is_renderable(potential_shape[0]):
