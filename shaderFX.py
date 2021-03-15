@@ -5,8 +5,8 @@
 @repository:    https://github.com/artineering-io/maya-coop
 """
 import maya.cmds as cmds
-import lib as clib
-import materials as cmat
+from . import lib as clib
+from . import materials as cmat
 
 
 def get_id(material, unique_node_name, quiet=False):

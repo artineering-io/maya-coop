@@ -11,7 +11,7 @@ import os, sys, subprocess, shutil, re, math, traceback, platform
 from functools import wraps
 import maya.mel as mel
 import maya.cmds as cmds
-import logger as clog
+from . import logger as clog
 
 # python api 2.0
 import maya.api.OpenMaya as om

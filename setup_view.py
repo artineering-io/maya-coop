@@ -7,10 +7,10 @@
 from __future__ import print_function
 from __future__ import unicode_literals
 from PySide2 import QtWidgets, QtCore, QtGui
-import lib as clib
-import qt as cqt
-import setup
-import logger as clog
+from . import lib as clib
+from . import qt as cqt
+from . import setup
+from . import logger as clog
 LOG = clog.logger("coop.setup_view")
 
 

@@ -11,8 +11,8 @@ import maya.cmds as cmds
 import maya.OpenMayaUI as omUI
 from PySide2 import QtCore, QtGui, QtWidgets
 from shiboken2 import wrapInstance
-import lib as clib
-import logger as clog
+from . import lib as clib
+from . import logger as clog
 
 # Python 2-3 checks
 try:

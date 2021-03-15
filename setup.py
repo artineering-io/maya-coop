@@ -9,8 +9,8 @@ from __future__ import unicode_literals
 import os, shutil, pprint, ctypes, sys
 import maya.cmds as cmds
 import maya.mel as mel
-import lib as clib
-import logger as clog
+from . import lib as clib
+from . import logger as clog
 
 LOG = clog.logger("coop.setup")
 

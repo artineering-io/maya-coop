@@ -7,7 +7,7 @@
 from __future__ import print_function
 from __future__ import unicode_literals
 import maya.cmds as cmds
-import lib as clib
+from . import lib as clib
 
 
 def get_assigned_meshes(objects=None, shapes=True, l=False):
