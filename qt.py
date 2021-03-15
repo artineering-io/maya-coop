@@ -140,9 +140,9 @@ class CoopMayaUI(QtWidgets.QDialog):
             ptr = omUI.MQtUtil.findWindow(parent)
             parent = wrap_instance(ptr)
         else:
-            if parent is not None:
-                cmds.warning("No window with name {} was found, parenting to Maya window")
-                parent = get_maya_window()
+            if parent is None:
+                # this is intended, do not parent to anything
+                pass
 
         if clib.get_py_version() > 3:
             super().__init__(parent)
