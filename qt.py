@@ -677,28 +677,40 @@ class WebEnginePage(QWebEnginePage):
 class ProgressDialog(QtWidgets.QProgressDialog):
     """ Simple progress dialog """
     def __init__(self, parent, window_title, prefix="Processing"):
-        super(ProgressDialog, self).__init__(parent)
-        self.setWindowModality(QtCore.Qt.WindowModal)
-        self.setWindowTitle(window_title)
         self.prefix = prefix
-        self.setMinimumWidth(600)
-        self.setAutoClose(True)
-        self.setAutoReset(True)
-        self.setRange(0, 100)
         self.float_value = 0
-        self.setValue(int(self.float_value))
-        self.show()
-        process_events()
+        if cmds.about(batch=True):
+            print("Initializing {}".format(window_title))
+        else:
+            super(ProgressDialog, self).__init__(parent)
+            self.setWindowModality(QtCore.Qt.WindowModal)
+            self.setWindowTitle(window_title)
+            self.setMinimumWidth(600)
+            self.setAutoClose(True)
+            self.setAutoReset(True)
+            self.setRange(0, 100)
+            self.setValue(int(self.float_value))
+            self.show()
+            process_events()
 
     def add(self, v, item):
-        if self.wasCanceled():
-            return False
         self.float_value += v
-        self.setValue(int(self.float_value))
-        self.setLabelText("{} {}".format(self.prefix, item))
-        process_events()
+        if cmds.about(batch=True):
+            print("{}% / 100%".format(round(self.float_value)))
+            print("{} {}".format(self.prefix, item))
+        else:
+            if self.wasCanceled():
+                return False
+            self.setValue(int(self.float_value))
+            self.setLabelText("{} {}".format(self.prefix, item))
+            process_events()
         return True
 
+    def finish(self):
+        if cmds.about(batch=True):
+            print("100% - COMPLETED")
+        else:
+            self.setValue(100)
 
 def process_events():
     """ Processes all queued Qt events """
