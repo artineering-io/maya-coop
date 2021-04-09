@@ -685,9 +685,8 @@ def get_view_camera(shape=False):
     if shape:
         if not cmds.ls(camera, shapes=True):
             camera = get_shapes(camera)
-    else:
-        if cmds.ls(camera, shapes=True):
-            camera = get_transform(camera)
+    elif cmds.ls(camera, shapes=True):
+        camera = get_transform(camera)
     return u_stringify(camera)
 
 
@@ -1111,8 +1110,9 @@ class Path(object):
     def __init__(self, path):
         if isinstance(path, str):
             self.path = u_decode(path)
-        elif isinstance(path, unicode):
-            self.path = path
+        elif get_py_version() < 3:
+            if isinstance(path, unicode):
+                self.path = path
         else:
             print_error("{} is not a string".format(path), True)
 
@@ -1459,7 +1459,7 @@ def u_enlist(arg, silent=True):
     return arg
 
 
-def u_stringify(arg, silent=False):
+def u_stringify(arg, silent=True):
     """
     Unit test to check if given argument is not a string
     Args:
