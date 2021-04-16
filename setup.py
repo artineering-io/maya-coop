@@ -99,7 +99,7 @@ def get_common_module_dir():
     for module_dir in module_dirs:
         if clib.get_local_os() == "win":
             if "Common Files" in module_dir:
-                return clib.Path(module_dir).parent().path
+                return clib.Path(module_dir).path
         # TODO: Other OS
     return ""
 
@@ -271,6 +271,7 @@ def _install_all_users(install_dir, maya_versions):
         new_modules.append(temp_path.path)
 
     py_cmd = _py_cmd_install_all_users(maya_versions, new_modules)
+    print(py_cmd)
     if is_admin():
         eval(py_cmd)
     elif clib.get_local_os() == "win":
@@ -319,7 +320,7 @@ def _py_cmd_install_all_users(maya_versions, modules):
             py_cmd += "shutil.copyfile('{}', '{}'); ".format(mod, shared_module_path)
     py_cmd += "import os; "
     for temp in modules:
-        py_cmd += "os.remove('{}'); ".format(temp)
+        py_cmd += "os.remove('{}'); ".format(clib.Path(temp).slash_path())
     return py_cmd
 
 
