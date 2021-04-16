@@ -56,6 +56,18 @@ def wrap_instance(qt_ptr, q_widget=None):
     return wrapInstance(long(qt_ptr), q_widget)
 
 
+def get_full_name(qt_ptr):
+    """
+    Get full name of qt widget from pointer
+    Args:
+        qt_ptr (ptr): Pointer to QWidget
+
+    Returns:
+        (unicode): full name of qt widget
+    """
+    return omUI.MQtUtil.fullName(long(qt_ptr))
+
+
 def is_minimized(window):
     """
     Returns True if window is minimized
