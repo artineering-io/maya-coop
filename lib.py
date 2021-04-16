@@ -422,19 +422,20 @@ def dialog_select_dir(starting_directory="", title="Open file"):
     return selected_dir[0]
 
 
-def dialog_yes_no(title="Confirmation", message="Are you sure?"):
+def dialog_yes_no(title="Confirmation", message="Are you sure?", icon=""):
     """
     Simple Yes/No confirmation dialog
     Args:
         title (unicode): Title of the dialog (default: Confirmation)
         message (unicode): Dialog message (default: "Are you sure?")
+        icon (unicode): "question", "information", "warning" or "critical" (default: "")
 
     Returns:
         (unicode): "Yes" or "No"
     """
     confirm = cmds.confirmDialog(title=title, message=message,
                               button=['Yes', 'No'], defaultButton='Yes', cancelButton='No', dismissString='No',
-                              ma='center')
+                              ma='center', icon=icon)
     if confirm == "Yes":
         return True
     return False
