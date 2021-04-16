@@ -171,8 +171,8 @@ def replace_material(old_material, new_material, objects=None):
     else:
         objects = cmds.ls(objects, l=True)
     assigned_objects = get_assigned_meshes(old_material, shapes=False, l=True)
-    for obj in assigned_objects:
-        if obj in objects:
+    for obj in objects:
+        if clib.get_transform(obj, full_path=True) in clib.get_transforms(assigned_objects, full_path=True):
             set_material(new_material, obj)
 
 
@@ -192,10 +192,12 @@ def _get_material_of_components(components):
             # Note: we could have used set() above, but the order of elements can be important for certain tools
             for se in shading_engines:
                 s = cmds.sets(se, q=True)
-                if len(cmds.ls(c, flatten=True)) == 1:
-                    s = cmds.ls(s, flatten=True)
-                if c in s:
-                    materials.extend(cmds.ls(cmds.listConnections(se), mat=True))
+                intersection = set(cmds.ls(s, flatten=True)).intersection(set(cmds.ls(c, flatten=True)))
+                if intersection:
+                    mats = cmds.ls(cmds.listConnections(se), mat=True) or []
+                    for m in mats:
+                        if m not in materials:
+                            materials.append(m)
     # components might not have a material
     if not materials:
         for c in components:

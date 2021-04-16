@@ -633,7 +633,7 @@ def get_shapes(objects, renderable=False, l=False, quiet=False):
     """
     Get shapes of objects/components
     Args:
-        objects (list): List of objects or components
+        objects (list, unicode): List of objects or components
         renderable (bool): If shape needs to be renderable
         l (bool): If full path is desired or not
         quiet (bool): If command should print errors or not
@@ -763,7 +763,13 @@ def get_transform(node, full_path=False):
         Name of transform node
     """
     if 'transform' != cmds.nodeType(node):
-        return cmds.listRelatives(node, fullPath=full_path, parent=True)[0]
+        if is_component(node):
+            return get_transform(get_shapes(node, l=True)[0], full_path)
+        try:
+            return cmds.listRelatives(node, fullPath=full_path, parent=True)[0]
+        except TypeError:
+            cmds.warning("{} doesn't have a transform".format(node))
+            return ""
     else:
         return node
 
