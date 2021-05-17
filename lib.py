@@ -1239,14 +1239,15 @@ class Path(object):
 #   \__ \ |_| |  | | | | | (_| |
 #   |___/\__|_|  |_|_| |_|\__, |
 #                         |___/
-def to_camel_case(text):
+def to_camel_case(text, split=" "):
     """
     Converts text to camel case, e.g. ("the camel is huge" => "theCamelIsHuge")
     Args:
         text (string): Text to be camel-cased
+        split (char): Char to split text into
     """
     camel_case_text = text
-    splitter = text.split()
+    splitter = text.split(split)
     if splitter:
         camel_case_text = splitter[0]
         for index in xrange(1, len(splitter)):

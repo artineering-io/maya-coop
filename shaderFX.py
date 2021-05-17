@@ -179,7 +179,7 @@ def filepath_check(text=None, fix=False):
                     cmds.setAttr("{}.{}".format(sfx, attr), "", type="string")
 
 
-def check_corrupted(attr_name="Cangiante", delete=False):
+def check_corrupted(attr_name="cangiante", delete=False):
     """
     Checks all ShaderFX materials for corruption
     Args:
@@ -196,7 +196,7 @@ def check_corrupted(attr_name="Cangiante", delete=False):
         cmds.delete(scheduled)
 
 
-def is_corrupted(material, attr_name="Cangiante"):
+def is_corrupted(material, attr_name="cangiante"):
     """
     Checks if the ShaderFX material is corrupted
     Args:
