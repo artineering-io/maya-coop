@@ -1265,6 +1265,25 @@ def de_camelize(text):
     return re.sub('([a-z0-9])([A-Z])', r'\1 \2', s1).title()
 
 
+def to_pascal_case(text, split=" "):
+    """
+    Converts text to pascal case, e.g. ("the camel is huge" => "TheCamelIsHuge")
+    Args:
+        text (unicode): Text to be pascal-cased
+        split (char): Char to split text into
+
+    Returns:
+        (unicode) string as PascalCase
+    """
+    pascal_case_text = ""
+    text = to_camel_case(text, split)
+    if text:
+        pascal_case_text = text[0].upper()
+        if len(text) > 1:
+            pascal_case_text += text[1:]
+    return pascal_case_text
+
+
 #                    _   _
 #    _ __ ___   __ _| |_| |__
 #   | '_ ` _ \ / _` | __| '_ \
