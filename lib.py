@@ -649,7 +649,7 @@ def get_shapes(objects, renderable=False, l=False, quiet=False):
         objs.add(comp.split(".")[0])  # to also work with components of multiple objects
     if not objs:
         if not quiet:
-            print_error("Please select a mesh or component to extract the shape from")
+            print_error("No mesh or component to extract the shape from: {}".format(objects), True)
             return []
 
     objs = purge_missing(objs)  # make sure all objects exist
