@@ -71,7 +71,7 @@ def get_node_value(material, unique_node_name, quiet=False):
         unique_node_name (unicode): Unique node name in ShaderFX
         quiet (bool): If warnings should print or not
     """
-    value = -1
+    value = None
     node_id = get_id(material, unique_node_name, quiet)
     if node_id:
         if "value" in cmds.shaderfx(sfxnode=material, listProperties=node_id):
