@@ -28,7 +28,7 @@
   }
   python ("reload(coop.setup)");
 
-  python ("coop.setup.run('" + $fileDir + "')");
+  python ("coop.setup.install('" + $fileDir + "')");
 
   global proc string installScriptLocation () {
       string $whatIs=`whatIs installScriptLocation`;
