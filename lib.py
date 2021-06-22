@@ -103,6 +103,30 @@ def undo(f):
     return undo_wrapper
 
 
+def keep_selection(f):
+    """
+    Saves and restores the selection after running a function
+    Args:
+        f: function to be addressed
+
+    Returns:
+        wrapped function where the change of selection doesn't matter
+    """
+
+    @wraps(f)
+    def selection_wrapper(*args, **kwargs):
+        try:
+            selection = cmds.ls(sl=True, l=True)
+            return f(*args, **kwargs)
+        except:
+            traceback.print_exc()
+        finally:
+            # after calling the func, restore the previous selection
+            cmds.select(selection, r=True)
+
+    return selection_wrapper
+
+
 #    _     _     _   _   _ _   _ _
 #   | |   (_)___| |_| | | | |_(_) |___
 #   | |   | / __| __| | | | __| | / __|
@@ -829,6 +853,63 @@ def set_attr(obj, attr, value, silent=False):
             cmds.warning("{0}.{1} could not be set to {2}.".format(obj, attr, value))
             LOG.debug("Attribute of type: {0}.".format(type(value)))
         return False
+
+
+def set_attrs(objs, attr_data, specific_attrs=None, silent=False):
+    """
+    Sets attributes of attr_data to obj
+    Args:
+        objs (unicode, list): Objects to set attributes onto
+        attr_data (dict): Dictionary of attribute data { "attribute_name": value }
+        specific_attrs (list): Specific attributes to set attr_data onto (if None, all attr_data)
+        silent (bool): If warnings should be shown when attribute data could not be assigned
+    """
+    objs = u_enlist(objs)
+    for obj in objs:
+        if specific_attrs:
+            for attr in specific_attrs:
+                set_attr(obj, attr, attr_data[attr], silent)
+        else:
+            for attr in attr_data:
+                set_attr(obj, attr, attr_data[attr], silent)
+
+
+def break_connections(objs, attrs, delete_inputs=False):
+    """
+    Breaks all connections to specific attributes within objs
+    Args:
+        objs (unicode, list): Object which has connections
+        attrs (unicode, list): Attribute to disconnect
+        delete_inputs (bool): If the any remaining input nodes should be deleted
+    """
+    objs = u_enlist(objs)
+    attrs = u_enlist(attrs)
+    for obj in objs:
+        for attr in attrs:
+            source = "{}.{}".format(obj, attr)
+            plugs = cmds.listConnections(source, p=True) or []
+            for plug in plugs:
+                if cmds.listConnections(source, s=True, d=False) is None:
+                    cmds.disconnectAttr(source, plug)
+                else:
+                    # source is a 'destination' (right side of connection)
+                    if delete_inputs:
+                        cmds.delete(source, inputConnectionsAndNodes=True)
+                    else:
+                        cmds.disconnectAttr(plug, source)
+
+
+def disconnect_attrs(source, source_attr, dest, dest_attr):
+    """
+    Checks and disconnects source attribute from destination attribute, if possible
+    Args:
+        source (unicode): Source object
+        source_attr (unicode): Source attribute
+        dest (unicode): Destination object
+        dest_attr (unicode): Destination attribute
+    """
+    if cmds.isConnected("{}.{}".format(source, source_attr), "{}.{}".format(dest, dest_attr)):
+        cmds.disconnectAttr("{}.{}".format(source, source_attr), "{}.{}".format(dest, dest_attr))
 
 
 def get_next_free_multi_index(node, attr, idx=0):
