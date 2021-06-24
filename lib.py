@@ -957,6 +957,21 @@ def get_next_free_multi_index_considering_children(node, attr, idx=0):
     return 0
 
 
+def get_common_objs(objs1, objs2):
+    """
+    Get common objects (intersection) between obj lists
+    Args:
+        objs1 (list): List of objects (short or long names)
+        objs2 (list): List of objects (short or long names)
+
+    Returns:
+        (list): list of common objects (long names) between both lists
+    """
+    objs1 = set(cmds.ls(objs1, l=True))
+    objs2 = cmds.ls(objs2, l=True)
+    return list(objs1.intersection(objs2))
+
+
 def distance_between(obj1, obj2):
     """
     Distance between objects
