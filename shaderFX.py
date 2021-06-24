@@ -207,5 +207,10 @@ def is_corrupted(material, attr_name="cangiante"):
         (bool): True if it is corrupted
     """
     if not cmds.attributeQuery(attr_name, node=material, exists=True):
-        return True
+        # doesn't exist, try with the first character capitalized (just in case)
+        _attr_name = attr_name[0].upper()
+        if len(attr_name) > 1:
+            _attr_name += attr_name[1:]
+        if not cmds.attributeQuery(_attr_name, node=material, exists=True):
+            return True
     return False
