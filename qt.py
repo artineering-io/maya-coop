@@ -688,12 +688,14 @@ class WebEnginePage(QWebEnginePage):
 
 class ProgressDialog(QtWidgets.QProgressDialog):
     """ Simple progress dialog """
-    def __init__(self, parent, window_title, prefix="Processing"):
+    def __init__(self, window_title, parent="", prefix="Processing"):
         self.prefix = prefix
         self.float_value = 0
         if cmds.about(batch=True):
             print("Initializing {}".format(window_title))
         else:
+            if parent is "":
+                parent = get_maya_window()
             super(ProgressDialog, self).__init__(parent)
             self.setWindowModality(QtCore.Qt.WindowModal)
             self.setWindowTitle(window_title)
