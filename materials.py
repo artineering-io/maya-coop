@@ -120,6 +120,7 @@ def set_material(mat, objects, quiet=True):
     mat = clib.u_stringify(mat)
     if not quiet:
         print("set_material(): setting {} onto {}".format(mat, objects))
+    # TODO: Try cmds.defaultNavigation instead
     shading_engines = get_shading_engines(objects)
     if shading_engines:
         for shading_engine in shading_engines:
@@ -162,7 +163,7 @@ def replace_material(old_material, new_material, objects=None):
     """
     Replaces the old material with the new_materials in objects or in selected objects
     Args:
-        old_material (unicode): Name of the old mapterial
+        old_material (unicode): Name of the old material
         new_material (unicode): Name of the new material
         objects (list): List of objects to replace materials (default: selected)
     """
@@ -257,3 +258,26 @@ def delete_unused_materials():
         if not get_assigned_meshes(mat):
             schedule.append(mat)
     cmds.delete(schedule)
+
+
+def set_texture(material, tex_attr, file_path):
+    """
+    Connects a file node with all its additional nodes
+    Args:
+        material (unicode): name of the material
+        tex_attr (unicode): name of the texture attribute
+        file_path (unicode): filepath of texture
+    """
+    if file_path:
+        full_attr = "{}.{}".format(material, tex_attr)
+        sources = cmds.listConnections(full_attr, type='file')
+        if sources:
+            # There can be only one source connected to a texture input attribute
+            cmds.setAttr(sources[0] + '.fileTextureName', file_path, type='string')
+        else:
+            place2d_node = cmds.shadingNode('place2dTexture', asUtility=True, ss=True)
+            file_node = cmds.shadingNode('file', asTexture=True, ss=True)
+            clib.set_attr(file_node, "fileTextureName", file_path)
+            # Make the default connections
+            cmds.defaultNavigation(connectToExisting=True, source=place2d_node, destination=file_node)
+            cmds.defaultNavigation(connectToExisting=True, source=file_node, destination=full_attr, force=True)

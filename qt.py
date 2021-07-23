@@ -56,6 +56,22 @@ def wrap_instance(qt_ptr, q_widget=None):
     return wrapInstance(long(qt_ptr), q_widget)
 
 
+def wrap_ctrl(qt_ctrl, q_widget=None):
+    """
+    Wrap pointer as a QWidget
+    Args:
+        qt_ctrl (unicode): Name of Qt Control
+        q_widget (class): Class to wrap pointer as
+
+    Returns:
+        (QWidget): QWidget
+    """
+    if q_widget is None:
+        q_widget = QtWidgets.QWidget
+    qt_ptr = omUI.MQtUtil.findControl(qt_ctrl)
+    return wrapInstance(long(qt_ptr), q_widget)
+
+
 def get_full_name(qt_ptr):
     """
     Get full name of qt widget from pointer
