@@ -206,11 +206,16 @@ def is_corrupted(material, attr_name="cangiante"):
     Returns:
         (bool): True if it is corrupted
     """
+    corrupted = False
     if not cmds.attributeQuery(attr_name, node=material, exists=True):
         # doesn't exist, try with the first character capitalized (just in case)
         _attr_name = attr_name[0].upper()
         if len(attr_name) > 1:
             _attr_name += attr_name[1:]
         if not cmds.attributeQuery(_attr_name, node=material, exists=True):
-            return True
-    return False
+            corrupted = True
+    if corrupted:  # MNPRX last check
+        if get_id(material, "graphName"):
+            if get_node_value(material, "graphName") != "mnpr_uber":
+                corrupted = False
+    return corrupted
