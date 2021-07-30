@@ -8,6 +8,7 @@ from __future__ import print_function
 from __future__ import unicode_literals
 import maya.cmds as cmds
 from . import lib as clib
+from . import logger as clog
 
 
 def get_assigned_meshes(objects=None, shapes=True, l=False):
@@ -111,26 +112,38 @@ def set_material(mat, objects, quiet=True):
         objects (list): List of objects that the material is assigned to
         quiet (bool): If the function should print what its doing
     """
-    def hypershade_fallback():
-        selection = cmds.ls(sl=True, l=True)
+    log = clog.logger("set_material()")
+    mat = clib.u_stringify(mat)
+    if not quiet:
+        log.debug("set_material(): setting {} onto :\n{}".format(mat, objects))
+    # get shapes, components
+    shapes = []
+    for obj in objects:
+        if cmds.objectType(obj) not in ["mesh", "nurbsSurface"]:
+            shapes.extend(clib.get_shapes(obj))
+        else:
+            shapes.append(obj)
+    shapes = cmds.ls(shapes, l=True)  # long names
+    # check if material is not already assigned
+    materials = get_materials(shapes)
+    assigned_shapes = get_assigned_meshes(materials, l=True)
+    if set(shapes) == set(assigned_shapes):
+        log.info("Skipping setting {}, as it is already assigned to the objects".format(mat))
+        return
+    # assign new material
+    try:
+        # sets assign
+        shading_engine = cmds.sets(empty=True, renderable=True, noSurfaceShader=True, name="{}SG".format(mat))
+        cmds.defaultNavigation(connectToExisting=True, source=mat, destination=shading_engine, f=True)
+        for shape in shapes:
+            cmds.sets(shape, e=True, forceElement=shading_engine)
+    except RuntimeError:
+        log.warning("Failed to assign material using sets. Falling back to Hypershade assign")
+        # hypershade assign
+        selection = cmds.ls(sl=True)
         cmds.select(objects, r=True)
         cmds.hyperShade(assign=mat)
         cmds.select(selection, r=True)
-
-    mat = clib.u_stringify(mat)
-    if not quiet:
-        print("set_material(): setting {} onto {}".format(mat, objects))
-    # TODO: Try cmds.defaultNavigation instead
-    shading_engines = get_shading_engines(objects)
-    if shading_engines:
-        for shading_engine in shading_engines:
-            if not cmds.isConnected("{0}.outColor".format(mat), "{0}.surfaceShader".format(shading_engine)):
-                if objects == cmds.sets(shading_engine, q=True):  # replace material
-                    cmds.connectAttr("{0}.outColor".format(mat), "{0}.surfaceShader".format(shading_engine), f=True)
-                else:
-                    hypershade_fallback()  # assign
-    else:
-        hypershade_fallback()
 
 
 def separate_materials(objects=None, new_name=""):
