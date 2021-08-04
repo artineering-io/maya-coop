@@ -127,8 +127,8 @@ def set_material(mat, objects, quiet=True):
     # check if material is not already assigned
     materials = get_materials(shapes)
     assigned_shapes = get_assigned_meshes(materials, l=True)
-    if set(shapes) == set(assigned_shapes):
-        log.info("Skipping setting {}, as it is already assigned to the objects".format(mat))
+    if set(shapes) == set(assigned_shapes) and set(clib.u_enlist(mat)) == set(materials):
+        log.info("Skipping setting {}, as it is already assigned to the objects {}".format(mat, objects))
         return
     # assign new material
     try:
