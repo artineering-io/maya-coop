@@ -1335,6 +1335,17 @@ class Path(object):
 #   \__ \ |_| |  | | | | | (_| |
 #   |___/\__|_|  |_|_| |_|\__, |
 #                         |___/
+def is_string(v):
+    """
+    Returns if a variable is a string
+    Args:
+        v (unicode): variable to check if it's a string
+    Returns:
+        (bool): If variable is a string
+    """
+    return isinstance(v, basestring)  # basestring is 'str' in Python 3
+
+
 def to_camel_case(text, split=" "):
     """
     Converts text to camel case, e.g. ("the camel is huge" => "theCamelIsHuge")
