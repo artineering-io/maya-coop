@@ -4,7 +4,11 @@
 @license:       MIT
 @repository:    https://github.com/artineering-io/maya-coop
 """
+from __future__ import print_function
+from __future__ import unicode_literals
 import maya.cmds as cmds
+import maya.mel as mel
+import coop.lib as clib
 from maya.internal.common.ae.template import Template
 # For more options e.g., dragCallback, createDraggable, please refer
 # to the source file this one bases on
@@ -77,10 +81,70 @@ class AETemplate(Template):
         """
         super(AETemplate, self).callTemplate(template_name)
 
+    def callCustom(self, new_proc, replace_proc, module, *args):
+        """
+        Calls a custom command to generate custom UIs in the attribute editor
+        Args:
+            new_proc (unicode): Procedure to add a new UI item
+            replace_proc (unicode): Procedure to edit a UI item depending on selection
+            module (unicode):  Module where the python versions of the new and replace functions are
+            *args (any): Arguments to pass onto the procedure
+        """
+        import_cmd = 'python("import {}");'.format(module)  # importing the module where the python functions are
+        new_proc_cmd = 'global proc {}('.format(new_proc)
+        replace_proc_cmd = 'global proc {}('.format(replace_proc)
+        mel_cmd = 'editorTemplate -callCustom "{}" "{}" '.format(new_proc, replace_proc)
+        py_args = ""
+
+        # build callCustom commands and procedures
+        for i, arg in enumerate(args):
+            if clib.is_string(arg):
+                mel_cmd += '"{}" '.format(arg)
+                py_args += "'{}', ".format(arg)
+                new_proc_cmd += "string $arg{}, ".format(i)
+                replace_proc_cmd += "string $arg{}, ".format(i)
+            else:
+                mel_cmd += '{} '.format(arg)
+                py_args = '{}, '.format(arg)
+                if isinstance(arg, int):
+                    new_proc_cmd += "int $arg{}, ".format(i)
+                    replace_proc_cmd += "int $arg{}, ".format(i)
+                elif isinstance(arg, float):
+                    new_proc_cmd += "float $arg{}, ".format(i)
+                    replace_proc_cmd += "float $arg{}, ".format(i)
+                else:
+                    cmds.error("Variable of type '{}' has not been implemented yet in callCustom".format(type(arg)))
+        mel_cmd = mel_cmd[:-1] + ";"
+        new_proc_cmd = new_proc_cmd[:-2] + ') { '
+        new_proc_cmd += 'python("{}.{}('.format(module, new_proc)
+        new_proc_cmd += py_args[:-2]
+        new_proc_cmd += ')"); }'
+        replace_proc_cmd = replace_proc_cmd[:-2] + ') { '
+        replace_proc_cmd += 'python("{}.{}('.format(module, replace_proc)
+        replace_proc_cmd += py_args[:-2]
+        replace_proc_cmd += ')"); }'
+
+        # debug mel commands
+        # print(import_cmd)
+        # print(new_proc_cmd)
+        # print(replace_proc_cmd)
+        # print(mel_cmd)
+
+        # evaluate mel commands
+        mel.eval(import_cmd)
+        mel.eval(new_proc_cmd)
+        mel.eval(replace_proc_cmd)
+        mel.eval(mel_cmd)
+
     @staticmethod
-    def separator():
-        """ Adds a separator to the template. """
-        cmds.editorTemplate(addSeparator=True)
+    def separator(add=True):
+        """
+         Adds a separator to the template.
+        Args:
+            add (bool): If separator should be added or not
+        """
+        if add:
+            cmds.editorTemplate(addSeparator=True)
 
     class Layout:
         """ Editor template layout """
