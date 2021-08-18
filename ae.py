@@ -83,7 +83,9 @@ class AETemplate(Template):
 
     def callCustom(self, new_proc, replace_proc, module, *args):
         """
-        Calls a custom command to generate custom UIs in the attribute editor
+        Calls a custom command to generate custom UIs in the attribute editor.
+        The callCustom flag of editorTemplate only works with mel commands, this method creates a mel wrapper to
+        call Python functions within the module.
         Args:
             new_proc (unicode): Procedure to add a new UI item
             replace_proc (unicode): Procedure to edit a UI item depending on selection
@@ -95,14 +97,16 @@ class AETemplate(Template):
         replace_proc_cmd = 'global proc {}('.format(replace_proc)
         mel_cmd = 'editorTemplate -callCustom "{}" "{}" '.format(new_proc, replace_proc)
         py_args = ""
+        mel_fmt_args = ""
 
         # build callCustom commands and procedures
         for i, arg in enumerate(args):
+            mel_fmt_args += "-stringArg $arg{} ".format(i+1)
             if clib.is_string(arg):
                 mel_cmd += '"{}" '.format(arg)
-                py_args += "'{}', ".format(arg)
-                new_proc_cmd += "string $arg{}, ".format(i)
-                replace_proc_cmd += "string $arg{}, ".format(i)
+                py_args += "'^{}s', ".format(i+1)
+                new_proc_cmd += "string $arg{}, ".format(i+1)
+                replace_proc_cmd += "string $arg{}, ".format(i+1)
             else:
                 mel_cmd += '{} '.format(arg)
                 py_args = '{}, '.format(arg)
@@ -115,17 +119,24 @@ class AETemplate(Template):
                 else:
                     cmds.error("Variable of type '{}' has not been implemented yet in callCustom".format(type(arg)))
         mel_cmd = mel_cmd[:-1] + ";"
-        new_proc_cmd = new_proc_cmd[:-2] + ') { '
-        new_proc_cmd += 'python("{}.{}('.format(module, new_proc)
+        new_proc_cmd = new_proc_cmd[:-2] + ') { python('
+        replace_proc_cmd = replace_proc_cmd[:-2] + ') { python('
+        if mel_fmt_args:
+            new_proc_cmd += "`format " + mel_fmt_args
+            replace_proc_cmd += "`format " + mel_fmt_args
+        new_proc_cmd += '"{}.{}('.format(module, new_proc)
+        replace_proc_cmd += '"{}.{}('.format(module, replace_proc)
         new_proc_cmd += py_args[:-2]
-        new_proc_cmd += ')"); }'
-        replace_proc_cmd = replace_proc_cmd[:-2] + ') { '
-        replace_proc_cmd += 'python("{}.{}('.format(module, replace_proc)
         replace_proc_cmd += py_args[:-2]
-        replace_proc_cmd += ')"); }'
+        new_proc_cmd += ')"'
+        replace_proc_cmd += ')"'
+        if mel_fmt_args:
+            new_proc_cmd += '`'
+            replace_proc_cmd += '`'
+        new_proc_cmd += ');}'
+        replace_proc_cmd += ');}'
 
         # debug mel commands
-        # print(import_cmd)
         # print(new_proc_cmd)
         # print(replace_proc_cmd)
         # print(mel_cmd)
