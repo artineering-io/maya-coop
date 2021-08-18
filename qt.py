@@ -10,7 +10,7 @@ import time, threading, os
 import maya.cmds as cmds
 import maya.OpenMayaUI as omUI
 from PySide2 import QtCore, QtGui, QtWidgets
-from shiboken2 import wrapInstance
+from shiboken2 import wrapInstance, getCppPointer
 from . import lib as clib
 from . import logger as clog
 
@@ -82,6 +82,38 @@ def get_full_name(qt_ptr):
         (unicode): full name of qt widget
     """
     return omUI.MQtUtil.fullName(long(qt_ptr))
+
+
+def get_maya_layout(ui_path=""):
+    """
+    Get Maya's internal layout where ui_path is being placed or the current parent
+    where the UI is being currently modified
+    Args:
+        ui_path (unicode): UI path of Maya control or layout
+
+    Returns:
+        (QLayout): Maya's parent layout wrapped in a QLayout
+    """
+    if ui_path:
+        parent = wrap_instance(omUI.MQtUtil.findLayout(ui_path), QtCore.QObject)
+    else:
+        parent = wrap_instance(omUI.MQtUtil.getCurrentParent(), QtCore.QObject)
+    # Note: Maya layouts are explicit in the UI path.
+    #       As Qt doesn't do this by default, Maya includes a dummy widget with the same name
+    #       We can use this knowledge to extract the actual layout
+    parent_layout = parent.children()[-1].layout()
+    return parent_layout
+
+
+def get_cpp_pointer(qobject):
+    """
+    Get the C++ pointer of any QObject
+    Args:
+        qobject (QObject): QObject to get C++ pointer from
+    Returns:
+        C++ pointer
+    """
+    return getCppPointer(qobject)[0]
 
 
 def is_minimized(window):
@@ -513,13 +545,18 @@ class FileBrowserGrp(QtWidgets.QWidget):
     """
     valueChanged = QtCore.Signal()  # value changed signal of custom widget
 
-    def __init__(self, file_path='', placeholder='', button='...', start_dir=''):
+    def __init__(self, file_path='', placeholder='', button='...', relative=True,
+                 dialog_start_dir='', dialog_title="Select texture file:",
+                 dialog_filter="All Files (*.*)"):
         super(FileBrowserGrp, self).__init__()
         self.dpi = get_dpi_scale()
         self.internal_value = file_path
-        self.start_dir = start_dir
-        if not start_dir:
-            self.start_dir = cmds.workspace(q=True, rootDirectory=True)
+        self.relative = relative
+        self.dialog_title = dialog_title
+        self.dialog_filter = dialog_filter
+        self.dialog_start_dir = dialog_start_dir
+        if not dialog_start_dir:
+            self.dialog_start_dir = cmds.workspace(q=True, rootDirectory=True)
 
         # create layout
         self.layout = QtWidgets.QHBoxLayout(self)
@@ -549,17 +586,16 @@ class FileBrowserGrp(QtWidgets.QWidget):
         start_dir = self.line_edit.text()
         if not start_dir:
             # get project filepath
-            start_dir = self.start_dir
+            start_dir = self.dialog_start_dir
         elif start_dir[0] == '/':
             # relative path, make absolute
-            start_dir = os.path.join(self.start_dir, start_dir[1:])
-        save_dir = cmds.fileDialog2(dir=start_dir, fileMode=1, cap="Select texture file:", dialogStyle=2)
-        if not save_dir:
-            cmds.error("Filename not specified")
-            return
-        save_dir = relative_path(save_dir[0])
-        self.internal_value = save_dir
-        self.line_edit.setText(save_dir)
+            start_dir = os.path.join(self.dialog_start_dir, start_dir[1:])
+        path = clib.dialog_open(starting_directory=start_dir, title=self.dialog_title,
+                                file_filter=self.dialog_filter)
+        if self.relative:
+            path = relative_path(path)
+        self.internal_value = path
+        self.line_edit.setText(path)
         self.valueChanged.emit()
 
     def update_path(self):
@@ -742,6 +778,22 @@ class ProgressDialog(QtWidgets.QProgressDialog):
         else:
             self.setValue(100)
 
+
 def process_events():
     """ Processes all queued Qt events """
     QtCore.QCoreApplication.processEvents()
+
+
+# DEBUG
+
+
+def print_children(qobject):
+    """
+    Prints all the children of qobject recursively
+    Args:
+        qobject (QObject): The QObject to inspect
+    """
+    children = qobject.children()
+    for child in children:
+        print(get_full_name(get_cpp_pointer(child)))
+        print_children(child)
