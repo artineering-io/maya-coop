@@ -815,6 +815,25 @@ def copy_attributes(attributes):
                 set_attr(target, attribute, source_value)
 
 
+def split_node_attr(node_attr):
+    """
+    Split a node.attr in their individual elements
+    Args:
+        node_attr (unicode): A node with its attributes
+
+    Returns:
+        (unicode, unicode): The node and the attribute separated
+    """
+    u_stringify(node_attr)
+    if node_attr:
+        split_idx = node_attr.find('.')
+        node = node_attr[:split_idx]
+        attr = node_attr[split_idx+1:]
+        return node, attr
+    else:
+        print_error("'{}' could not be split into node and attribute".format(node_attr), True)
+
+
 def set_attr(obj, attr, value, silent=False):
     """
     Generic setAttr convenience function which changes the Maya command depending on the data type
