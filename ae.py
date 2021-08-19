@@ -1,5 +1,7 @@
 """
 @summary:       Python attribute editor template extending Maya's
+                Some methods have been re-implemented to have better control
+                Coding convention assimilates Maya's camelCase on purpose
 @run:           import coop.ae as cae (suggested)
 @license:       MIT
 @repository:    https://github.com/artineering-io/maya-coop
@@ -11,16 +13,28 @@ import maya.mel as mel
 import coop.lib as clib
 from maya.internal.common.ae.template import Template
 # For more options e.g., dragCallback, createDraggable, please refer
-# to the source file this one bases on
-# Python/Lib/site-packages/maya/internal/common/ae/template
+# to the source file this library bases on:
+# Python/Lib/site-packages/maya/internal/common/ae/template.py
 
 
 class AETemplate(Template):
     # We explicitly include ALL methods of Template to simplify autocomplete and
     # provide documentation over these methods.
 
-    def __init__(self, node_name):
-        super(AETemplate, self).__init__(node_name)
+    def __init__(self, node_name, extra_attributes=True):
+        """
+        Template constructor
+        Args:
+            node_name (unicode): Node name passed from mel template
+            extra_attributes (bool): If 'Extra Attributes' should be automatically added
+        """
+        if extra_attributes:
+            super(AETemplate, self).__init__(node_name)
+        else:
+            self.nodeName = node_name
+            cmds.editorTemplate(beginScrollLayout=True)
+            self.buildUI(node_name)
+            cmds.editorTemplate(endScrollLayout=True)
 
     def suppress(self, control):
         """
