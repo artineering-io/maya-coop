@@ -13,6 +13,7 @@ import maya.mel as mel
 from . import lib as clib
 from . import qt as cqt
 from . import logger as clog
+from PySide2 import QtWidgets, QtCore
 
 LOG = clog.logger("coop.ae")
 
@@ -253,6 +254,9 @@ class PlainAttrGrp(CustomControl):
         ann = ""
         if "ann" in self.build_kwargs:
             ann = self.build_kwargs['ann']
+        callback = None
+        if "callback" in self.build_kwargs:
+            callback = self.build_kwargs['callback']
         attr_type = cmds.attributeQuery(attr, n=node, attributeType=True)
         if attr_type == "float":
             cmds.attrFieldSliderGrp(at=self.plugName, label=lab, ann=ann, hideMapButton=True)
@@ -260,6 +264,18 @@ class PlainAttrGrp(CustomControl):
             cmds.attrColorSliderGrp(at=self.plugName, label=lab, ann=ann, showButton=False,
                                     cw=[4, 0], columnAttach4=["right", "both", "right", "both"],
                                     columnOffset4=[6, 1, -3, 0])
+        elif attr_type == "bool":
+            if callback is None:
+                ctrl = cmds.attrControlGrp(attribute=self.plugName, label=lab, ann=ann)
+            else:
+                ctrl = cmds.attrControlGrp(attribute=self.plugName, label=lab, ann=ann,
+                                           changeCommand=lambda: callback(node))
+            widget = cqt.wrap_ctrl(ctrl, QtWidgets.QWidget)
+            # widget.setLayoutDirection(QtCore.Qt.RightToLeft)  # move checkbox to the right
+            label = widget.findChildren(QtWidgets.QLabel)[0]
+            label.setText(lab)
+            checkbox = widget.findChildren(QtWidgets.QCheckBox)[0]
+            checkbox.setText("           ")
         else:
             LOG.error("{} UI could not be generated."
                       "Attributes of type {} have not been implemented in PlainAttrGrp())".format(self.plugName,
