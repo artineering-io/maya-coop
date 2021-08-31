@@ -248,18 +248,15 @@ class PlainAttrGrp(CustomControl):
             LOG.error("{} doesn't exist".format(self.plugName))
 
         cmds.setUITemplate("attributeEditorTemplate", pushTemplate=True)
-        lab = cmds.attributeQuery(attr, n=node, niceName=True)
-        if "lab" in self.build_kwargs:
-            lab = self.build_kwargs['lab']
-        ann = ""
-        if "ann" in self.build_kwargs:
-            ann = self.build_kwargs['ann']
-        callback = None
-        if "callback" in self.build_kwargs:
-            callback = self.build_kwargs['callback']
+        lab = self.build_kwargs.get('lab', cmds.attributeQuery(attr, n=node, niceName=True))
+        ann = self.build_kwargs.get('ann', "")
+        callback = self.build_kwargs.get('callback', None)
         attr_type = cmds.attributeQuery(attr, n=node, attributeType=True)
         if attr_type == "float":
-            cmds.attrFieldSliderGrp(at=self.plugName, label=lab, ann=ann, hideMapButton=True)
+            if "map" not in self.build_kwargs:
+                cmds.attrFieldSliderGrp(at=self.plugName, label=lab, ann=ann, hideMapButton=True)
+            else:
+                cmds.attrNavigationControlGrp(at=self.plugName, label=lab, ann=ann)
         elif attr_type == "float3":
             cmds.attrColorSliderGrp(at=self.plugName, label=lab, ann=ann, showButton=False,
                                     cw=[4, 0], columnAttach4=["right", "both", "right", "both"],
