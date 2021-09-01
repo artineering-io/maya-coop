@@ -109,11 +109,12 @@ def set_material(mat, objects, quiet=True):
     Set material onto objects
     Args:
         mat (unicode): Name of material to set to objects
-        objects (list): List of objects that the material is assigned to
+        objects (unicode, list): List of objects that the material is assigned to
         quiet (bool): If the function should print what its doing
     """
     log = clog.logger("set_material()")
     mat = clib.u_stringify(mat)
+    objects = clib.u_enlist(objects)
     if not quiet:
         log.debug("set_material(): setting {} onto :\n{}".format(mat, objects))
     # get shapes, components
