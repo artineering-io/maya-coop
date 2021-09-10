@@ -745,7 +745,7 @@ def get_transform(node, full_path=False):
         if is_component(node):
             return get_transform(get_shapes(node, l=True)[0], full_path)
         try:
-            return cmds.listRelatives(node, fullPath=full_path, parent=True)[0]
+            return cmds.listRelatives(node, type='transform', fullPath=full_path, parent=True)[0]
         except TypeError:
             cmds.warning("{} doesn't have a transform".format(node))
             return ""
