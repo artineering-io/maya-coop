@@ -9,6 +9,7 @@ from __future__ import unicode_literals
 import maya.cmds as cmds
 from . import lib as clib
 from . import logger as clog
+from . import list as clist
 
 
 def get_assigned_meshes(objects=None, shapes=True, l=False):
@@ -57,7 +58,7 @@ def get_materials(objects):
         return _get_material_of_components(objects)  # could be components
 
     if transforms:
-        clib.ListUtils.update(shapes, cmds.ls(transforms, o=True, dag=True, s=True, noIntermediate=True))
+        clist.update(shapes, cmds.ls(transforms, o=True, dag=True, s=True, noIntermediate=True))
 
     if shapes:
         # _clean_shading_engines(shapes)
@@ -69,7 +70,7 @@ def get_materials(objects):
                 default_material = "lambert1"
                 clib.print_warning("No material connected to {}. Connecting default material.".format(se))
                 cmds.connectAttr("{}.outColor".format(default_material), "{}.surfaceShader".format(se), f=True)
-            clib.ListUtils.update(materials, mats)
+            clist.update(materials, mats)
 
     return materials
 
@@ -84,7 +85,7 @@ def get_shading_engines(objects):
         (list): Shading engines of objects
     """
     shapes = clib.get_shapes(objects, l=True)
-    shading_engines = clib.ListUtils.remove_duplicates(cmds.listConnections(shapes, type="shadingEngine") or [])
+    shading_engines = clist.remove_duplicates(cmds.listConnections(shapes, type="shadingEngine") or [])
     return shading_engines
 
 
@@ -204,7 +205,7 @@ def _get_material_of_components(components):
     for c in components:
         if clib.is_component(c):
             obj = cmds.ls(c, objectsOnly=True)
-            shading_engines = clib.ListUtils.remove_duplicates(cmds.listConnections(obj, type="shadingEngine"))
+            shading_engines = clist.remove_duplicates(cmds.listConnections(obj, type="shadingEngine"))
             # Note: we could have used set() above, but the order of elements can be important for certain tools
             for se in shading_engines:
                 s = cmds.sets(se, q=True)
@@ -245,7 +246,7 @@ def _clean_shading_engines(objects):
         else:
             shapes.append(obj)
     for shape in shapes:
-        shading_engines = clib.ListUtils.remove_duplicates(cmds.listConnections(shape, type="shadingEngine"))
+        shading_engines = clist.remove_duplicates(cmds.listConnections(shape, type="shadingEngine"))
         if "MNPRX_SE" in shading_engines:
             shading_engines.remove("MNPRX_SE")  # MNPRX instance shading engine
         if len(shading_engines) > 1:

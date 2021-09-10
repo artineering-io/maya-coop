@@ -12,6 +12,7 @@ from functools import wraps
 import maya.mel as mel
 import maya.cmds as cmds
 from . import logger as clog
+from . import list as clist
 
 # python api 2.0
 import maya.api.OpenMaya as om
@@ -125,58 +126,6 @@ def keep_selection(f):
             cmds.select(selection, r=True)
 
     return selection_wrapper
-
-
-#    _     _     _   _   _ _   _ _
-#   | |   (_)___| |_| | | | |_(_) |___
-#   | |   | / __| __| | | | __| | / __|
-#   | |___| \__ \ |_| |_| | |_| | \__ \
-#   |_____|_|___/\__|\___/ \__|_|_|___/
-#
-# List utilities within a helper class to work with lists.
-# It works in a similar way to set(), but it keeps the order of its elements
-class ListUtils(object):
-    @staticmethod
-    def remove_duplicates(obj_list):
-        """
-        Remove duplicate entries in list and keep order of entries
-        Args:
-            obj_list (list): List to remove duplicate entries from
-
-        Returns:
-            New List
-        """
-        if not obj_list:
-            obj_list = []
-        new_list = []
-        new_set = set()  # working with sets speeds up the workflow
-        for obj in obj_list:
-            if obj not in new_set:
-                new_set.add(obj)
-                new_list.append(obj)
-        return new_list
-
-    @staticmethod
-    def add(obj_list, obj):
-        """
-        Adds object if it didn't exist before
-        Args:
-            obj_list (list): List to add element onto
-            obj (unicode): object to be added
-        """
-        if obj not in obj_list:
-            obj_list.append(obj)
-
-    @staticmethod
-    def update(obj_list, update_list):
-        """
-        Adds each object within a list if it didn't exist before
-        Args:
-            obj_list (list): List to update with elements of update_list
-            update_list (list): List to add to obj_list
-        """
-        for obj in update_list:
-            ListUtils.add(obj_list, obj)
 
 
 ######################################################################################
@@ -665,16 +614,21 @@ def get_shapes(objects, renderable=False, l=False, quiet=False):
     Returns:
         (list): List of shapes
     """
-    # transform string input (if any) to a list
-    objects = u_enlist(objects)
+    passed_objs = clist.flatten_list(objects)
 
-    objs = set()
-    for comp in objects:
-        objs.add(comp.split(".")[0])  # to also work with components of multiple objects
-    if not objs:
-        if not quiet:
-            print_error("No mesh or component to extract the shape from: {}".format(objects))
-            return []
+    # convert any passed components and avoid duplicates (keeping the order)
+    objs = list()
+    for obj in passed_objs:
+        if is_string(obj):
+            obj = obj.split(".")[0]
+            if obj not in objs:
+                objs.append(obj)
+        else:
+            print_error("Passing non-string values to get_shapes(): {}".format(objects))
+
+    if not objs and not quiet:
+        print_error("No mesh or component to extract the shape from: {}".format(objects))
+        return []
 
     objs = purge_missing(objs)  # make sure all objects exist
 
