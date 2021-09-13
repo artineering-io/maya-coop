@@ -24,7 +24,8 @@ def delete_shelves(shelves=None, restart=True):
         restart (bool): If a restart dialog should appear in the end
     """
     if not shelves:
-        cmds.error('No shelves specified to delete')
+        LOG.warning('No shelves specified to delete')
+        return
     # standardize shelve names
     shelves_filenames, shelves_names = format_shelves(shelves)
     # Maya creates all default shelves in prefs only after each has been opened (initialized)
