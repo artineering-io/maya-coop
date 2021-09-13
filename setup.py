@@ -103,7 +103,7 @@ def get_common_module_dir():
     for module_dir in module_dirs:
         if clib.get_local_os() == "win":
             if "Common Files" in module_dir:
-                return clib.Path(module_dir).path
+                return clib.Path(module_dir).parent().path
         # TODO: Other OS
     return ""
 
