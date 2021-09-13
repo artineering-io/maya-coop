@@ -550,59 +550,6 @@ def detach_shelf():
     cmds.showWindow(window)
 
 
-def delete_shelves(shelves_dict=None, restart=True):
-    """
-    Delete shelves specified in dictionary
-    Args:
-        shelves_dict (dict): Dictionary of shelf name and mel file without prefix: e.g. {"Animation" : "Animation.mel"}
-        restart (bool): If a restart dialog should appear in the end
-    """
-    env_dir = get_env_dir()
-    if not shelves_dict:
-        cmds.error('No shelf array given')
-    # Maya creates all default shelves in prefs only after each has been opened (initialized)
-    for shelf in shelves_dict:
-        try:
-            mel.eval('jumpToNamedShelf("{0}");'.format(shelf))
-        except RuntimeError:
-            continue
-    mel.eval('saveAllShelves $gShelfTopLevel;')  # all shelves loaded (save them)
-    # time to delete them
-    shelf_top_level = mel.eval('$tempMelVar=$gShelfTopLevel') + '|'
-    for shelf in shelves_dict:
-        shelf_layout = shelves_dict[shelf].split('.mel')[0]
-        if cmds.shelfLayout(shelf_top_level + shelf_layout, q=True, ex=True):
-            cmds.deleteUI(shelf_top_level + shelf_layout, layout=True)
-    # mark them as deleted to avoid startup loading
-    shelf_dir = os.path.join(env_dir, 'prefs', 'shelves')
-    for shelf in shelves_dict:
-        shelf_name = os.path.join(shelf_dir, 'shelf_' + shelves_dict[shelf])
-        deleted_shelf_name = shelf_name + '.deleted'
-        if os.path.isfile(shelf_name):
-            # make sure the deleted file doesn't already exist
-            if os.path.isfile(deleted_shelf_name):
-                os.remove(shelf_name)
-                continue
-            os.rename(shelf_name, deleted_shelf_name)
-    if restart:
-        dialog_restart()
-
-
-def restore_shelves():
-    """ Restores previously deleted shelves """
-    shelf_dir = os.path.join(get_env_dir(), 'prefs', 'shelves')
-    for shelf in os.listdir(shelf_dir):
-        if shelf.endswith('.deleted'):
-            restored_shelf = os.path.join(shelf_dir, shelf.split('.deleted')[0])
-            deleted_shelf = os.path.join(shelf_dir, shelf)
-            # check if it has not been somehow restored
-            if os.path.isfile(restored_shelf):
-                os.remove(deleted_shelf)
-            else:
-                os.rename(deleted_shelf, restored_shelf)
-    dialog_restart()
-
-
 def get_shapes(objects, renderable=False, l=False, quiet=False):
     """
     Get shapes of objects/components

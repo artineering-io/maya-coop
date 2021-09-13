@@ -11,6 +11,7 @@ import maya.cmds as cmds
 import maya.mel as mel
 from . import lib as clib
 from . import logger as clog
+from . import shelves as cshelf
 
 LOG = clog.logger("coop.setup")
 
@@ -48,13 +49,15 @@ def install(install_dir, all_users=False, maya_versions=None):
     _restart_dialog()
 
 
-def uninstall(install_dir, module_name, reinstall=False):
+def uninstall(install_dir, module_name, reinstall=False, shelves=None, background=False):
     """
     Uninstalls the module
     Args:
         install_dir (unicode): Root directory of the module file
         module_name (unicode): Name of the module
         reinstall (bool): If uninstalling happens because of a re-install
+        shelves (unicode, list): Shelves to uninstall
+        background (bool): If uninstalling should happen in the background (without user prompts)
     """
     if is_installed_per_user(module_name):
         maya_env_path = _check_maya_env()
@@ -73,7 +76,7 @@ def uninstall(install_dir, module_name, reinstall=False):
 
         # replace environment file
         shutil.move(temp_file_path.path, maya_env_path)
-    elif not reinstall:
+    elif not reinstall and not background:
         t = "Heads-up"
         m = "Are you sure you wish to uninstall {} for ALL users?".format(module_name)
         reply = cmds.confirmDialog(title=t, message=m, button=['Yes', 'No'],
@@ -85,8 +88,9 @@ def uninstall(install_dir, module_name, reinstall=False):
         _uninstall_all_users(module_name)
 
     if not reinstall:
-        clib.delete_shelves({"{}".format(module_name): "{}.mel".format(module_name)}, False)
-        _restart_dialog()
+        cshelf.delete_shelves(shelves, False)
+        if not background:
+            _restart_dialog()
 
 
 def get_common_module_dir():
