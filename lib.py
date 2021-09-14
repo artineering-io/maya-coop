@@ -499,6 +499,19 @@ def get_active_model_panel():
         return cmds.playblast(ae=True)
 
 
+def get_viewport_render_api():
+    """
+    Returns:
+        (unicode): Either DirectX11, OpenGL or Legacy depending on the active API
+    """
+    engine = mel.eval("getPreferredRenderingEngine")
+    if engine.startswith("DirectX11"):
+        return "DirectX11"
+    elif engine == "OpenGL":
+        return "Legacy"
+    return "OpenGL"
+
+
 def detach_shelf():
     """
     Detaches the current shelves
