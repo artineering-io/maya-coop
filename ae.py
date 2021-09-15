@@ -246,6 +246,7 @@ class PlainAttrGrp(CustomControl):
         node, attr = clib.split_node_attr(self.plugName)
         if not cmds.attributeQuery(attr, n=node, ex=True):
             LOG.error("{} doesn't exist".format(self.plugName))
+            return
 
         cmds.setUITemplate("attributeEditorTemplate", pushTemplate=True)
         lab = self.build_kwargs.get('lab', cmds.attributeQuery(attr, n=node, niceName=True))
