@@ -317,10 +317,10 @@ class AEControlIndexer:
                     if cmds.window(window_name, title=True, query=True) == node_name:
                         self.index_window(window_name)
                 elif ui_path.startswith("AttributeEditor"):
-                    if mel.eval('$tempMelVar=$gAECurrentTab') == node_name:
+                    if mel.eval('$aeTab=$gAECurrentTab') == node_name:
                         self.index_ui_ctrls(ui_path)
                 elif ui_path.startswith("hyperShadePanel"):
-                    if mel.eval('$tempMelVar=$gPropertyPanelActiveNode;') == node_name:
+                    if mel.eval('$ppTab=$gPropertyPanelActiveNode;') == node_name:
                         self.index_ui_ctrls(ui_path)
 
     def index_window(self, window_name):
@@ -392,6 +392,7 @@ def toggle_frame(node_name, attribute, ctrls, frame_layout):
         ctrls (dict): Dictionary of frame layout controls
         frame_layout (unicode): Title of the frame layout
     """
+    # print("toggle_frame('{}', '{}', {}, '{}'".format(node_name, attribute, ctrls, frame_layout))
     if frame_layout in ctrls:
         if cmds.getAttr("{}.{}".format(node_name, attribute)):
             for widget in ctrls[frame_layout]:
