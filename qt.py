@@ -72,6 +72,20 @@ def wrap_ctrl(qt_ctrl, q_widget=None):
     return wrapInstance(long(qt_ptr), q_widget)
 
 
+def ctrl_exists(qt_ctrl):
+    """
+    Returns True if qt_ctrl exists
+    Args:
+        qt_ctrl (unicode): Full path to Qt Control within Maya
+
+    Returns:
+        (bool): True if qt_ctrl exists
+    """
+    if omUI.MQtUtil.findControl(qt_ctrl) is None:
+        return False
+    return True
+
+
 def get_full_name(qt_ptr):
     """
     Get full name of qt widget from pointer
