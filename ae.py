@@ -14,8 +14,10 @@ from . import lib as clib
 from . import qt as cqt
 from . import logger as clog
 from PySide2 import QtWidgets
+from functools import partial
 
 LOG = clog.logger("coop.ae")
+ATTR_WIDGETS = dict()  # Index of Custom Attribute Widgets
 
 
 class AETemplate(object):
@@ -296,30 +298,40 @@ class PlainAttrGrp(CustomControl):
             cmds.setUITemplate(popTemplate=True)
 
     def replace_control_ui(self):
-        pass  # the attrFieldSliderGrp is in charge of replacing/setting whatever value is in there
+        _plain_attr_widget_update(self.plug_name)
+        # run callback (if any)
+        node, attr = clib.split_node_attr(self.plug_name)
+        callback = self.build_kwargs.get('callback', None)
+        if callback is not None:
+            callback(node)
 
 
 def _plain_attr_widget(node_attr, kwargs):
+    global ATTR_WIDGETS
     node, attr = clib.split_node_attr(node_attr)
     lab = kwargs.get('lab', cmds.attributeQuery(attr, n=node, niceName=True))
     ann = kwargs.get('ann', "")
     callback = kwargs.get('callback', None)
+    if callback:
+        callback = partial(callback, node)
+    obj_type = cmds.objectType(node)
     attr_type = cmds.attributeQuery(attr, n=node, attributeType=True)
+    widget_name = "{}{}".format(obj_type, attr)
+    _check_attr_widgets(widget_name)
+    ctrl = ""
     if attr_type == "float":
         if "map" not in kwargs:
-            cmds.attrFieldSliderGrp(at=node_attr, label=lab, ann=ann, hideMapButton=True)
+            ctrl = cmds.attrFieldSliderGrp(at=node_attr, label=lab, ann=ann, hideMapButton=True)
         else:
-            cmds.attrNavigationControlGrp(at=node_attr, label=lab, ann=ann)
+            ctrl = cmds.attrNavigationControlGrp(at=node_attr, label=lab, ann=ann)
     elif attr_type == "float3":
-        cmds.attrColorSliderGrp(at=node_attr, label=lab, ann=ann, showButton=False,
-                                cw=[4, 0], columnAttach4=["right", "both", "right", "both"],
-                                columnOffset4=[6, 1, -3, 0])
+        ctrl = cmds.attrColorSliderGrp(at=node_attr, label=lab, ann=ann, showButton=False,
+                                       cw=[4, 0], columnAttach4=["right", "both", "right", "both"],
+                                       columnOffset4=[6, 1, -3, 0])
     elif attr_type == "bool":
-        if callback is None:
-            ctrl = cmds.attrControlGrp(attribute=node_attr, label=lab, ann=ann)
-        else:
-            ctrl = cmds.attrControlGrp(attribute=node_attr, label=lab, ann=ann,
-                                       changeCommand=lambda: callback(node))
+        ctrl = cmds.attrControlGrp(attribute=node_attr, label=lab, ann=ann)
+        if callback:
+            cmds.scriptJob(attributeChange=[node_attr, callback])
         widget = cqt.wrap_ctrl(ctrl, QtWidgets.QWidget)
         # widget.setLayoutDirection(QtCore.Qt.RightToLeft)  # move checkbox to the right
         label = widget.findChildren(QtWidgets.QLabel)[0]
@@ -327,14 +339,57 @@ def _plain_attr_widget(node_attr, kwargs):
         checkbox = widget.findChildren(QtWidgets.QCheckBox)[0]
         checkbox.setText("           ")
     elif attr_type == "enum":
-        cmds.attrEnumOptionMenuGrp(at=node_attr, label=lab, ann=ann)
+        ctrl = cmds.attrEnumOptionMenuGrp(at=node_attr, label=lab, ann=ann)
         if callback:
             # add script job manually as cmds.attrEnumOptionMenuGrp doesn't provide a change callback
-            cmds.scriptJob(attributeChange=[node_attr, lambda: callback(node)])
+            cmds.scriptJob(attributeChange=[node_attr, callback])
     else:
         LOG.error("{} UI could not be generated."
                   "Attributes of type {} have not been implemented for _plain_attr_widget())".format(node_attr,
                                                                                                      attr_type))
+        return
+    if not ctrl.startswith("window"):  # do not updates/replace attributes that are in external windows
+        if ctrl not in ATTR_WIDGETS[widget_name]:
+            ATTR_WIDGETS[widget_name].append(ctrl)
+
+
+def _check_attr_widgets(widget_name):
+    global ATTR_WIDGETS
+    if widget_name not in ATTR_WIDGETS:
+        ATTR_WIDGETS[widget_name] = []
+    else:
+        ctrls = ATTR_WIDGETS[widget_name]
+        for i, ctrl in enumerate(ctrls):
+            if not cqt.ctrl_exists(ctrl):
+                ATTR_WIDGETS[widget_name].pop(i)
+
+
+def _plain_attr_widget_update(node_attr):
+    node, attr = clib.split_node_attr(node_attr)
+    obj_type = cmds.objectType(node)
+    widget_name = "{}{}".format(obj_type, attr)
+    attr_type = cmds.attributeQuery(attr, n=node, attributeType=True)
+    ctrls = ATTR_WIDGETS.get(widget_name, [])
+    for ctrl in ctrls:
+        if attr_type == "float":
+            try:
+                if ctrl.rfind("attrFieldSliderGrp") > 0:
+                    cmds.attrFieldSliderGrp(ctrl, at=node_attr, e=True)
+                else:
+                    cmds.attrNavigationControlGrp(ctrl, at=node_attr, e=True)
+            except RuntimeError:
+                LOG.error("Error updating attribute: {}".format(ctrl))
+        elif attr_type == "float3":
+            cmds.attrColorSliderGrp(ctrl, at=node_attr, e=True)
+        elif attr_type == "bool":
+            cmds.attrControlGrp(ctrl, attribute=node_attr, e=True)
+            # TODO check if callback exists
+        elif attr_type == "enum":
+            cmds.attrEnumOptionMenuGrp(ctrl, at=node_attr, e=True)
+        else:
+            LOG.error("{} UI could not be generated."
+                      "Attributes of type {} have not been implemented for "
+                      "_plain_attr_widget_update())".format(node_attr, attr_type))
 
 
 PLAIN_ATTR_DATA = dict()
@@ -356,7 +411,14 @@ def _ae_plain_attr_new(node_attr):
 
 def _ae_plain_attr_replace(node_attr):
     """ Deprecated: Use PlainAttrGrp class instead on Maya 2022+ """
-    print("ae_plain_attr_replace_('{}')".format(node_attr))
+    # print("ae_plain_attr_replace_('{}')".format(node_attr))
+    _plain_attr_widget_update(node_attr)  # update widget
+    # run callback (if any)
+    node, attr = clib.split_node_attr(node_attr)
+    callback = PLAIN_ATTR_DATA[attr].get('callback', None)
+    print("Callback of {}: {}".format(node_attr, callback))
+    if callback is not None:
+        callback(node)
 
 
 ##################################################################################
