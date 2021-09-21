@@ -13,22 +13,15 @@ import maya.mel as mel
 from . import lib as clib
 from . import qt as cqt
 from . import logger as clog
-from PySide2 import QtWidgets, QtCore
+from PySide2 import QtWidgets
 
 LOG = clog.logger("coop.ae")
 
-from maya.internal.common.ae.template import Template
-import maya.internal.common.ae.custom as ae_custom
 
-
-# For more options e.g., dragCallback, createDraggable, please refer
-# to the source file this library bases on:
-# Python/Lib/site-packages/maya/internal/common/ae/template.py
-
-
-class AETemplate(Template):
-    # We explicitly include ALL methods of Template to simplify autocomplete and
-    # provide documentation over these methods.
+class AETemplate(object):
+    # Based on the Template object from:
+    # Python/Lib/site-packages/maya/internal/common/ae/template.py
+    # Extended for actual production usage
 
     def __init__(self, node_name, extra_attributes=True):
         """
@@ -37,23 +30,24 @@ class AETemplate(Template):
             node_name (unicode): Node name passed from mel template
             extra_attributes (bool): If 'Extra Attributes' should be automatically added
         """
+        self.nodeName = node_name
+        cmds.editorTemplate(beginScrollLayout=True)
+        self.build_ui(node_name)
         if extra_attributes:
-            super(AETemplate, self).__init__(node_name)
-        else:
-            self.nodeName = node_name
-            cmds.editorTemplate(beginScrollLayout=True)
-            self.buildUI(node_name)
-            cmds.editorTemplate(endScrollLayout=True)
+            cmds.editorTemplate(addExtraControls=True)
+        cmds.editorTemplate(endScrollLayout=True)
 
-    def suppress(self, control):
+    @staticmethod
+    def suppress(control):
         """
         Supress control (attribute) from appearing in the attribute editor
         Args:
             control (unicode): Name of control (attribute) to suppress
         """
-        super(AETemplate, self).suppress(control)
+        cmds.editorTemplate(suppress=control)
 
-    def addControl(self, control, ann="", lab="", callback=None):
+    @staticmethod
+    def add_control(control, ann="", lab="", callback=None):
         """
         Adds a named control
         Args:
@@ -62,51 +56,72 @@ class AETemplate(Template):
             lab (unicode): Nice name of attribute (if any)
             callback (func): Function to call if something happens
         """
-        control = [control]
-        if callback:
-            control.append(callback)
-        if lab:
-            cmds.editorTemplate(label=lab, addControl=control, ann=ann)
+        # print("add_control('{}', '{}', '{}', {})".format(control, ann, lab, callback))
+        if clib.get_maya_version() > 2020:
+            control = clib.u_enlist(control)
+            if callback:
+                control.append(callback)
+            if lab:
+                cmds.editorTemplate(label=lab, ann=ann, addControl=control)
+            else:
+                cmds.editorTemplate(ann=ann, addControl=control)
         else:
-            cmds.editorTemplate(addControl=control, ann=ann)
+            # mel as cmds.editorTemplate doesn't work below 2022
+            cmd = 'editorTemplate -ann "{}"'.format(ann)
+            if lab:
+                cmd += ' -lab "{}"'.format(lab)
+            cmd += ' -addControl "{}"'.format(control)
+            if callback:
+                clib.print_warning("Callbacks are not supported by add_control() on Maya < 2022")
+                clib.print_info("Use custom_control(PlainAttrGrp()) instead")
+            mel.eval(cmd)
+
         # control_name = cmds.editorTemplate(queryName=[self.nodeName, control[0]])
         # Note: the command above returns None until the AE is shown, so we can't query this here
 
-    def addControls(self, controls):
+    def add_controls(self, controls):
         """
         Adds a list of controls
         Args:
             controls (list): List of controls to add (string names)
         """
-        super(AETemplate, self).addControls(controls)
+        for c in controls:
+            self.add_control(c)
 
-    def buildUI(self, node_name):
+    @staticmethod
+    def separator(add=True):
+        """
+        Adds a separator to the template.
+        Args:
+            add (bool): If separator should be added or not
+        """
+        if add:
+            cmds.editorTemplate(addSeparator=True)
+
+    def build_ui(self, node_name):
         """
         This method needs to be overriden to create the custom UI
         Args:
             node_name (unicode): Name of the node to build UI for
         """
-        super(AETemplate, self).buildUI(node_name)
+        raise NotImplementedError("build_ui() has not been implemented")
 
-    def suppressAll(self):
-        """ Suppresses all attributes from appearing in the Attribute Editor """
-        super(AETemplate, self).suppressAll()
-
-    def suppressCachingFrozenNodeState(self):
+    def suppress_caching_frozen_node_state(self):
         """ Suppresses the caching, frozen and nodeState attributes from appearing in the Attribute Editor """
         self.suppress("caching")
         self.suppress("frozen")
         self.suppress("nodeState")
 
-    def callTemplate(self, template_name):
+    def call_template(self, template_name):
         """
         Appends an attribute editor template
         Args:
             template_name (unicode): Node name of the attribute editor template
         """
-        super(AETemplate, self).callTemplate(template_name)
+        mel.eval(u'AE{0}Template {1}'.format(template_name, self.nodeName))
 
-    def callCustom(self, new_proc, replace_proc, module, *args):
+    @staticmethod
+    def call_custom(new_proc, replace_proc, module, *args):
         """
         If using widget objects, use customControl() instead
         Calls a custom command to generate custom UIs in the attribute editor.
@@ -143,7 +158,7 @@ class AETemplate(Template):
                     new_proc_cmd += "float $arg{}, ".format(i)
                     replace_proc_cmd += "float $arg{}, ".format(i)
                 else:
-                    cmds.error("Variable of type '{}' has not been implemented yet in callCustom".format(type(arg)))
+                    cmds.error("Variable of type '{}' has not been implemented yet in call_custom".format(type(arg)))
         mel_cmd = mel_cmd[:-1] + ";"
         new_proc_cmd = new_proc_cmd[:-2] + ') { python('
         replace_proc_cmd = replace_proc_cmd[:-2] + ') { python('
@@ -174,17 +189,7 @@ class AETemplate(Template):
         mel.eval(mel_cmd)
 
     @staticmethod
-    def separator(add=True):
-        """
-        Adds a separator to the template.
-        Args:
-            add (bool): If separator should be added or not
-        """
-        if add:
-            cmds.editorTemplate(addSeparator=True)
-
-    @staticmethod
-    def customControl(custom_obj, attrs):
+    def custom_control(custom_obj, attrs):
         """
         Adds a custom control to the template.
         Args:
@@ -192,14 +197,21 @@ class AETemplate(Template):
                                 A class with buildControlUI() and replaceControlUI()
             attrs (unicode, list): The attributes that this control manages
         """
+        # print("custom_control({}, {})".format(custom_obj, attrs))
+        if clib.get_maya_version() > 2020:
+            def create(*args):
+                custom_obj.on_create(args)  # calls build_control_ui()
 
-        def create(*args):
-            custom_obj.onCreate(args)  # calls buildControlUI()
+            def replace(*args):
+                custom_obj.on_replace(args)  # calls replace_control_ui()
 
-        def replace(*args):
-            custom_obj.onReplace(args)  # calls replaceControlUI()
-
-        cmds.editorTemplate(attrs, callCustom=[create, replace])
+            cmds.editorTemplate(attrs, callCustom=[create, replace])
+        else:
+            # mel wrapping it is because cmds.editorTemplate doesn't work properly prior Maya 2022
+            global PLAIN_ATTR_DATA
+            PLAIN_ATTR_DATA[attrs] = custom_obj.build_kwargs  # we store the widget format data in a global
+            AETemplate.call_custom("_ae_plain_attr_new", "_ae_plain_attr_replace", __name__,
+                                   attrs)
 
     class Layout:
         """ Editor template layout """
@@ -218,22 +230,51 @@ class AETemplate(Template):
 
 
 ##################################################################################
-class CustomControl(ae_custom.CustomControl):
-    # inherits from Maya/Python/Lib/site-packages/maya/internal/common/ae/common.py
+class CustomControl(object):
+    # Based on the CustomControl object from:
+    # Python/Lib/site-packages/maya/internal/common/ae/common.py
+    # Extended for actual production usage
+    #
     # This virtual class helps generate custom Maya control objects.
     # It has intrinsic members and the 'build' and 'replace' methods, which need to be
     # overwritten for it to work as intended
 
     def __init__(self, *args, **kwargs):
-        self.nodeName = None
-        self.plugName = None
+        self.node_name = None
+        self.plug_name = None
+        self.attr_name = None
         self.build_args = args
         self.build_kwargs = kwargs
 
-    def buildControlUI(self):
+    # args will collect all attributes that connected to this custom control
+    def on_create(self, *args):
+        control_args = args[0]
+        self.plug_name = control_args[0] if control_args else ""
+        self.node_name, self.attr_name = clib.split_node_attr(self.plug_name)
+        parent_name = cmds.setParent(q=True)
+        cmds.scriptJob(uiDeleted=[parent_name, self.on_close], runOnce=True)
+        self.build_control_ui()
+
+    def on_replace(self, *args):
+        control_args = args[0]
+        self.plug_name = control_args[0] if control_args else ""
+        self.node_name, self.attr_name = clib.split_node_attr(self.plug_name)
+        self.replace_control_ui()
+
+    def on_close(self):
+        """ Override this class with the commands to 'close' the UI """
         pass
 
-    def replaceControlUI(self):
+    def build_control_ui(self):
+        """ Override this class with the commands to 'build' the UI """
+        pass
+
+    def replace_control_ui(self):
+        """ Override this class with the commands to 'replace' the UI """
+        pass
+
+    def set_enable(self, enable):
+        """ Override this class with the commands to 'enable/disable' the UI """
         pass
 
 
@@ -242,46 +283,80 @@ class PlainAttrGrp(CustomControl):
     The default Maya attribute but without the  texture map button
     """
 
-    def buildControlUI(self):
-        node, attr = clib.split_node_attr(self.plugName)
+    def build_control_ui(self):
+        node, attr = clib.split_node_attr(self.plug_name)
         if not cmds.attributeQuery(attr, n=node, ex=True):
-            LOG.error("{} doesn't exist".format(self.plugName))
+            LOG.error("{} doesn't exist".format(self.plug_name))
             return
 
         cmds.setUITemplate("attributeEditorTemplate", pushTemplate=True)
-        lab = self.build_kwargs.get('lab', cmds.attributeQuery(attr, n=node, niceName=True))
-        ann = self.build_kwargs.get('ann', "")
-        callback = self.build_kwargs.get('callback', None)
-        attr_type = cmds.attributeQuery(attr, n=node, attributeType=True)
-        if attr_type == "float":
-            if "map" not in self.build_kwargs:
-                cmds.attrFieldSliderGrp(at=self.plugName, label=lab, ann=ann, hideMapButton=True)
-            else:
-                cmds.attrNavigationControlGrp(at=self.plugName, label=lab, ann=ann)
-        elif attr_type == "float3":
-            cmds.attrColorSliderGrp(at=self.plugName, label=lab, ann=ann, showButton=False,
-                                    cw=[4, 0], columnAttach4=["right", "both", "right", "both"],
-                                    columnOffset4=[6, 1, -3, 0])
-        elif attr_type == "bool":
-            if callback is None:
-                ctrl = cmds.attrControlGrp(attribute=self.plugName, label=lab, ann=ann)
-            else:
-                ctrl = cmds.attrControlGrp(attribute=self.plugName, label=lab, ann=ann,
-                                           changeCommand=lambda: callback(node))
-            widget = cqt.wrap_ctrl(ctrl, QtWidgets.QWidget)
-            # widget.setLayoutDirection(QtCore.Qt.RightToLeft)  # move checkbox to the right
-            label = widget.findChildren(QtWidgets.QLabel)[0]
-            label.setText(lab)
-            checkbox = widget.findChildren(QtWidgets.QCheckBox)[0]
-            checkbox.setText("           ")
+        try:
+            _plain_attr_widget(self.plug_name, self.build_kwargs)
+        finally:
+            cmds.setUITemplate(popTemplate=True)
+
+    def replace_control_ui(self):
+        pass  # the attrFieldSliderGrp is in charge of replacing/setting whatever value is in there
+
+
+def _plain_attr_widget(node_attr, kwargs):
+    node, attr = clib.split_node_attr(node_attr)
+    lab = kwargs.get('lab', cmds.attributeQuery(attr, n=node, niceName=True))
+    ann = kwargs.get('ann', "")
+    callback = kwargs.get('callback', None)
+    attr_type = cmds.attributeQuery(attr, n=node, attributeType=True)
+    if attr_type == "float":
+        if "map" not in kwargs:
+            cmds.attrFieldSliderGrp(at=node_attr, label=lab, ann=ann, hideMapButton=True)
         else:
-            LOG.error("{} UI could not be generated."
-                      "Attributes of type {} have not been implemented in PlainAttrGrp())".format(self.plugName,
-                                                                                                  attr_type))
+            cmds.attrNavigationControlGrp(at=node_attr, label=lab, ann=ann)
+    elif attr_type == "float3":
+        cmds.attrColorSliderGrp(at=node_attr, label=lab, ann=ann, showButton=False,
+                                cw=[4, 0], columnAttach4=["right", "both", "right", "both"],
+                                columnOffset4=[6, 1, -3, 0])
+    elif attr_type == "bool":
+        if callback is None:
+            ctrl = cmds.attrControlGrp(attribute=node_attr, label=lab, ann=ann)
+        else:
+            ctrl = cmds.attrControlGrp(attribute=node_attr, label=lab, ann=ann,
+                                       changeCommand=lambda: callback(node))
+        widget = cqt.wrap_ctrl(ctrl, QtWidgets.QWidget)
+        # widget.setLayoutDirection(QtCore.Qt.RightToLeft)  # move checkbox to the right
+        label = widget.findChildren(QtWidgets.QLabel)[0]
+        label.setText(lab)
+        checkbox = widget.findChildren(QtWidgets.QCheckBox)[0]
+        checkbox.setText("           ")
+    elif attr_type == "enum":
+        cmds.attrEnumOptionMenuGrp(at=node_attr, label=lab, ann=ann)
+        if callback:
+            # add script job manually as cmds.attrEnumOptionMenuGrp doesn't provide a change callback
+            cmds.scriptJob(attributeChange=[node_attr, lambda: callback(node)])
+    else:
+        LOG.error("{} UI could not be generated."
+                  "Attributes of type {} have not been implemented for _plain_attr_widget())".format(node_attr,
+                                                                                                     attr_type))
+
+
+PLAIN_ATTR_DATA = dict()
+
+
+def _ae_plain_attr_new(node_attr):
+    """ Deprecated: Use PlainAttrGrp class instead on Maya 2022+ """
+    # print("ae_plain_attr_new_('{}')".format(node_attr))
+    node, attr = clib.split_node_attr(node_attr)
+    if not cmds.attributeQuery(attr, n=node, ex=True):
+        LOG.error("{} doesn't exist".format(node_attr))
+        return
+    cmds.setUITemplate("attributeEditorTemplate", pushTemplate=True)
+    try:
+        _plain_attr_widget(node_attr, PLAIN_ATTR_DATA[attr])
+    finally:
         cmds.setUITemplate(popTemplate=True)
 
-    def replaceControlUI(self):
-        pass  # the attrFieldSliderGrp is in charge of replacing/setting whatever value is in there
+
+def _ae_plain_attr_replace(node_attr):
+    """ Deprecated: Use PlainAttrGrp class instead on Maya 2022+ """
+    print("ae_plain_attr_replace_('{}')".format(node_attr))
 
 
 ##################################################################################
