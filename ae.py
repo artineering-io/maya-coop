@@ -21,9 +21,12 @@ ATTR_WIDGETS = dict()  # Index of Custom Attribute Widgets
 
 
 class AETemplate(object):
-    # Based on the Template object from:
-    # Python/Lib/site-packages/maya/internal/common/ae/template.py
-    # Extended for actual production usage
+    """
+    Base class for python Attribute Editor templates.
+    Based on the Template object from:
+    Python/Lib/site-packages/maya/internal/common/ae/template.py
+    Extended for actual production usage
+    """
 
     def __init__(self, node_name, extra_attributes=True):
         """
@@ -77,7 +80,6 @@ class AETemplate(object):
                 clib.print_warning("Callbacks are not supported by add_control() on Maya < 2022")
                 clib.print_info("Use custom_control(PlainAttrGrp()) instead")
             mel.eval(cmd)
-
         # control_name = cmds.editorTemplate(queryName=[self.nodeName, control[0]])
         # Note: the command above returns None until the AE is shown, so we can't query this here
 
@@ -125,7 +127,7 @@ class AETemplate(object):
     @staticmethod
     def call_custom(new_proc, replace_proc, module, *args):
         """
-        If using widget objects, use customControl() instead
+        If targeting only Maya 2022+. use custom_control() instead
         Calls a custom command to generate custom UIs in the attribute editor.
         The callCustom flag of editorTemplate only works with mel commands, this method creates a mel wrapper to
         call Python functions within the module.
@@ -216,7 +218,11 @@ class AETemplate(object):
                                    attrs)
 
     class Layout:
-        """ Editor template layout """
+        """
+        Editor template layout which enables the use of:
+        with self.Layout(self, name, collapse):
+            pass
+        """
 
         def __init__(self, template, name, collapse=False):
             self.template = template
@@ -233,15 +239,24 @@ class AETemplate(object):
 
 ##################################################################################
 class CustomControl(object):
-    # Based on the CustomControl object from:
-    # Python/Lib/site-packages/maya/internal/common/ae/common.py
-    # Extended for actual production usage
-    #
-    # This virtual class helps generate custom Maya control objects.
-    # It has intrinsic members and the 'build' and 'replace' methods, which need to be
-    # overwritten for it to work as intended
+    """
+    Base class for custom controls within the attribute editor.
+    Based on the CustomControl object from:
+    Python/Lib/site-packages/maya/internal/common/ae/common.py
+    Extended for actual production usage
+
+    This virtual class helps generate custom Maya control objects.
+    It has intrinsic members and the 'build' and 'replace' methods, which need to be
+    overwritten for it to work as intended
+    """
 
     def __init__(self, *args, **kwargs):
+        """
+        Constructor of Custom Control initializing class variables
+        Args:
+            *args: Arguments that were passed to the custom control
+            **kwargs: Keyword arguments (dict) that were passed to the custom control
+        """
         self.node_name = None
         self.plug_name = None
         self.attr_name = None
@@ -250,6 +265,11 @@ class CustomControl(object):
 
     # args will collect all attributes that connected to this custom control
     def on_create(self, *args):
+        """
+        Run when the Custom Control is created
+        Args:
+            *args: Arguments that were passed to the control (usually node.attr it controls)
+        """
         control_args = args[0]
         self.plug_name = control_args[0] if control_args else ""
         self.node_name, self.attr_name = clib.split_node_attr(self.plug_name)
@@ -258,6 +278,11 @@ class CustomControl(object):
         self.build_control_ui()
 
     def on_replace(self, *args):
+        """
+        Run when the Custom Control is replaced/updated as the context has changed
+        Args:
+            *args:  Arguments that were passed to the control (usually new node.attr it controls)
+        """
         control_args = args[0]
         self.plug_name = control_args[0] if control_args else ""
         self.node_name, self.attr_name = clib.split_node_attr(self.plug_name)
@@ -281,11 +306,10 @@ class CustomControl(object):
 
 
 class PlainAttrGrp(CustomControl):
-    """
-    The default Maya attribute but without the  texture map button
-    """
+    """ Maya attribute controls created depending on the type of the attribute """
 
     def build_control_ui(self):
+        """ Builds the custom control UI """
         node, attr = clib.split_node_attr(self.plug_name)
         if not cmds.attributeQuery(attr, n=node, ex=True):
             LOG.error("{} doesn't exist".format(self.plug_name))
@@ -298,26 +322,28 @@ class PlainAttrGrp(CustomControl):
             cmds.setUITemplate(popTemplate=True)
 
     def replace_control_ui(self):
-        _plain_attr_widget_update(self.plug_name)
-        # run callback (if any)
-        node, attr = clib.split_node_attr(self.plug_name)
-        callback = self.build_kwargs.get('callback', None)
-        if callback is not None:
-            callback(node)
+        """ Updates/replaces the custom control UI """
+        _plain_attr_widget_update(self.plug_name, self.build_kwargs.get('callback', None))
 
 
 def _plain_attr_widget(node_attr, kwargs):
-    global ATTR_WIDGETS
+    """
+    Creates a plain attribute widget depending on the type of attribute
+    Args:
+        node_attr (unicode): The plug name in the form of 'node.attr'
+        kwargs (dict): Keyword arguments that were passed to the custom control
+    """
+    global ATTR_WIDGETS  # keeps track of the created controls for the different node attributes
     node, attr = clib.split_node_attr(node_attr)
     lab = kwargs.get('lab', cmds.attributeQuery(attr, n=node, niceName=True))
     ann = kwargs.get('ann', "")
     callback = kwargs.get('callback', None)
     if callback:
-        callback = partial(callback, node)
+        callback = partial(callback, node)  # better than using lambdas
     obj_type = cmds.objectType(node)
-    attr_type = cmds.attributeQuery(attr, n=node, attributeType=True)
     widget_name = "{}{}".format(obj_type, attr)
     _check_attr_widgets(widget_name)
+    attr_type = cmds.attributeQuery(attr, n=node, attributeType=True)
     ctrl = ""
     if attr_type == "float":
         if "map" not in kwargs:
@@ -330,8 +356,8 @@ def _plain_attr_widget(node_attr, kwargs):
                                        columnOffset4=[6, 1, -3, 0])
     elif attr_type == "bool":
         ctrl = cmds.attrControlGrp(attribute=node_attr, label=lab, ann=ann)
-        if callback:
-            cmds.scriptJob(attributeChange=[node_attr, callback])
+        if callback:  # manage callbacks manually to guarantee their existence
+            cmds.scriptJob(attributeChange=[node_attr, callback], parent=ctrl, replacePrevious=True)
         widget = cqt.wrap_ctrl(ctrl, QtWidgets.QWidget)
         # widget.setLayoutDirection(QtCore.Qt.RightToLeft)  # move checkbox to the right
         label = widget.findChildren(QtWidgets.QLabel)[0]
@@ -340,13 +366,11 @@ def _plain_attr_widget(node_attr, kwargs):
         checkbox.setText("           ")
     elif attr_type == "enum":
         ctrl = cmds.attrEnumOptionMenuGrp(at=node_attr, label=lab, ann=ann)
-        if callback:
-            # add script job manually as cmds.attrEnumOptionMenuGrp doesn't provide a change callback
-            cmds.scriptJob(attributeChange=[node_attr, callback])
+        if callback:  # manage callbacks manually to guarantee their existence
+            cmds.scriptJob(attributeChange=[node_attr, callback], parent=ctrl, replacePrevious=True)
     else:
-        LOG.error("{} UI could not be generated."
-                  "Attributes of type {} have not been implemented for _plain_attr_widget())".format(node_attr,
-                                                                                                     attr_type))
+        LOG.error("{} UI could not be generated. Attributes of type {} "
+                  "have not been implemented for _plain_attr_widget())".format(node_attr, attr_type))
         return
     if not ctrl.startswith("window"):  # do not updates/replace attributes that are in external windows
         if ctrl not in ATTR_WIDGETS[widget_name]:
@@ -354,6 +378,12 @@ def _plain_attr_widget(node_attr, kwargs):
 
 
 def _check_attr_widgets(widget_name):
+    """
+    Verifies the integrity of the controls associated with widget_name
+    in the ATTR_WIDGETS global
+    Args:
+        widget_name (unicode): Widget name to verify i.e., obj_type.attr
+    """
     global ATTR_WIDGETS
     if widget_name not in ATTR_WIDGETS:
         ATTR_WIDGETS[widget_name] = []
@@ -364,13 +394,25 @@ def _check_attr_widgets(widget_name):
                 ATTR_WIDGETS[widget_name].pop(i)
 
 
-def _plain_attr_widget_update(node_attr):
+def _plain_attr_widget_update(node_attr, callback):
+    """
+    Updates/replaces a plain attribute to work with the new node
+    Args:
+        node_attr (unicode): The plug name in the form of 'node.attr'
+        callback (function): Callback function
+    """
     node, attr = clib.split_node_attr(node_attr)
     obj_type = cmds.objectType(node)
     widget_name = "{}{}".format(obj_type, attr)
     attr_type = cmds.attributeQuery(attr, n=node, attributeType=True)
+    if callback:
+        callback = partial(callback, node)
     ctrls = ATTR_WIDGETS.get(widget_name, [])
     for ctrl in ctrls:
+        if not cqt.ctrl_exists(ctrl):  # cleanup
+            ATTR_WIDGETS[widget_name].remove(ctrl)
+            continue
+        # update existing controls
         if attr_type == "float":
             try:
                 if ctrl.rfind("attrFieldSliderGrp") > 0:
@@ -383,20 +425,40 @@ def _plain_attr_widget_update(node_attr):
             cmds.attrColorSliderGrp(ctrl, at=node_attr, e=True)
         elif attr_type == "bool":
             cmds.attrControlGrp(ctrl, attribute=node_attr, e=True)
-            # TODO check if callback exists
+            _check_script_jobs(node_attr, ctrl, callback)
         elif attr_type == "enum":
             cmds.attrEnumOptionMenuGrp(ctrl, at=node_attr, e=True)
+            _check_script_jobs(node_attr, ctrl, callback)
         else:
             LOG.error("{} UI could not be generated."
                       "Attributes of type {} have not been implemented for "
                       "_plain_attr_widget_update())".format(node_attr, attr_type))
 
 
+def _check_script_jobs(node_attr, ctrl, callback):
+    """
+    Checks for callbacks and creates/updates the script job associated with ctrl
+    Args:
+        node_attr (unicode): The plug name in the form of 'node.attr'
+        ctrl (unicode): The full path/name of the control to attach callback onto
+        callback (partial): Function to attach to control
+    """
+    if callback:
+        # print("Callback of {}: {}".format(node_attr, callback))
+        cmds.scriptJob(attributeChange=[node_attr, callback], parent=ctrl, replacePrevious=True)
+        callback()  # run callback (default behavior)
+
+
 PLAIN_ATTR_DATA = dict()
 
 
 def _ae_plain_attr_new(node_attr):
-    """ Deprecated: Use PlainAttrGrp class instead on Maya 2022+ """
+    """
+    Builds the custom control UI for node_attr
+    Deprecated: Use PlainAttrGrp class instead on Maya 2022+
+    Args:
+        node_attr (unicode): The plug name in the form of 'node.attr'
+    """
     # print("ae_plain_attr_new_('{}')".format(node_attr))
     node, attr = clib.split_node_attr(node_attr)
     if not cmds.attributeQuery(attr, n=node, ex=True):
@@ -410,15 +472,15 @@ def _ae_plain_attr_new(node_attr):
 
 
 def _ae_plain_attr_replace(node_attr):
-    """ Deprecated: Use PlainAttrGrp class instead on Maya 2022+ """
+    """
+    Updates/replaces the custom control UI for node_attr
+    Deprecated: Use PlainAttrGrp class instead on Maya 2022+
+    Args:
+        node_attr (unicode): The plug name in the form of 'node.attr'
+    """
     # print("ae_plain_attr_replace_('{}')".format(node_attr))
-    _plain_attr_widget_update(node_attr)  # update widget
-    # run callback (if any)
     node, attr = clib.split_node_attr(node_attr)
-    callback = PLAIN_ATTR_DATA[attr].get('callback', None)
-    print("Callback of {}: {}".format(node_attr, callback))
-    if callback is not None:
-        callback(node)
+    _plain_attr_widget_update(node_attr, PLAIN_ATTR_DATA[attr].get('callback', None))  # update widget
 
 
 ##################################################################################
