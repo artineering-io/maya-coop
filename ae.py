@@ -220,18 +220,16 @@ class AETemplate(object):
     class Layout:
         """
         Editor template layout which enables the use of:
-        with self.Layout(self, name, collapse):
+        with self.Layout(name, collapse):
             pass
         """
 
-        def __init__(self, template, name, collapse=False):
-            self.template = template
+        def __init__(self, name, collapse=False):
             self.collapse = collapse
             self.name = name
 
         def __enter__(self):
             cmds.editorTemplate(beginLayout=self.name, collapse=self.collapse)
-            return self.template
 
         def __exit__(self, mytype, value, tb):
             cmds.editorTemplate(endLayout=True)
