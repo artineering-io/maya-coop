@@ -402,6 +402,8 @@ def _plain_attr_widget_update(node_attr, callback):
     node, attr = clib.split_node_attr(node_attr)
     obj_type = cmds.objectType(node)
     widget_name = "{}{}".format(obj_type, attr)
+    if not cmds.attributeQuery(attr, n=node, ex=True):
+        return
     attr_type = cmds.attributeQuery(attr, n=node, attributeType=True)
     if callback:
         callback = partial(callback, node)
