@@ -357,6 +357,7 @@ def _plain_attr_widget(node_attr, kwargs):
         if callback:  # manage callbacks manually to guarantee their existence
             cmds.scriptJob(attributeChange=[node_attr, callback], parent=ctrl, replacePrevious=True)
         widget = cqt.wrap_ctrl(ctrl, QtWidgets.QWidget)
+        widget.setAccessibleName(lab)
         # widget.setLayoutDirection(QtCore.Qt.RightToLeft)  # move checkbox to the right
         label = widget.findChildren(QtWidgets.QLabel)[0]
         label.setText(lab)
