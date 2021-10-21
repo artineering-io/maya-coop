@@ -16,6 +16,8 @@ from . import list as clist
 
 # python api 2.0
 import maya.api.OpenMaya as om
+
+
 def maya_useNewAPI():
     pass
 
@@ -407,8 +409,8 @@ def dialog_yes_no(title="Confirmation", message="Are you sure?", icon=""):
         (unicode): "Yes" or "No"
     """
     confirm = cmds.confirmDialog(title=title, message=message,
-                              button=['Yes', 'No'], defaultButton='Yes', cancelButton='No', dismissString='No',
-                              ma='center', icon=icon)
+                                 button=['Yes', 'No'], defaultButton='Yes', cancelButton='No', dismissString='No',
+                                 ma='center', icon=icon)
     if confirm == "Yes":
         return True
     return False
@@ -742,7 +744,7 @@ def split_node_attr(node_attr):
     if node_attr:
         split_idx = node_attr.find('.')
         node = node_attr[:split_idx]
-        attr = node_attr[split_idx+1:]
+        attr = node_attr[split_idx + 1:]
         return node, attr
     else:
         print_error("'{}' could not be split into node and attribute".format(node_attr), True)
@@ -1291,7 +1293,7 @@ def to_camel_case(text, split=" "):
     splitter = text.split(split)
     if splitter:
         camel_case_text = splitter[0][0].lower()
-        if len(splitter[0])>1:
+        if len(splitter[0]) > 1:
             camel_case_text += splitter[0][1:]
         for index in range(1, len(splitter)):
             camel_case_text += splitter[index].capitalize()
