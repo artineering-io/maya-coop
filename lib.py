@@ -893,6 +893,7 @@ def get_next_free_multi_index_considering_children(node, attr, idx=0):
 def get_common_objs(objs1, objs2):
     """
     Get common objects (intersection) between obj lists
+    Note: This does NOT keep the order of the elements in the lists
     Args:
         objs1 (list): List of objects (short or long names)
         objs2 (list): List of objects (short or long names)
@@ -1289,8 +1290,10 @@ def to_camel_case(text, split=" "):
     camel_case_text = text
     splitter = text.split(split)
     if splitter:
-        camel_case_text = splitter[0]
-        for index in xrange(1, len(splitter)):
+        camel_case_text = splitter[0][0].lower()
+        if len(splitter[0])>1:
+            camel_case_text += splitter[0][1:]
+        for index in range(1, len(splitter)):
             camel_case_text += splitter[index].capitalize()
     return camel_case_text
 
