@@ -18,6 +18,7 @@ from functools import partial
 
 LOG = clog.logger("coop.ae")
 ATTR_WIDGETS = dict()  # Index of Custom Attribute Widgets
+PLAIN_ATTR_DATA = dict()
 
 
 class AETemplate(object):
@@ -448,9 +449,6 @@ def _check_script_jobs(node_attr, ctrl, callback):
         # print("Callback of {}: {}".format(node_attr, callback))
         cmds.scriptJob(attributeChange=[node_attr, callback], parent=ctrl, replacePrevious=True)
         callback()  # run callback (default behavior)
-
-
-PLAIN_ATTR_DATA = dict()
 
 
 def _ae_plain_attr_new(node_attr):
