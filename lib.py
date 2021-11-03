@@ -1329,6 +1329,21 @@ def to_pascal_case(text, split=" "):
     return pascal_case_text
 
 
+def to_underscore_case(text, title=False):
+    """
+        Converts text to underscore case, e.g. ("the camel is huge" => "the_camel_is_huge")
+    Args:
+        text (unicode): Text to be underscore-cased
+        title (bool): If each word should be titlelized
+
+    Returns:
+        (unicode) string as underscore_case
+    """
+    if title:
+        text = text.title()
+    return text.replace(' ', "_")
+
+
 #                    _   _
 #    _ __ ___   __ _| |_| |__
 #   | '_ ` _ \ / _` | __| '_ \
