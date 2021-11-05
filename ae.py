@@ -75,7 +75,7 @@ class AETemplate(object):
             # mel as cmds.editorTemplate doesn't work below 2022
             cmd = 'editorTemplate -ann "{}"'.format(ann)
             if lab:
-                cmd += ' -lab "{}"'.format(lab)
+                cmd += ' -label "{}"'.format(lab)
             cmd += ' -addControl "{}"'.format(control)
             if callback:
                 clib.print_warning("Callbacks are not supported by add_control() on Maya < 2022")
