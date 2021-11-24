@@ -1168,7 +1168,8 @@ class Path(object):
         Args:
             child: folder to join to the path
         """
-        self.path = os.path.abspath(os.path.join(self.path, u_stringify(child)))
+        children = os.path.normpath(u_stringify(child)).split(os.sep)
+        self.path = os.path.abspath(os.path.join(self.path, *children))
         return self
 
     def create_dir(self):
