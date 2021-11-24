@@ -187,11 +187,12 @@ def get_dpi_scale():
     return 1.0
 
 
-def relative_path(path):
+def relative_path(path, root_path=None):
     """
-    Returns the relative path, if any, compared to the project path
+    Returns the relative path, if any, compared to the project path or root path
     Args:
         path (unicode): path of current file or directory
+        root_path (unicode): Optional path to also make path relative to
     Returns:
         relPath (unicode): relative path to project, if available (with forward slashes)
     """
@@ -200,6 +201,11 @@ def relative_path(path):
     if project_path in new_path:
         new_path = new_path[new_path.find(project_path) + len(project_path):]
         return new_path.replace(os.sep, str('/'))
+    if root_path:
+        root_path = os.path.abspath(root_path)
+        if root_path in new_path:
+            new_path = new_path[new_path.find(root_path) + len(root_path):]
+            return new_path.replace(os.sep, str('/'))
     return path
 
 
@@ -559,13 +565,14 @@ class FileBrowserGrp(QtWidgets.QWidget):
     """
     valueChanged = QtCore.Signal()  # value changed signal of custom widget
 
-    def __init__(self, file_path='', placeholder='', button='...', relative=True,
+    def __init__(self, file_path='', placeholder='', button='...', relative=True, relative_root='',
                  dialog_start_dir='', dialog_title="Select texture file:",
                  dialog_filter="All Files (*.*)"):
         super(FileBrowserGrp, self).__init__()
         self.dpi = get_dpi_scale()
         self.internal_value = file_path
         self.relative = relative
+        self.relative_root = relative_root
         self.dialog_title = dialog_title
         self.dialog_filter = dialog_filter
         self.dialog_start_dir = dialog_start_dir
@@ -607,8 +614,9 @@ class FileBrowserGrp(QtWidgets.QWidget):
         path = clib.dialog_open(starting_directory=start_dir, title=self.dialog_title,
                                 file_filter=self.dialog_filter)
         if self.relative:
-            path = relative_path(path)
+            path = relative_path(path, self.relative_root)
         self.internal_value = path
+        print("Internal value: {}".format(self.internal_value))
         self.line_edit.setText(path)
         self.valueChanged.emit()
 
