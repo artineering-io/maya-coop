@@ -790,6 +790,25 @@ def set_attr(obj, attr, value, silent=False):
         return False
 
 
+def check_set_attr(obj, attr, value, silent=True):
+    """
+    Generic setAttr convenience function that checks the attribute and changes it only if necessary
+    Args:
+        obj (unicode): node
+        attr (unicode): attribute
+        value (any): the value to set
+        silent (bool): if the function is silent when errors occur
+    """
+    prev_value = cmds.getAttr("{}.{}".format(obj, attr))
+    if isinstance(prev_value, list):
+        if len(prev_value) == 1:
+            prev_values = list(prev_value[0])
+            if value != prev_values:
+                set_attr(obj, attr, value, silent)
+    elif value != prev_value:
+        set_attr(obj, attr, value, silent)
+
+
 def set_attrs(objs, attr_data, specific_attrs=None, silent=False):
     """
     Sets attributes of attr_data to obj
