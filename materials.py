@@ -285,6 +285,8 @@ def set_texture(material, tex_attr, file_path):
         file_path (unicode): filepath of texture
     """
     if file_path:
+        if file_path.startswith("/"):
+            file_path = file_path[1:]  # making sure we remove the "/" at the beginning
         full_attr = "{}.{}".format(material, tex_attr)
         sources = cmds.listConnections(full_attr, type='file')
         if sources:
