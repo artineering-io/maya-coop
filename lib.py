@@ -1309,6 +1309,9 @@ def to_camel_case(text, split=" "):
         text (string): Text to be camel-cased
         split (char): Char to split text into
     """
+    if len(text) < 2:
+        return text.lower()
+
     camel_case_text = text
     splitter = text.split(split)
     if splitter:
