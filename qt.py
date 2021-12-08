@@ -605,12 +605,8 @@ class FileBrowserGrp(QtWidgets.QWidget):
     def browse_dialog(self):
         """ Runs when the file browse button is released """
         start_dir = self.line_edit.text()
-        if not start_dir:
-            # get project filepath
+        if not start_dir or not os.path.isfile(start_dir):
             start_dir = self.dialog_start_dir
-        elif start_dir[0] == '/':
-            # relative path, make absolute
-            start_dir = os.path.join(self.dialog_start_dir, start_dir[1:])
         path = clib.dialog_open(starting_directory=start_dir, title=self.dialog_title,
                                 file_filter=self.dialog_filter)
         if self.relative:
