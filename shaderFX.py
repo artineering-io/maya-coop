@@ -77,7 +77,7 @@ def get_node_value(material, unique_node_name, quiet=False):
         if "value" in cmds.shaderfx(sfxnode=material, listProperties=node_id):
             value = cmds.shaderfx(sfxnode=material, getPropertyValue=(node_id, "value"))
         else:
-            value = cmds.shaderfx(sfxnode=material, getPropertyValue=(node_id, "options"))[-1]
+            value = int(cmds.shaderfx(sfxnode=material, getPropertyValue=(node_id, "options"))[-1])
     return value
 
 
