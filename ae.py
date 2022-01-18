@@ -8,12 +8,13 @@
 """
 from __future__ import print_function
 from __future__ import unicode_literals
+from collections import OrderedDict
 import maya.cmds as cmds
 import maya.mel as mel
 from . import lib as clib
 from . import qt as cqt
 from . import logger as clog
-from PySide2 import QtWidgets
+from PySide2 import QtCore, QtWidgets
 from functools import partial
 
 LOG = clog.logger("coop.ae")
@@ -633,3 +634,109 @@ def toggle_attributes(node_name, driving_attribute, ctrls, shown_attributes, str
             else:
                 if strict:
                     LOG.error("{} widgets are not found in the Attribute Editor".format(t))
+
+
+import json
+
+
+class AEControls:
+    """
+
+    """
+    controls = OrderedDict()
+    node_name = ""
+    supported_controls = ["frameLayout",  # drop-down group layouts
+                          "attrFieldSliderGrp",  # float sliders
+                          "attrColorSliderGrp",  # color sliders
+                          "checkBoxGrp"  # check boxes
+                          ]
+    ae_path = ''
+    ae_object = ''
+
+    def __init__(self, node_name):
+        self._check_node_name(node_name)
+        self.node_type = cmds.objectType(self.node_name)
+        self._get_ae_widget()
+        #cqt.print_children(self.ae_object)
+        self._parse_ae_children(self.ae_object)
+        print(json.dumps(self.controls, indent=2))
+
+    def _check_node_name(self, node_name):
+        """
+        Check if everything is in order with the node name
+        Args:
+            node_name (unicode): Name of the node to get AE controls of
+        """
+        # check that everything is right
+        if not cmds.objExists(node_name):
+            clib.print_error("{} doesn't exist".format(node_name), True)
+        self.node_name = cmds.ls(node_name, l=True)
+        selection = cmds.ls(sl=True, l=True)
+        if node_name != selection[-1]:
+            cmds.select(node_name, r=True)
+
+    def _get_ae_widget(self):
+        """
+        Find attribute editor widget to get available widgets from
+        Example path: AttributeEditor|MainAttributeEditorLayout|formLayout1|AEmenuBarLayout|AErootLayout
+        |AEStackLayout|AErootLayoutPane|AEbaseFormLayout|AEcontrolFormLayout|AttrEdflairShaderFormLayout
+        |scrollLayout50|columnLayout1759|frameLayout614|columnLayout1801|columnLayout1803|attrFieldSliderGrp902
+        """
+        ui_paths = cmds.lsUI(controlLayouts=True, l=True)
+        self.ae_path = ""
+        for ui_path in ui_paths:
+            if self.node_type in ui_path:
+                scroll_idx = ui_path.find("|scrollLayout")
+                if scroll_idx > 0:
+                    column_idx = ui_path[scroll_idx:].find('|columnLayout') + 1
+                    if column_idx > 0:
+                        frame_idx = ui_path[scroll_idx + column_idx:].find('|')
+                        if frame_idx > 0:
+                            p = ui_path[:scroll_idx + column_idx + frame_idx]
+                            if cqt.ctrl_exists(p):
+                                self.ae_path = ui_path[:scroll_idx + column_idx + frame_idx]
+                                break
+        self.ae_object = cqt.wrap_ctrl(self.ae_path, QtCore.QObject)
+
+    def _parse_ae_children(self, parent):
+        print("Parsing children")
+        parent_path = cqt.get_full_name(cqt.get_cpp_pointer(parent))
+        children = parent.children() or []
+        print("{} children of {}".format(len(children), parent_path))
+        for child in children:
+            child_path = cqt.get_full_name(cqt.get_cpp_pointer(child))
+            self._store_supported_ctrls(child_path)
+            self._parse_ae_children(child)
+
+    def _store_supported_ctrls(self, child_path):
+        for control in self.supported_controls:
+            widget = AEControlIndexer.is_ui_ctrl(child_path, control)
+            if widget:
+                level = child_path.count('|')
+                print("Level {}".format(level))
+                self.controls[child_path] = OrderedDict()
+                self.controls[child_path]["__name__"] = widget.accessibleName()
+                self.controls[child_path]['__type__'] = control
+                if control != "frameLayout":
+                    attribute = self._query_attribute_of_ctrl(control, child_path)
+                    self.controls[child_path]['__attr__'] = attribute
+                    self.controls[child_path]['__value__'] = self._query_values_of_ctrl(control, child_path, attribute)
+                break
+
+    def _query_values_of_ctrl(self, control, control_path, attr=""):
+        if control == "attrColorSliderGrp":
+            return cmds.attrColorSliderGrp(control_path, rgbValue=True, q=True)
+        else:
+            return cmds.getAttr(attr)
+
+    def _query_attribute_of_ctrl(self, control, control_path):
+        if control == "attrFieldSliderGrp":
+            return cmds.attrFieldSliderGrp(control_path, attribute=True, q=True)
+        elif control == "attrColorSliderGrp":
+            return cmds.attrColorSliderGrp(control_path, attribute=True, q=True)
+        elif control == "checkBoxGrp":
+            return cmds.attrControlGrp(control_path, attribute=True, q=True)
+        elif control == "":  # TODO add support for enums
+            cmds.attrEnumOptionMenuGrp(control_path, attribute=True, q=True)
+        elif control == "navigationGrp":  # TODO add support for textures
+            cmds.attrNavigationControlGrp(control_path, attribute=True, q=True)
