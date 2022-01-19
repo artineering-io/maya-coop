@@ -11,6 +11,7 @@ from __future__ import unicode_literals
 from collections import OrderedDict
 import maya.cmds as cmds
 import maya.mel as mel
+import maya.api.OpenMaya as om  # python api 2.0
 from . import lib as clib
 from . import qt as cqt
 from . import logger as clog
@@ -20,6 +21,10 @@ from functools import partial
 LOG = clog.logger("coop.ae")
 ATTR_WIDGETS = dict()  # Index of Custom Attribute Widgets
 PLAIN_ATTR_DATA = dict()
+
+
+def maya_useNewAPI():
+    pass
 
 
 class AETemplate(object):
@@ -636,19 +641,15 @@ def toggle_attributes(node_name, driving_attribute, ctrls, shown_attributes, str
                     LOG.error("{} widgets are not found in the Attribute Editor".format(t))
 
 
-import json
-
-
 class AEControls:
-    """
-
-    """
     controls = OrderedDict()
     node_name = ""
     supported_controls = ["frameLayout",  # drop-down group layouts
                           "attrFieldSliderGrp",  # float sliders
                           "attrColorSliderGrp",  # color sliders
-                          "checkBoxGrp"  # check boxes
+                          "checkBoxGrp",  # check boxes
+                          "attrNavigationControlGrp",  # textures
+                          "attrEnumOptionMenuGrp"
                           ]
     ae_path = ''
     ae_object = ''
@@ -657,9 +658,11 @@ class AEControls:
         self._check_node_name(node_name)
         self.node_type = cmds.objectType(self.node_name)
         self._get_ae_widget()
-        #cqt.print_children(self.ae_object)
+        self.controls = OrderedDict()
         self._parse_ae_children(self.ae_object)
-        print(json.dumps(self.controls, indent=2))
+        import json
+        # print("Dump from coop.ae")
+        # print(json.dumps(self.controls, indent=2))
 
     def _check_node_name(self, node_name):
         """
@@ -699,44 +702,89 @@ class AEControls:
         self.ae_object = cqt.wrap_ctrl(self.ae_path, QtCore.QObject)
 
     def _parse_ae_children(self, parent):
-        print("Parsing children")
-        parent_path = cqt.get_full_name(cqt.get_cpp_pointer(parent))
+        """
+        Parse supported children widgets recursively
+        Args:
+            parent (QObject): Parent object to traverse
+        """
         children = parent.children() or []
-        print("{} children of {}".format(len(children), parent_path))
         for child in children:
             child_path = cqt.get_full_name(cqt.get_cpp_pointer(child))
             self._store_supported_ctrls(child_path)
-            self._parse_ae_children(child)
+            try:
+                self._parse_ae_children(child)
+            except AttributeError:
+                clib.print_warning("Couldn't parse children of {}".format(child_path))
 
-    def _store_supported_ctrls(self, child_path):
+    def _store_supported_ctrls(self, ui_path):
+        """
+        Get and store supported widgets from the path
+        Note: Control metadata is also stored with '__' as prefix and suffix
+        Args:
+            ui_path (unicode): Maya's UI path of the widget
+        """
         for control in self.supported_controls:
-            widget = AEControlIndexer.is_ui_ctrl(child_path, control)
+            widget = AEControlIndexer.is_ui_ctrl(ui_path, control)
             if widget:
-                level = child_path.count('|')
-                print("Level {}".format(level))
-                self.controls[child_path] = OrderedDict()
-                self.controls[child_path]["__name__"] = widget.accessibleName()
-                self.controls[child_path]['__type__'] = control
+                ctrl_name = widget.accessibleName()
+                ctrl_data = OrderedDict()
+                ctrl_data['__type__'] = control
+                ctrl_data['__lvl__'] = ui_path.count('|')
+                ctrl_data['__visible__'] = widget.isVisible()
                 if control != "frameLayout":
-                    attribute = self._query_attribute_of_ctrl(control, child_path)
-                    self.controls[child_path]['__attr__'] = attribute
-                    self.controls[child_path]['__value__'] = self._query_values_of_ctrl(control, child_path, attribute)
+                    attribute = self._query_attribute_of_ctrl(control, ui_path)
+                    ctrl_data['__attr__'] = attribute
+                    self._store_ctrl_data(control, ui_path, attribute, ctrl_data)
+                self._build_ctrls_data(self.controls, ctrl_name, ctrl_data)
                 break
 
-    def _query_values_of_ctrl(self, control, control_path, attr=""):
+    def _build_ctrls_data(self, controls, ctrl_name, ctrl_data):
+        """
+        Store control data recursively in the right hierarchy
+        Args:
+            controls (OrderedDict): Current OrderedDict to embed the control to
+            ctrl_name (unicode): Name of the control to potentially store
+            ctrl_data (OrderedDict): Data of the control to potentially store
+        """
+        ctrls = list(controls.keys())
+        if ctrls:
+            if not ctrls[-1].startswith('__'):
+                if controls[ctrls[-1]]['__lvl__'] < ctrl_data['__lvl__']:
+                    # child of previously parsed control, proceed to check if it's grandchild
+                    self._build_ctrls_data(controls[ctrls[-1]], ctrl_name, ctrl_data)
+                    return
+        controls[ctrl_name] = ctrl_data
+
+    def _store_ctrl_data(self, control, control_path, attr, ctrl_data):
+        """
+        Query values of a maya control
+        Args:
+            control (QWidget): Maya's internal control to get values from
+            control_path (unicode): Maya's internal control path to get values from
+            attr (unicode): Attribute to get values from
+            ctrl_data (OrderedDict): Dictionary of control data
+        """
         if control == "attrColorSliderGrp":
-            return cmds.attrColorSliderGrp(control_path, rgbValue=True, q=True)
+            ctrl_data['__value__'] = cmds.attrColorSliderGrp(control_path, rgbValue=True, q=True)
         else:
-            return cmds.getAttr(attr)
+            if control == "attrFieldSliderGrp":
+                ctrl_data['__max__'] = cmds.attrFieldSliderGrp(control_path, sliderMaxValue=True, q=True)
+                ctrl_data['__min__'] = cmds.attrFieldSliderGrp(control_path, sliderMinValue=True, q=True)
+            ctrl_data['__value__'] = cmds.getAttr(attr)
 
     def _query_attribute_of_ctrl(self, control, control_path):
+        attribute = ""
         if control == "attrFieldSliderGrp":
-            return cmds.attrFieldSliderGrp(control_path, attribute=True, q=True)
+            attribute = cmds.attrFieldSliderGrp(control_path, attribute=True, q=True)
         elif control == "attrColorSliderGrp":
-            return cmds.attrColorSliderGrp(control_path, attribute=True, q=True)
+            attribute = cmds.attrColorSliderGrp(control_path, attribute=True, q=True)
         elif control == "checkBoxGrp":
-            return cmds.attrControlGrp(control_path, attribute=True, q=True)
-        elif control == "":  # TODO add support for enums
-            cmds.attrEnumOptionMenuGrp(control_path, attribute=True, q=True)
-        elif control == "navigationGrp":  # TODO add support for textures
-            cmds.attrNavigationControlGrp(control_path, attribute=True, q=True)
+            attribute = cmds.attrControlGrp(control_path, attribute=True, q=True)
+        elif control == "attrEnumOptionMenuGrp":
+            print("attrEnumOptionMenuGrp {}".format(control_path))  # TODO search for different way
+            attribute = cmds.attrEnumOptionMenuGrp(control_path, attribute=True, q=True)
+        elif control == "attrNavigationControlGrp":
+            print("attrNavigationControlGrp {}".format(control_path))  # TODO search for different way
+            attribute = cmds.attrNavigationControlGrp(control_path, attribute=True, q=True)
+        print(attribute)
+        return attribute
