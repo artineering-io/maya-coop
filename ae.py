@@ -566,8 +566,7 @@ class AEControlIndexer:
         idx = ui_path.rfind("|{}".format(ui_ctrl))
         if idx != -1:
             r_idx = ui_path.find("|", idx + 1)
-            if r_idx == -1:  # it is the path of the searched for layout
-                # print("---> {}".format(ui_path))
+            if r_idx == -1:  # it is the exact path of the searched control
                 if widget:
                     return cqt.wrap_ctrl(ui_path)
                 return ui_path
@@ -649,7 +648,8 @@ class AEControls:
                           "attrColorSliderGrp",  # color sliders
                           "checkBoxGrp",  # check boxes
                           "attrNavigationControlGrp",  # textures
-                          "attrEnumOptionMenuGrp"
+                          "attrEnumOptionMenuGrp"  # combo box
+                          # spinbox  # TODO?
                           ]
     ae_path = ''
     ae_object = ''
@@ -659,7 +659,7 @@ class AEControls:
         self.node_type = cmds.objectType(self.node_name)
         self._get_ae_widget()
         self.controls = OrderedDict()
-        self._parse_ae_children(self.ae_object)
+        self._parse_ae_children(self.ae_path, self.ae_object)
         import json
         # print("Dump from coop.ae")
         # print(json.dumps(self.controls, indent=2))
@@ -673,7 +673,7 @@ class AEControls:
         # check that everything is right
         if not cmds.objExists(node_name):
             clib.print_error("{} doesn't exist".format(node_name), True)
-        self.node_name = cmds.ls(node_name, l=True)
+        self.node_name = clib.u_stringify(cmds.ls(node_name, l=True))
         selection = cmds.ls(sl=True, l=True)
         if node_name != selection[-1]:
             cmds.select(node_name, r=True)
@@ -701,18 +701,21 @@ class AEControls:
                                 break
         self.ae_object = cqt.wrap_ctrl(self.ae_path, QtCore.QObject)
 
-    def _parse_ae_children(self, parent):
+    def _parse_ae_children(self, parent_path, parent_object):
         """
         Parse supported children widgets recursively
         Args:
-            parent (QObject): Parent object to traverse
+            parent_path (unicode): Parent ui path
+            parent_object (QObject): Parent object to traverse
         """
-        children = parent.children() or []
+        children = parent_object.children() or []
         for child in children:
             child_path = cqt.get_full_name(cqt.get_cpp_pointer(child))
+            if child_path == parent_path:
+                continue  # children may have the same ui_path as the parent
             self._store_supported_ctrls(child_path)
             try:
-                self._parse_ae_children(child)
+                self._parse_ae_children(child_path, child)
             except AttributeError:
                 clib.print_warning("Couldn't parse children of {}".format(child_path))
 
@@ -723,18 +726,18 @@ class AEControls:
         Args:
             ui_path (unicode): Maya's UI path of the widget
         """
-        for control in self.supported_controls:
-            widget = AEControlIndexer.is_ui_ctrl(ui_path, control)
+        for ctrl_type in self.supported_controls:
+            widget = AEControlIndexer.is_ui_ctrl(ui_path, ctrl_type)
             if widget:
                 ctrl_name = widget.accessibleName()
                 ctrl_data = OrderedDict()
-                ctrl_data['__type__'] = control
+                ctrl_data['__type__'] = ctrl_type
                 ctrl_data['__lvl__'] = ui_path.count('|')
                 ctrl_data['__visible__'] = widget.isVisible()
-                if control != "frameLayout":
-                    attribute = self._query_attribute_of_ctrl(control, ui_path)
+                if ctrl_type != "frameLayout":
+                    attribute = self._query_attribute_of_ctrl(self.node_name, ctrl_name, ctrl_type, ui_path)
                     ctrl_data['__attr__'] = attribute
-                    self._store_ctrl_data(control, ui_path, attribute, ctrl_data)
+                    self._store_ctrl_data(ctrl_type, ui_path, attribute, ctrl_data)
                 self._build_ctrls_data(self.controls, ctrl_name, ctrl_data)
                 break
 
@@ -759,7 +762,7 @@ class AEControls:
         """
         Query values of a maya control
         Args:
-            control (QWidget): Maya's internal control to get values from
+            control (unicode): Maya's internal control to get values from
             control_path (unicode): Maya's internal control path to get values from
             attr (unicode): Attribute to get values from
             ctrl_data (OrderedDict): Dictionary of control data
@@ -770,21 +773,31 @@ class AEControls:
             if control == "attrFieldSliderGrp":
                 ctrl_data['__max__'] = cmds.attrFieldSliderGrp(control_path, sliderMaxValue=True, q=True)
                 ctrl_data['__min__'] = cmds.attrFieldSliderGrp(control_path, sliderMinValue=True, q=True)
-            ctrl_data['__value__'] = cmds.getAttr(attr)
+            if control == "attrEnumOptionMenuGrp":
+                print("children of {} are: ".format(attr))
+                obj = cqt.wrap_ctrl(control_path)
+                cqt.print_children(obj)
+                ctrl_data['__options__'] = cmds.attrEnumOptionMenuGrp(control_path, popupMenuArray=True, q=True)
+            ctrl_data['__value__'] = cmds.getAttr("{}.{}".format(self.node_name, attr))
 
-    def _query_attribute_of_ctrl(self, control, control_path):
+    def _query_attribute_of_ctrl(self, node_name, control_name, control_type, control_path):
+        def _compare_nice_names_of_each_attr(attrs):
+            for attr in attrs:
+                nice_name = cmds.attributeQuery(attr, n=node_name, niceName=True)
+                if control_name == nice_name:
+                    return attr
+
         attribute = ""
-        if control == "attrFieldSliderGrp":
-            attribute = cmds.attrFieldSliderGrp(control_path, attribute=True, q=True)
-        elif control == "attrColorSliderGrp":
-            attribute = cmds.attrColorSliderGrp(control_path, attribute=True, q=True)
-        elif control == "checkBoxGrp":
-            attribute = cmds.attrControlGrp(control_path, attribute=True, q=True)
-        elif control == "attrEnumOptionMenuGrp":
-            print("attrEnumOptionMenuGrp {}".format(control_path))  # TODO search for different way
-            attribute = cmds.attrEnumOptionMenuGrp(control_path, attribute=True, q=True)
-        elif control == "attrNavigationControlGrp":
-            print("attrNavigationControlGrp {}".format(control_path))  # TODO search for different way
-            attribute = cmds.attrNavigationControlGrp(control_path, attribute=True, q=True)
-        print(attribute)
+        if control_type == "attrFieldSliderGrp":
+            attribute = clib.split_node_attr(cmds.attrFieldSliderGrp(control_path, attribute=True, q=True))[-1]
+        elif control_type == "attrColorSliderGrp":
+            attribute = clib.split_node_attr(cmds.attrColorSliderGrp(control_path, attribute=True, q=True))[-1]
+        elif control_type == "checkBoxGrp":
+            attribute = clib.split_node_attr(cmds.attrControlGrp(control_path, attribute=True, q=True))[-1]
+        elif control_type == "attrEnumOptionMenuGrp":
+            # we can't query the attribute though the "cmds.attrEnumOptionMenuGrp"
+            attribute = _compare_nice_names_of_each_attr(cmds.attributeInfo(node_name, enumerated=True))
+        elif control_type == "attrNavigationControlGrp":
+            # we can't query the attribute though the "cmds.attrNavigationControlGrp"
+            attribute = _compare_nice_names_of_each_attr(cmds.listAttr(node_name, usedAsFilename=True))
         return attribute
