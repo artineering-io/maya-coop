@@ -121,7 +121,12 @@ def get_full_name(qt_ptr):
     Returns:
         (unicode): full name of qt widget
     """
-    return omUI.MQtUtil.fullName(long(qt_ptr))
+    full_name = omUI.MQtUtil.fullName(long(qt_ptr))
+    if full_name:
+        if full_name[-1] == "|":
+            # Sometimes the command returns the full name with '|' in the end
+            full_name = full_name[:-1]
+    return full_name
 
 
 def get_maya_layout(ui_path=""):
@@ -327,6 +332,16 @@ def refresh_window(window_title, quiet=True):
     else:
         if not quiet:
             LOG.debug("{0} window doesn't exist".format(window_title))
+
+def repopulate_window(window_title):
+    """
+    Repopulates the window by running the populateUI method
+    Args:
+         window_title (unicode): Title of the window to repopulate
+    """
+    if cmds.window("Bulk Attribute", exists=True, query=True):
+        ptr = omUI.MQtUtil.findWindow(window_title)
+        wrap_instance(ptr).window().populateUI()
 
 
 def clear_layout(layout):
