@@ -13,6 +13,7 @@ import maya.cmds as cmds
 import maya.mel as mel
 import maya.api.OpenMaya as om  # python api 2.0
 from . import lib as clib
+from . import api as capi
 from . import qt as cqt
 from . import logger as clog
 from PySide2 import QtCore, QtWidgets
@@ -773,12 +774,13 @@ class AEControls:
             if control == "attrFieldSliderGrp":
                 ctrl_data['__max__'] = cmds.attrFieldSliderGrp(control_path, sliderMaxValue=True, q=True)
                 ctrl_data['__min__'] = cmds.attrFieldSliderGrp(control_path, sliderMinValue=True, q=True)
-            if control == "attrEnumOptionMenuGrp":
-                print("children of {} are: ".format(attr))
-                obj = cqt.wrap_ctrl(control_path)
-                cqt.print_children(obj)
-                ctrl_data['__options__'] = cmds.attrEnumOptionMenuGrp(control_path, popupMenuArray=True, q=True)
-            ctrl_data['__value__'] = cmds.getAttr("{}.{}".format(self.node_name, attr))
+            elif control == "attrEnumOptionMenuGrp":
+                enum_list = cmds.attributeQuery(attr, n=self.node_name, listEnum=True)[0]
+                ctrl_data['__options__'] = enum_list.split(':')
+            if control == "attrNavigationControlGrp":
+                ctrl_data['__value__'] = ""  # TODO query textures of file nodes, and set afterwards...
+            else:
+                ctrl_data['__value__'] = cmds.getAttr("{}.{}".format(self.node_name, attr))
 
     def _query_attribute_of_ctrl(self, node_name, control_name, control_type, control_path):
         def _compare_nice_names_of_each_attr(attrs):
@@ -795,9 +797,9 @@ class AEControls:
         elif control_type == "checkBoxGrp":
             attribute = clib.split_node_attr(cmds.attrControlGrp(control_path, attribute=True, q=True))[-1]
         elif control_type == "attrEnumOptionMenuGrp":
-            # we can't query the attribute though the "cmds.attrEnumOptionMenuGrp"
+            # Note: We can't query the attribute though the "cmds.attrEnumOptionMenuGrp"
             attribute = _compare_nice_names_of_each_attr(cmds.attributeInfo(node_name, enumerated=True))
         elif control_type == "attrNavigationControlGrp":
-            # we can't query the attribute though the "cmds.attrNavigationControlGrp"
+            # Note: we can't query the attribute though the "cmds.attrNavigationControlGrp"
             attribute = _compare_nice_names_of_each_attr(cmds.listAttr(node_name, usedAsFilename=True))
         return attribute
