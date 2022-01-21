@@ -1063,30 +1063,12 @@ def screenshot(file_dir, width, height, img_format=".jpg", override="", ogs=True
     return file_dir
 
 
-#    __  __                           _    ____ ___     ____    ___
-#   |  \/  | __ _ _   _  __ _        / \  |  _ \_ _|   |___ \  / _ \
-#   | |\/| |/ _` | | | |/ _` |      / _ \ | |_) | |      __) || | | |
-#   | |  | | (_| | |_| | (_| |     / ___ \|  __/| |     / __/ | |_| |
-#   |_|  |_|\__,_|\__, |\__,_|    /_/   \_\_|  |___|   |_____(_)___/
-#                 |___/
-def get_m_object(node, get_type=False):
-    """
-    Gets mObject of a node (Python API 2.0)
-    Args:
-        node (unicode): Name of node
-        get_type (bool): If the api type should be returned
-    Returns:
-        (MObject, unicode): The MObject of the node or its API type
-    """
-    selection_list = om.MSelectionList()
-    selection_list.add(node)
-    o_node = selection_list.getDependNode(0)
-    if not get_type:
-        return o_node
-    else:
-        return o_node.apiTypeStr
-
-
+#               _       _        __      _ _           _
+#    _ __  _ __(_)_ __ | |_     / /   __| (_)___ _ __ | | __ _ _   _
+#   | '_ \| '__| | '_ \| __|   / /   / _` | / __| '_ \| |/ _` | | | |
+#   | |_) | |  | | | | | |_   / /   | (_| | \__ \ |_) | | (_| | |_| |
+#   | .__/|_|  |_|_| |_|\__| /_/     \__,_|_|___/ .__/|_|\__,_|\__, |
+#   |_|                                         |_|            |___/
 def print_info(info):
     """
     Prints the information statement in the command response (to the right of the command line)

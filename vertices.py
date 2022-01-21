@@ -9,6 +9,7 @@ from __future__ import unicode_literals
 import maya.cmds as cmds
 import maya.mel as mel
 from . import lib as clib
+from . import api as capi
 from . import logger as clog
 
 
@@ -33,7 +34,7 @@ def create_color_set_api(shapes, color_sets, delete_history=True):
     shapes = clib.u_enlist(shapes)
     color_sets = clib.u_enlist(color_sets)
     for shape in shapes:
-        o_shape = clib.get_m_object(shape)
+        o_shape = capi.get_node_mobject(shape)
         fn_mesh = om.MFnMesh(o_shape)
         shape_color_sets = fn_mesh.getColorSetNames()
         for color_set in color_sets:
