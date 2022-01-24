@@ -682,12 +682,15 @@ class AEControls:
     ae_path = ''
     ae_object = ''
 
-    def __init__(self, node_name):
+    def __init__(self, node_name, from_window=True):
+        self.from_window = from_window
         self._check_node_name(node_name)
         self.node_type = cmds.objectType(self.node_name)
-        self._get_ae_widget()
+        self._get_ae_qobject()
         self.controls = OrderedDict()
         self._parse_ae_children(self.ae_path, self.ae_object)
+        if self.from_window:
+            self._delete_ae_window()
         import json
         # print("Dump from coop.ae")
         # print(json.dumps(self.controls, indent=2))
@@ -702,32 +705,64 @@ class AEControls:
         if not cmds.objExists(node_name):
             clib.print_error("{} doesn't exist".format(node_name), True)
         self.node_name = clib.u_stringify(cmds.ls(node_name, l=True))
-        selection = cmds.ls(sl=True, l=True)
-        if node_name != selection[-1]:
-            cmds.select(node_name, r=True)
+        if not self.from_window:   # show ae by selecting the node
+            selection = cmds.ls(sl=True, l=True)
+            if node_name != selection[-1]:
+                cmds.select(node_name, r=True)
 
-    def _get_ae_widget(self):
+    def _get_ae_qobject(self):
         """
         Find attribute editor widget to get available widgets from
         Example path: AttributeEditor|MainAttributeEditorLayout|formLayout1|AEmenuBarLayout|AErootLayout
         |AEStackLayout|AErootLayoutPane|AEbaseFormLayout|AEcontrolFormLayout|AttrEdflairShaderFormLayout
         |scrollLayout50|columnLayout1759|frameLayout614|columnLayout1801|columnLayout1803|attrFieldSliderGrp902
         """
+        def _parse_ae_path(ui_path):
+            path = ""
+            scroll_idx = ui_path.find("|scrollLayout")
+            if scroll_idx > 0:
+                column_idx = ui_path[scroll_idx:].find('|columnLayout') + 1
+                if column_idx > 0:
+                    frame_idx = ui_path[scroll_idx + column_idx:].find('|')
+                    if frame_idx > 0:
+                        path = ui_path[:scroll_idx + column_idx + frame_idx]
+            return path
+
+        if self.from_window:
+            self._create_ae_window()
+
         ui_paths = cmds.lsUI(controlLayouts=True, l=True)
         self.ae_path = ""
         for ui_path in ui_paths:
-            if self.node_type in ui_path:
-                scroll_idx = ui_path.find("|scrollLayout")
-                if scroll_idx > 0:
-                    column_idx = ui_path[scroll_idx:].find('|columnLayout') + 1
-                    if column_idx > 0:
-                        frame_idx = ui_path[scroll_idx + column_idx:].find('|')
-                        if frame_idx > 0:
-                            p = ui_path[:scroll_idx + column_idx + frame_idx]
-                            if cqt.ctrl_exists(p):
-                                self.ae_path = ui_path[:scroll_idx + column_idx + frame_idx]
-                                break
+            if not self.from_window:  # from open attribute editor
+                if self.node_type not in ui_path:
+                    continue
+            elif self.ae_window[self.node_name][0] not in ui_path:  # from open ae window
+                continue
+            ae_path = _parse_ae_path(ui_path)
+            if cqt.ctrl_exists(ae_path):
+                self.ae_path = ae_path
+                break
         self.ae_object = cqt.wrap_ctrl(self.ae_path, QtCore.QObject)
+
+    def _create_ae_window(self):
+        self.ae_window = search_for_node_ae_windows(self.node_name)
+        self.temp_windows = []
+        # create ae window in case it was not opened already
+        if self.node_name not in self.ae_window:
+            window_name = "window_{}_temp".format(self.node_name)
+            mel_cmd = 'createAETabInWindow(\"{}\", \"{}\");'.format(self.node_name, window_name)
+            mel.eval(mel_cmd)
+            self.ae_window[self.node_name] = [window_name]
+            self.temp_windows.append(window_name)
+        # hide windows to not obstruct view
+        for temp_window in self.temp_windows:
+            window_widget = cqt.wrap_ctrl(temp_window)
+            window_widget.hide()
+
+    def _delete_ae_window(self):
+        for temp_window in self.temp_windows:
+            cmds.deleteUI(temp_window, window=True)
 
     def _parse_ae_children(self, parent_path, parent_object):
         """
