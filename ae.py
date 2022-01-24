@@ -641,6 +641,33 @@ def toggle_attributes(node_name, driving_attribute, ctrls, shown_attributes, str
                     LOG.error("{} widgets are not found in the Attribute Editor".format(t))
 
 
+def search_for_node_ae_windows(node_names):
+    """
+    Returns a dictionary of all ae windows associated with the nodes
+    Args:
+        node_names (unicode, list): Node names to search for windows
+    Returns:
+        (OrderedDict): Dictionary of window names that show the attribute of the node
+    """
+    windows = OrderedDict()
+    ui_paths = cmds.lsUI(controlLayouts=True, l=True)
+    node_names = clib.u_enlist(node_names)
+    for node_name in node_names:
+        if cmds.objExists(node_name):
+            for ui_path in ui_paths:
+                if ui_path.startswith("window"):
+                    window_name = ui_path[:ui_path.find('|')]
+                    if cmds.window(window_name, t=node_name, exists=True):
+                        if node_name in windows:
+                            if window_name not in windows[node_name]:
+                                windows[node_name].append(window_name)
+                        else:
+                            windows[node_name] = [window_name]
+        else:
+            LOG.error("{} does not exist".format(node_name))
+    return windows
+
+
 class AEControls:
     controls = OrderedDict()
     node_name = ""
