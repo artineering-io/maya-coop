@@ -657,7 +657,7 @@ def search_for_node_ae_windows(node_names):
             for ui_path in ui_paths:
                 if ui_path.startswith("window"):
                     window_name = ui_path[:ui_path.find('|')]
-                    if cmds.window(window_name, t=node_name, exists=True):
+                    if cmds.window(window_name, t=True, q=True) == node_name:
                         if node_name in windows:
                             if window_name not in windows[node_name]:
                                 windows[node_name].append(window_name)
@@ -689,8 +689,6 @@ class AEControls:
         self._get_ae_qobject()
         self.controls = OrderedDict()
         self._parse_ae_children(self.ae_path, self.ae_object)
-        if self.from_window:
-            self._delete_ae_windows()
 
     def _check_node_name(self, node_name):
         """
@@ -744,18 +742,20 @@ class AEControls:
 
     def _create_ae_window(self):
         self.ae_window = search_for_node_ae_windows(self.node_name)
-        self._delete_ae_windows()
         # create ae window in case it was not opened already
         if self.node_name not in self.ae_window:
             short_node_name = cmds.ls(self.node_name, shortNames=True)[0]
             window_name = "windowTEMP_{}".format(short_node_name)
+            window_name = cmds.window(window_name, title=self.node_name)
+                                      # widthHeight=(1, 1), topLeftCorner=(-5000, 0))
             mel_cmd = 'createAETabInWindow(\"{}\", \"{}\");'.format(self.node_name, window_name)
             mel.eval(mel_cmd)
-            #cqt.wrap_ctrl(window_name).hide()  # hide immediately
             self.ae_window[self.node_name] = [window_name]
+        else:
+            print("Window for {} already created as {}".format(self.node_name, self.ae_window))
 
     @staticmethod
-    def _delete_ae_windows():
+    def delete_ae_temp_windows():
         for window in cmds.lsUI(windows=True):
             if window.startswith("windowTEMP"):
                 cmds.deleteUI(window, window=True)
