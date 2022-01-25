@@ -751,7 +751,7 @@ class AEControls:
             window_name = "windowTEMP_{}".format(short_node_name)
             mel_cmd = 'createAETabInWindow(\"{}\", \"{}\");'.format(self.node_name, window_name)
             mel.eval(mel_cmd)
-            cqt.wrap_ctrl(window_name).hide()  # hide immediately
+            #cqt.wrap_ctrl(window_name).hide()  # hide immediately
             self.ae_window[self.node_name] = [window_name]
 
     @staticmethod
