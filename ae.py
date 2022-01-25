@@ -690,10 +690,7 @@ class AEControls:
         self.controls = OrderedDict()
         self._parse_ae_children(self.ae_path, self.ae_object)
         if self.from_window:
-            self._delete_ae_window()
-        import json
-        # print("Dump from coop.ae")
-        # print(json.dumps(self.controls, indent=2))
+            self._delete_ae_windows()
 
     def _check_node_name(self, node_name):
         """
@@ -747,22 +744,21 @@ class AEControls:
 
     def _create_ae_window(self):
         self.ae_window = search_for_node_ae_windows(self.node_name)
-        self.temp_windows = []
+        self._delete_ae_windows()
         # create ae window in case it was not opened already
         if self.node_name not in self.ae_window:
-            window_name = "window_{}_temp".format(self.node_name)
+            short_node_name = cmds.ls(self.node_name, shortNames=True)[0]
+            window_name = "windowTEMP_{}".format(short_node_name)
             mel_cmd = 'createAETabInWindow(\"{}\", \"{}\");'.format(self.node_name, window_name)
             mel.eval(mel_cmd)
+            cqt.wrap_ctrl(window_name).hide()  # hide immediately
             self.ae_window[self.node_name] = [window_name]
-            self.temp_windows.append(window_name)
-        # hide windows to not obstruct view
-        for temp_window in self.temp_windows:
-            window_widget = cqt.wrap_ctrl(temp_window)
-            window_widget.hide()
 
-    def _delete_ae_window(self):
-        for temp_window in self.temp_windows:
-            cmds.deleteUI(temp_window, window=True)
+    @staticmethod
+    def _delete_ae_windows():
+        for window in cmds.lsUI(windows=True):
+            if window.startswith("windowTEMP"):
+                cmds.deleteUI(window, window=True)
 
     def _parse_ae_children(self, parent_path, parent_object):
         """
