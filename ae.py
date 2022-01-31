@@ -676,9 +676,11 @@ class AEControls:
                           "attrColorSliderGrp",  # color sliders
                           "checkBoxGrp",  # check boxes
                           "attrNavigationControlGrp",  # textures
-                          "attrEnumOptionMenuGrp"  # combo box
+                          "attrEnumOptionMenuGrp",  # combo box
+                          "separator"  # separator
                           # spinbox  # TODO?
                           ]
+    layout_controls = ["frameLayout", "separator"]
     ae_path = ''
     ae_object = ''
 
@@ -768,8 +770,10 @@ class AEControls:
             parent_object (QObject): Parent object to traverse
         """
         children = parent_object.children() or []
+        #print("--> Parent {}".format(parent_path))
         for child in children:
             child_path = cqt.get_full_name(cqt.get_cpp_pointer(child))
+            #print(child_path)
             if child_path == parent_path:
                 continue  # children may have the same ui_path as the parent
             self._store_supported_ctrls(child_path)
@@ -793,7 +797,7 @@ class AEControls:
                 ctrl_data['__type__'] = ctrl_type
                 ctrl_data['__lvl__'] = ui_path.count('|')
                 ctrl_data['__visible__'] = widget.isVisible()
-                if ctrl_type != "frameLayout":
+                if ctrl_type not in self.layout_controls:  # widget from attribute
                     attribute = self._query_attribute_of_ctrl(self.node_name, ctrl_name, ctrl_type, ui_path)
                     ctrl_data['__attr__'] = attribute
                     self._store_ctrl_data(ctrl_type, ui_path, attribute, ctrl_data)
@@ -811,7 +815,8 @@ class AEControls:
         ctrls = list(controls.keys())
         if ctrls:
             if not ctrls[-1].startswith('__'):
-                if controls[ctrls[-1]]['__lvl__'] < ctrl_data['__lvl__']:
+                if (controls[ctrls[-1]]['__lvl__'] < ctrl_data['__lvl__']) \
+                        and (controls[ctrls[-1]]['__type__'] != "separator"):
                     # child of previously parsed control, proceed to check if it's grandchild
                     self._build_ctrls_data(controls[ctrls[-1]], ctrl_name, ctrl_data)
                     return
@@ -819,7 +824,7 @@ class AEControls:
 
     def _store_ctrl_data(self, control, control_path, attr, ctrl_data):
         """
-        Query values of a maya control
+        Store values of a maya controls
         Args:
             control (unicode): Maya's internal control to get values from
             control_path (unicode): Maya's internal control path to get values from
@@ -828,10 +833,11 @@ class AEControls:
         """
         if control == "attrColorSliderGrp":
             ctrl_data['__value__'] = cmds.attrColorSliderGrp(control_path, rgbValue=True, q=True)
+            if cmds.attributeQuery(attr, n=self.node_name, usedAsFilename=True):
+                ctrl_data['__lvl__'] += 1  # offset the level by one to be in the same depth as other controls
         else:
             if control == "attrFieldSliderGrp":
-                ctrl_data['__max__'] = cmds.attrFieldSliderGrp(control_path, sliderMaxValue=True, q=True)
-                ctrl_data['__min__'] = cmds.attrFieldSliderGrp(control_path, sliderMinValue=True, q=True)
+                self._store_slider_data(attr, ctrl_data)
             elif control == "attrEnumOptionMenuGrp":
                 enum_list = cmds.attributeQuery(attr, n=self.node_name, listEnum=True)[0]
                 ctrl_data['__options__'] = enum_list.split(':')
@@ -861,3 +867,22 @@ class AEControls:
             # Note: we can't query the attribute though the "cmds.attrNavigationControlGrp"
             attribute = _compare_nice_names_of_each_attr(cmds.listAttr(node_name, usedAsFilename=True))
         return attribute
+
+    def _store_slider_data(self, attr, ctrl_data):
+        """
+        Store slider data
+        Returns:
+            attr (unicode): Attribute to get values from
+            ctrl_data (OrderedDict): Dictionary of control data
+        """
+        if cmds.attributeQuery(attr, n=self.node_name, minExists=True):
+            ctrl_data['__min__'] = cmds.attributeQuery(attr, n=self.node_name, minimum=True)[0]
+        if cmds.attributeQuery(attr, n=self.node_name, softMinExists=True):
+            ctrl_data['__softMin__'] = cmds.attributeQuery(attr, n=self.node_name, softMin=True)[0]
+        if cmds.attributeQuery(attr, n=self.node_name, maxExists=True):
+            ctrl_data['__max__'] = cmds.attributeQuery(attr, n=self.node_name, maximum=True)[0]
+        if cmds.attributeQuery(attr, n=self.node_name, softMaxExists=True):
+            ctrl_data['__softMax__'] = cmds.attributeQuery(attr, n=self.node_name, softMax=True)[0]
+        # old method based solely on ctrl data
+        # ctrl_data['__max__'] = cmds.attrFieldSliderGrp(control_path, sliderMaxValue=True, q=True)
+        # ctrl_data['__min__'] = cmds.attrFieldSliderGrp(control_path, sliderMinValue=True, q=True)
