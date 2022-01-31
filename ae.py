@@ -748,8 +748,8 @@ class AEControls:
         if self.node_name not in self.ae_window:
             short_node_name = cmds.ls(self.node_name, shortNames=True)[0]
             window_name = "windowTEMP_{}".format(short_node_name)
-            window_name = cmds.window(window_name, title=self.node_name)
-                                      # widthHeight=(1, 1), topLeftCorner=(-5000, 0))
+            window_name = cmds.window(window_name, title=self.node_name,
+                                      widthHeight=(1, 1), topLeftCorner=(-5000, 0))
             mel_cmd = 'createAETabInWindow(\"{}\", \"{}\");'.format(self.node_name, window_name)
             mel.eval(mel_cmd)
             self.ae_window[self.node_name] = [window_name]

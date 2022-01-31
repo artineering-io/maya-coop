@@ -332,15 +332,17 @@ def refresh_window(window_title, quiet=True):
         if not quiet:
             LOG.debug("{0} window doesn't exist".format(window_title))
 
+
 def repopulate_window(window_title):
     """
     Repopulates the window by running the populateUI method
     Args:
          window_title (unicode): Title of the window to repopulate
     """
-    if cmds.window("Bulk Attribute", exists=True, query=True):
-        ptr = omUI.MQtUtil.findWindow(window_title)
-        wrap_instance(ptr).window().populateUI()
+    if cmds.window(window_title, exists=True, query=True):
+        if cmds.window(window_title, visible=True, q=True):
+            ptr = omUI.MQtUtil.findWindow(window_title)
+            wrap_instance(ptr).window().populateUI()
 
 
 def clear_layout(layout):
