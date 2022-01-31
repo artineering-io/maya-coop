@@ -245,6 +245,12 @@ class CoopMayaUI(QtWidgets.QDialog):
     def __init__(self, title, dock=False, rebuild=False, brand="studio.coop", tooltip="", show=True,
                  parent=""):
 
+        if cmds.window(title, exists=True):
+            if not rebuild:
+                cmds.showWindow(title)
+                return
+            cmds.deleteUI(title, wnd=True)
+
         if parent is "":
             parent = get_maya_window()
         elif cmds.window(clib.u_stringify(parent), exists=True, query=True):
@@ -259,13 +265,6 @@ class CoopMayaUI(QtWidgets.QDialog):
             super().__init__(parent)
         else:
             super(CoopMayaUI, self).__init__(parent)
-
-        # check if window exists
-        if cmds.window(title, exists=True):
-            if not rebuild:
-                cmds.showWindow(title)
-                return
-            cmds.deleteUI(title, wnd=True)  # delete old window
 
         # create window
         self.setWindowTitle(title)
@@ -486,11 +485,10 @@ class LabeledFieldSliderGroup(QtWidgets.QWidget):
     """
     valueChanged = QtCore.Signal()  # value changed signal of custom widget
 
-    def __init__(self, label="", value=0.0, minv=0.0, maxv=1.0):
+    def __init__(self, label="", value=0.0, soft_minv=0.0, soft_maxv=1.0, minv=None, maxv=None):
         super(LabeledFieldSliderGroup, self).__init__()
         self.dpiS = get_dpi_scale()
-        self.min = 0.0
-        self.max = 1.0
+        self._set_slider_members(label, soft_minv, soft_maxv, minv, maxv)
 
         # create layout
         self.layout = QtWidgets.QHBoxLayout(self)
@@ -510,7 +508,12 @@ class LabeledFieldSliderGroup(QtWidgets.QWidget):
         self.field.setStyleSheet("border: 0; border-radius: {0}px".format(2 * self.dpiS))
         self.field.setAlignment(QtCore.Qt.AlignVCenter)
         self.field.setMinimum(-999999999)
+        if self.min is not None:
+            self.field.setMinimum(self.min)
         self.field.setMaximum(999999999)
+        if self.max is not None:
+            self.field.setMaximum(self.max)
+
         self.field.setSingleStep(0.01 * pow(10, len(str(int(value)))))  # step depends on how many digits value has
         self.field.setObjectName("{0} field".format(label))
         self.layout.addWidget(self.field)
@@ -525,7 +528,7 @@ class LabeledFieldSliderGroup(QtWidgets.QWidget):
         self.layout.addWidget(self.slider)
 
         # save data variables
-        self.set_range(minv, maxv)
+        self.set_range(self.soft_min, self.soft_max)
 
         # set values
         self.field.setValue(value)
@@ -535,6 +538,29 @@ class LabeledFieldSliderGroup(QtWidgets.QWidget):
         # create connections
         self.slider.valueChanged.connect(self.update_value)
         self.field.valueChanged.connect(self.update_value)
+
+    def _set_slider_members(self, label, soft_minv, soft_maxv, minv, maxv):
+        """
+        Sets the slider members and verifies that everything is in order
+        Args:
+            label (unicode): Label of slider widget
+            soft_minv (float): Soft min of slider
+            soft_maxv (float): Soft max of slider
+            minv (float): Absolute min of slider
+            maxv (float): Absolute max of slider
+        """
+        self.label = label
+        self.min = minv
+        self.soft_min = soft_minv
+        if minv is not None:
+            if soft_minv < self.min:
+                self.soft_min = self.min
+        self.max = maxv
+        self.soft_max = soft_maxv
+        if maxv is not None:
+            if soft_maxv > self.max:
+                self.soft_max = self.max
+
 
     def set_range(self, minv='', maxv=''):
         """
@@ -546,22 +572,25 @@ class LabeledFieldSliderGroup(QtWidgets.QWidget):
         import numbers
         if isinstance(minv, numbers.Number):
             if isinstance(maxv, numbers.Number):
-                if minv < maxv:
-                    self.min = minv
+                if (minv < maxv) and (minv >= self.min):
+                    self.soft_min = minv
                 else:
-                    LOG.warning("Minimum value is not less than maximum value")
+                    LOG.warning("Minimum value of {} not less than maximum value of {} in {}"
+                                .format(minv, maxv, self.label))
             else:
-                if minv < self.max:
-                    self.min = minv
+                if (minv < self.soft_max) and (minv >= self.min):
+                    self.soft_min = minv
                 else:
-                    LOG.warning("Minimum value is not less than maximum value")
-            self.slider.setMinimum(self.min * 1000)
+                    LOG.warning("Minimum value of {} is not less than maximum value of {} in {}"
+                                .format(minv, self.soft_max, self.label))
+            self.slider.setMinimum(self.soft_min * 1000)
         if isinstance(maxv, numbers.Number):
-            if maxv > self.min:
-                self.max = maxv
+            if maxv > self.soft_min:
+                self.soft_max = maxv
             else:
-                LOG.warning("Maximum value is not more than minimum value")
-            self.slider.setMaximum(self.max * 1000)
+                LOG.warning("Maximum value {} is not more than minimum value of {} in {}"
+                            .format(maxv, self.soft_min, self.label))
+            self.slider.setMaximum(self.soft_max * 1000)
 
     def update_value(self):
         """ Update and synchronize the value between the spinbox and slider """
@@ -574,10 +603,10 @@ class LabeledFieldSliderGroup(QtWidgets.QWidget):
             # print("{0} with value: {1}".format(self.sender().objectName(), value))
             self.slider.blockSignals(True)
             # check if slider needs to be changed
-            if value < self.min:
-                self.set_range(value, self.max)
-            if value > self.max:
-                self.set_range(self.min, value)
+            if value < self.soft_min:
+                self.set_range(value, self.soft_max)
+            if value > self.soft_max:
+                self.set_range(self.soft_min, value)
             # set value
             self.slider.setValue(value * 1000)
             self.slider.blockSignals(False)
@@ -591,6 +620,14 @@ class LabeledFieldSliderGroup(QtWidgets.QWidget):
             float: the shared value between the spinbox and the slider
         """
         return self.internalValue
+
+    def set_field_width(self, width):
+        """
+        Set a custom width for field spinbox
+        Args:
+            width (int): New width of the field spinbox
+        """
+        self.field.setFixedWidth(width * self.dpiS)
 
     def eventFilter(self, object, event):
         """ Event filter to ignore mouse wheel on slider """
