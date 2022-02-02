@@ -121,8 +121,6 @@ def get_full_name(qt_ptr):
     Returns:
         (unicode): full name of qt widget
     """
-    if type(qt_ptr) != long:
-        qt_ptr = get_cpp_pointer(qt_ptr)
     full_name = omUI.MQtUtil.fullName(long(qt_ptr))
     if full_name:
         if full_name[-1] == "|":
