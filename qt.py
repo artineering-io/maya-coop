@@ -834,7 +834,6 @@ class CollapsibleGrp(QtWidgets.QWidget):
             self.toggle_button.setText("{}{}".format(self.collapsed[True], self.title))
             if self.w_height:
                 self.window().resize(self.window().width(), self.w_height)  # TODO: make this somehow work
-                self.window().adjustSize()
         else:
             self.w_height = self.window().height()
             self.content.setVisible(True)
