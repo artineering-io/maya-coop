@@ -121,6 +121,8 @@ def get_full_name(qt_ptr):
     Returns:
         (unicode): full name of qt widget
     """
+    if type(qt_ptr) != long:
+        qt_ptr = get_cpp_pointer(qt_ptr)
     full_name = omUI.MQtUtil.fullName(long(qt_ptr))
     if full_name:
         if full_name[-1] == "|":
@@ -159,6 +161,28 @@ def get_cpp_pointer(qobject):
         C++ pointer
     """
     return getCppPointer(qobject)[0]
+
+
+class UIPath:
+    def __init__(self, path):
+        if isinstance(path, str):
+            self.path = clib.u_decode(path)
+        elif clib.get_py_version() < 3:
+            if isinstance(path, unicode):
+                self.path = path
+        else:
+            clib.print_error("{} is not a string".format(path), True)
+
+    def root(self):
+        """
+        Gets the root name of the UI path
+        Returns:
+            (unicode): Root name of UI path
+        """
+        idx = self.path.find('|')
+        if idx != -1:
+            return self.path[:idx]
+        return ""
 
 
 def is_minimized(window):
