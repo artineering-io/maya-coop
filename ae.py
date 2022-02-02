@@ -11,9 +11,7 @@ from __future__ import unicode_literals
 from collections import OrderedDict
 import maya.cmds as cmds
 import maya.mel as mel
-import maya.api.OpenMaya as om  # python api 2.0
 from . import lib as clib
-from . import api as capi
 from . import qt as cqt
 from . import logger as clog
 from PySide2 import QtCore, QtWidgets
@@ -509,6 +507,7 @@ class AEControlIndexer:
         node_type = cmds.objectType(node_name)
         # initialize instance variables
         self.index = dict()
+        self.windows = []
         self.ui_ctrls = clib.u_enlist(ui_ctrls)
         for ui_ctrl in self.ui_ctrls:
             self.index[ui_ctrl] = dict()
@@ -518,7 +517,7 @@ class AEControlIndexer:
             if node_type in ui_path:
                 if ui_path.startswith("window"):
                     # there is a window with the node_type in its widget name (most likely copy tab of the AE)
-                    window_name = ui_path[:ui_path.find('|')]
+                    window_name = cqt.UIPath(ui_path).root()
                     if cmds.window(window_name, title=True, query=True) == node_name:
                         self.index_window(window_name)
                 elif ui_path.startswith("AttributeEditor"):
@@ -534,9 +533,11 @@ class AEControlIndexer:
         Args:
             window_name (unicode): name of the window
         """
-        for ui_path in self.ui_paths:
-            if window_name in ui_path:
-                self.index_ui_ctrls(ui_path)
+        if window_name not in self.windows:
+            self.windows.append(window_name)
+            for ui_path in self.ui_paths:
+                if window_name == cqt.UIPath(ui_path).root():
+                    self.index_ui_ctrls(ui_path)
 
     def index_ui_ctrls(self, ui_path):
         """
@@ -734,7 +735,7 @@ class AEControls:
             if not self.from_window:  # from open attribute editor
                 if self.node_type not in ui_path:
                     continue
-            elif self.ae_window[self.node_name][0] not in ui_path:  # from open ae window
+            elif self.ae_window[self.node_name][0] != cqt.UIPath(ui_path).root():
                 continue
             ae_path = _parse_ae_path(ui_path)
             if cqt.ctrl_exists(ae_path):
@@ -754,7 +755,8 @@ class AEControls:
             mel.eval(mel_cmd)
             self.ae_window[self.node_name] = [window_name]
         else:
-            print("Window for {} already created as {}".format(self.node_name, self.ae_window))
+            # print("Window for {} already created as {}".format(self.node_name, self.ae_window))
+            pass
 
     @staticmethod
     def delete_ae_temp_windows():
@@ -793,6 +795,8 @@ class AEControls:
             widget = AEControlIndexer.is_ui_ctrl(ui_path, ctrl_type)
             if widget:
                 ctrl_name = widget.accessibleName()
+                if ctrl_type == "" and ctrl_type == "checkBoxGrp":
+                    cmds.attrControlGrp(ui_path, label=True, q=True)
                 ctrl_data = OrderedDict()
                 ctrl_data['__type__'] = ctrl_type
                 ctrl_data['__lvl__'] = ui_path.count('|')
@@ -801,6 +805,14 @@ class AEControls:
                     attribute = self._query_attribute_of_ctrl(self.node_name, ctrl_name, ctrl_type, ui_path)
                     ctrl_data['__attr__'] = attribute
                     self._store_ctrl_data(ctrl_type, ui_path, attribute, ctrl_data)
+                else:
+                    if ctrl_type == "frameLayout":
+                        ctrl_data['__collapse__'] = cmds.frameLayout(ui_path, collapse=True, q=True)
+                        # if ctrl_data['__collapse__']:
+                        #     print("Should open {}".format(ui_path))
+                        # cmds.frameLayout(ui_path, collapse=False, e=True)
+                        # QtTest.QTest.mouseClick(widget, QtCore.Qt.LeftButton)
+                        # print("Collapse script is {}".format(cmds.frameLayout(ui_path, collapse=True, q=True)))
                 self._build_ctrls_data(self.controls, ctrl_name, ctrl_data)
                 break
 
