@@ -36,7 +36,7 @@ def delete_shelves(shelves=None, restart=True):
             continue
     mel.eval('saveAllShelves $gShelfTopLevel;')  # all shelves loaded (save them)
     # time to delete them
-    shelf_top_level = mel.eval('$tempMelVar=$gShelfTopLevel') + '|'
+    shelf_top_level = mel.eval('$tempMelStringVar=$gShelfTopLevel') + '|'
     for shelf in shelves_names:
         if cmds.shelfLayout(shelf_top_level + shelf, q=True, ex=True):
             cmds.deleteUI(shelf_top_level + shelf, layout=True)

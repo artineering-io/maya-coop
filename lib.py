@@ -518,7 +518,7 @@ def detach_shelf():
     """
     Detaches the current shelves
     """
-    shelf_top_level = mel.eval('global string $gShelfTopLevel;\r$tempMelVar=$gShelfTopLevel')
+    shelf_top_level = mel.eval('global string $gShelfTopLevel;\r$tempMelStringVar=$gShelfTopLevel')
     shelf_name = cmds.shelfTabLayout(shelf_top_level, st=True, q=True)
     shelf_paths = os.path.abspath(cmds.internalVar(ush=True)).split(';')
     shelf_file = "shelf_{0}.mel".format(shelf_name)
