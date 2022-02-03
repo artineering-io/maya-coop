@@ -1268,6 +1268,32 @@ class Path(object):
         return 0
 
 
+def make_path_relative(path, root_path=None):
+    """
+    Returns the relative path, if any, compared to the project path or root path
+    Args:
+        path (unicode): path of current file or directory
+        root_path (unicode): Optional path to also make path relative to
+    Returns:
+        rel_path (unicode): relative path to project, if available (with forward slashes)
+    """
+    path = Path(path).slash_path()
+    new_path = path
+    if root_path:
+        root_path = Path(root_path).slash_path()
+        if new_path.startswith(root_path):
+            new_path = new_path[len(root_path):]
+    else:
+        project_path = Path(cmds.workspace(q=True, rootDirectory=True)).slash_path()
+        if new_path.startswith(project_path):
+            new_path = new_path[len(project_path):]
+    if new_path != path:
+        # We have a relative path, make sure we don't return slash as the first character
+        if new_path[0] == '/':
+            return new_path[1:]
+    return new_path
+
+
 #        _        _
 #    ___| |_ _ __(_)_ __   __ _
 #   / __| __| '__| | '_ \ / _` |
