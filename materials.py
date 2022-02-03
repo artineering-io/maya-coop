@@ -299,3 +299,23 @@ def set_texture(material, tex_attr, file_path):
             # Make the default connections
             cmds.defaultNavigation(connectToExisting=True, source=place2d_node, destination=file_node)
             cmds.defaultNavigation(connectToExisting=True, source=file_node, destination=full_attr, force=True)
+
+
+def reload_textures(materials, tex_attr, rel=True):
+    """
+    Reload the assigned textures on the file nodes of materials
+    Args:
+        materials (unicode, list): Materials to reload textures on
+        tex_attr (unicode): Attribute to reload textures in
+        rel (bool): Make file paths relative to Maya project
+    """
+    materials = clib.u_enlist(materials)
+    for mat in materials:
+        node_attr = "{}.{}".format(mat, tex_attr)
+        sources = cmds.listConnections(node_attr, type='file')
+        if sources:
+            file_attr = "{}.fileTextureName".format(sources[0])
+            file_path = cmds.getAttr(file_attr)
+            if rel:
+                file_path = clib.make_path_relative(file_path)
+            cmds.setAttr(file_attr, file_path, type='string')
