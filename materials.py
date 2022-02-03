@@ -276,6 +276,27 @@ def delete_unused_materials():
     cmds.delete(schedule)
 
 
+def get_texture(material, tex_attr, rel=False):
+    """
+    Gets the texture from the connected file node of a texture attribute
+    Args:
+        material (unicode): name of the material
+        tex_attr (unicode): name of the texture attribute
+        rel (bool): Make file paths relative to Maya project
+    Returns:
+        (unicode): texture path of the material
+    """
+    tex_path = ""
+    node_attr = "{}.{}".format(material, tex_attr)
+    sources = cmds.listConnections(node_attr, type='file')
+    if sources:
+        file_attr = "{}.computedFileTextureNamePattern".format(sources[0])
+        tex_path = cmds.getAttr(file_attr)
+        if rel:
+            tex_path = clib.make_path_relative(tex_path)
+    return tex_path
+
+
 def set_texture(material, tex_attr, file_path):
     """
     Connects a file node with all its additional nodes
@@ -299,6 +320,8 @@ def set_texture(material, tex_attr, file_path):
             # Make the default connections
             cmds.defaultNavigation(connectToExisting=True, source=place2d_node, destination=file_node)
             cmds.defaultNavigation(connectToExisting=True, source=file_node, destination=full_attr, force=True)
+    else:
+        clib.break_connections(material, tex_attr, delete_inputs=True)
 
 
 def reload_textures(materials, tex_attr, rel=True):
@@ -319,3 +342,4 @@ def reload_textures(materials, tex_attr, rel=True):
             if rel:
                 file_path = clib.make_path_relative(file_path)
             cmds.setAttr(file_attr, file_path, type='string')
+
