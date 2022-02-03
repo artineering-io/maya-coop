@@ -1587,15 +1587,16 @@ def u_stringify(arg, silent=True):
     Returns:
         (unicode): The argument in a string
     """
-    if isinstance(arg, list) or isinstance(arg, tuple):
-        if not silent:
-            LOG.info("{0} is a list/tuple, taking first element".format(arg))
-        arg = arg[0]
-    elif isinstance(arg, int):
-        arg = str(arg)
-    elif arg is None:
-        arg = ""
-    return arg
+    str_arg = ""
+    if arg:
+        str_arg = arg
+        if isinstance(arg, list) or isinstance(arg, tuple):
+            if not silent:
+                LOG.info("{0} is a list/tuple, taking first element".format(arg))
+            str_arg = arg[0]
+        elif isinstance(arg, int):
+            str_arg = str(arg)
+    return str_arg
 
 
 def u_decode(text):
