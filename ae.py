@@ -14,6 +14,7 @@ import maya.mel as mel
 from . import lib as clib
 from . import qt as cqt
 from . import logger as clog
+from . import materials as cmat
 from PySide2 import QtCore, QtWidgets
 from functools import partial
 
@@ -754,6 +755,7 @@ class AEControls:
             mel_cmd = 'createAETabInWindow(\"{}\", \"{}\");'.format(self.node_name, window_name)
             mel.eval(mel_cmd)
             self.ae_window[self.node_name] = [window_name]
+            cqt.get_maya_window().activateWindow()  # remove focus
         else:
             # print("Window for {} already created as {}".format(self.node_name, self.ae_window))
             pass
@@ -847,6 +849,9 @@ class AEControls:
             ctrl_data['__value__'] = cmds.attrColorSliderGrp(control_path, rgbValue=True, q=True)
             if cmds.attributeQuery(attr, n=self.node_name, usedAsFilename=True):
                 ctrl_data['__lvl__'] += 1  # offset the level by one to be in the same depth as other controls
+                texture = cmat.get_texture(self.node_name, attr)
+                if texture:
+                    ctrl_data['__value__'] = texture
         else:
             if control == "attrFieldSliderGrp":
                 self._store_slider_data(attr, ctrl_data)
