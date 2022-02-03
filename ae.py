@@ -806,7 +806,7 @@ class AEControls:
                 if ctrl_type not in self.layout_controls:  # widget from attribute
                     attribute = self._query_attribute_of_ctrl(self.node_name, ctrl_name, ctrl_type, ui_path)
                     ctrl_data['__attr__'] = attribute
-                    self._store_ctrl_data(ctrl_type, ui_path, attribute, ctrl_data)
+                    self._store_ctrl_data(ctrl_type, attribute, ctrl_data)
                 else:
                     if ctrl_type == "frameLayout":
                         ctrl_data['__collapse__'] = cmds.frameLayout(ui_path, collapse=True, q=True)
@@ -836,22 +836,16 @@ class AEControls:
                     return
         controls[ctrl_name] = ctrl_data
 
-    def _store_ctrl_data(self, control, control_path, attr, ctrl_data):
+    def _store_ctrl_data(self, control, attr, ctrl_data):
         """
         Store values of a maya controls
         Args:
             control (unicode): Maya's internal control to get values from
-            control_path (unicode): Maya's internal control path to get values from
             attr (unicode): Attribute to get values from
             ctrl_data (OrderedDict): Dictionary of control data
         """
         if control == "attrColorSliderGrp":
-            ctrl_data['__value__'] = cmds.attrColorSliderGrp(control_path, rgbValue=True, q=True)
-            if cmds.attributeQuery(attr, n=self.node_name, usedAsFilename=True):
-                ctrl_data['__lvl__'] += 1  # offset the level by one to be in the same depth as other controls
-                texture = cmat.get_texture(self.node_name, attr)
-                if texture:
-                    ctrl_data['__value__'] = texture
+            self._store_color_slider_data(attr, ctrl_data)
         else:
             if control == "attrFieldSliderGrp":
                 self._store_slider_data(attr, ctrl_data)
@@ -884,6 +878,25 @@ class AEControls:
             # Note: we can't query the attribute though the "cmds.attrNavigationControlGrp"
             attribute = _compare_nice_names_of_each_attr(cmds.listAttr(node_name, usedAsFilename=True))
         return attribute
+
+    def _store_color_slider_data(self, attr, ctrl_data):
+        """
+        Store color slider data
+        Returns:
+            attr (unicode): Attribute to get values from
+            ctrl_data (OrderedDict): Dictionary of control data
+        """
+        ctrl_data['__value__'] = cmds.getAttr("{}.{}".format(self.node_name, attr))[0]
+        if cmds.attributeQuery(attr, n=self.node_name, usedAsFilename=True):
+            ctrl_data['__lvl__'] += 1  # offset the level by one to be in the same depth as other controls
+            ctrl_data['__texture__'] = True
+            texture = cmat.get_texture(self.node_name, attr)
+            if texture:
+                ctrl_data['__value__'] = texture
+            else:
+                connected_node = cmat.get_connected_node(self.node_name, attr, prefix="n|")
+                if connected_node:
+                    ctrl_data['__value__'] = connected_node
 
     def _store_slider_data(self, attr, ctrl_data):
         """
