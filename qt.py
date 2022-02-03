@@ -240,28 +240,6 @@ def get_dpi_scale():
     return 1.0
 
 
-def relative_path(path, root_path=None):
-    """
-    Returns the relative path, if any, compared to the project path or root path
-    Args:
-        path (unicode): path of current file or directory
-        root_path (unicode): Optional path to also make path relative to
-    Returns:
-        relPath (unicode): relative path to project, if available (with forward slashes)
-    """
-    project_path = os.path.abspath(cmds.workspace(q=True, rootDirectory=True))
-    new_path = os.path.abspath(path)
-    if project_path in new_path:
-        new_path = new_path[new_path.find(project_path) + len(project_path)+1:]
-        return new_path.replace(os.sep, str('/'))
-    if root_path:
-        root_path = os.path.abspath(root_path)
-        if root_path in new_path:
-            new_path = new_path[new_path.find(root_path) + len(root_path)+1:]
-            return new_path.replace(os.sep, str('/'))
-    return path
-
-
 class CoopMayaUI(QtWidgets.QDialog):
 
     def __init__(self, title, dock=False, rebuild=False, brand="studio.coop", tooltip="", show=True,
@@ -712,7 +690,7 @@ class FileBrowserGrp(QtWidgets.QWidget):
         path = clib.dialog_open(starting_directory=start_dir, title=self.dialog_title,
                                 file_filter=self.dialog_filter)
         if self.relative:
-            path = relative_path(path, self.relative_root)
+            path = clib.make_path_relative(path, self.relative_root)
         self.internal_value = path
         self.line_edit.setText(path)
         self.valueChanged.emit()
