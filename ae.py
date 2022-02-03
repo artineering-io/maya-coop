@@ -854,7 +854,7 @@ class AEControls:
                 enum_list = cmds.attributeQuery(attr, n=self.node_name, listEnum=True)[0]
                 ctrl_data['__options__'] = enum_list.split(':')
             if control == "attrNavigationControlGrp":
-                ctrl_data['__value__'] = ""  # TODO query textures of file nodes, and set afterwards...
+                self._store_texture_data(attr, ctrl_data)
             else:
                 ctrl_data['__value__'] = cmds.getAttr("{}.{}".format(self.node_name, attr))
 
@@ -898,3 +898,20 @@ class AEControls:
         # old method based solely on ctrl data
         # ctrl_data['__max__'] = cmds.attrFieldSliderGrp(control_path, sliderMaxValue=True, q=True)
         # ctrl_data['__min__'] = cmds.attrFieldSliderGrp(control_path, sliderMinValue=True, q=True)
+
+    def _store_texture_data(self, attr, ctrl_data):
+        """
+        Store slider data
+        Returns:
+            attr (unicode): Attribute to get values from
+            ctrl_data (OrderedDict): Dictionary of control data
+        """
+        ctrl_data['__value__'] = ""
+        node_attr = "{}.{}".format(self.node_name, attr)
+        connections = cmds.listConnections(node_attr, s=True, d=False) or []
+        if connections:
+            in_node = connections[0]
+            if cmds.objectType(in_node) == "file":
+                ctrl_data['__value__'] = cmds.getAttr("{}.{}".format(in_node, "fileTextureName"))
+            else:
+                ctrl_data['__value__'] = "n|{}".format(in_node)
