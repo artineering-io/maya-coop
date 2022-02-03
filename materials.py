@@ -343,3 +343,20 @@ def reload_textures(materials, tex_attr, rel=True):
                 file_path = clib.make_path_relative(file_path)
             cmds.setAttr(file_attr, file_path, type='string')
 
+
+def get_connected_node(material, attr, prefix=""):
+    """
+    Gets the texture from the connected file node of a texture attribute
+    Args:
+        material (unicode): name of the material
+        attr (unicode): name of the attribute to get connected node from
+        prefix (unicode): prefix to add to node
+    Returns:
+        (unicode): texture path of the material
+    """
+    node = ""
+    node_attr = "{}.{}".format(material, attr)
+    sources = cmds.listConnections(node_attr)
+    if sources:
+        node = "{}{}".format(prefix, sources[0])
+    return node
