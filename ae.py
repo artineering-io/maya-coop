@@ -765,6 +765,7 @@ class AEControls:
         for window in cmds.lsUI(windows=True):
             if window.startswith("windowTEMP"):
                 cmds.deleteUI(window, window=True)
+                cmds.windowPref(window, remove=True)
 
     def _parse_ae_children(self, parent_path, parent_object):
         """
