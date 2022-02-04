@@ -587,7 +587,7 @@ class LabeledFieldSliderGroup(QtWidgets.QWidget):
         self.slider.setMinimum(self.soft_min * 1000)
         # check maximum
         if maxv > self.soft_min:
-            if self.maxv is None:
+            if self.max is None:
                 self.soft_max = maxv
             else:
                 if maxv <= self.max:
