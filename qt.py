@@ -564,35 +564,41 @@ class LabeledFieldSliderGroup(QtWidgets.QWidget):
                 self.soft_max = self.max
 
 
-    def set_range(self, minv='', maxv=''):
+    def set_range(self, minv, maxv):
         """
         Sets the range of the slider to min and max
         Args:
             minv (float): Minimum value of slider
             maxv (float): Maximum value of slider
         """
-        import numbers
-        if isinstance(minv, numbers.Number):
-            if isinstance(maxv, numbers.Number):
-                if (minv < maxv) and (minv >= self.min):
-                    self.soft_min = minv
-                else:
-                    LOG.warning("Minimum value of {} not less than maximum value of {} in {}"
-                                .format(minv, maxv, self.label))
+        # check minimum
+        if minv < maxv:
+            if self.min is None:
+                self.soft_min = minv
             else:
-                if (minv < self.soft_max) and (minv >= self.min):
+                if minv >= self.min:
                     self.soft_min = minv
                 else:
-                    LOG.warning("Minimum value of {} is not less than maximum value of {} in {}"
-                                .format(minv, self.soft_max, self.label))
-            self.slider.setMinimum(self.soft_min * 1000)
-        if isinstance(maxv, numbers.Number):
-            if maxv > self.soft_min:
+                    LOG.warning("Soft minimum value of {} not less than minimum value of {} in {}"
+                                .format(minv, self.min, self.label))
+        else:
+            LOG.warning("Minimum value of {} not less than maximum value of {} in {}"
+                        .format(minv, maxv, self.label))
+        self.slider.setMinimum(self.soft_min * 1000)
+        # check maximum
+        if maxv > self.soft_min:
+            if self.maxv is None:
                 self.soft_max = maxv
             else:
-                LOG.warning("Maximum value {} is not more than minimum value of {} in {}"
-                            .format(maxv, self.soft_min, self.label))
-            self.slider.setMaximum(self.soft_max * 1000)
+                if maxv <= self.max:
+                    self.soft_max = maxv
+                else:
+                    LOG.warning("Soft maximum value {} is not more than maximum value of {} in {}"
+                                .format(maxv, self.max, self.label))
+        else:
+            LOG.warning("Maximum value {} is not more than minimum value of {} in {}"
+                        .format(maxv, self.soft_min, self.label))
+        self.slider.setMaximum(self.soft_max * 1000)
 
     def update_value(self):
         """ Update and synchronize the value between the spinbox and slider """
