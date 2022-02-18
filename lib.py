@@ -433,41 +433,50 @@ def create_empty_node(input_name):
         cmds.setAttr('{0}.{1}'.format(node_name[0], attribute), l=True, k=False)
 
 
-def get_node_data(node_name, settable=True, quiet=False):
+def get_node_data(node_name, settable=True, visible=True, quiet=False):
     """
     Returns the node data in a dictionary
     Args:
         node_name (unicode): Name of the node to get data from
-        settable (bool): Only the data that can be set (default: bool)
+        settable (bool): Only the data that can be set (default: True)
+        settable (bool): Only the data that can be seen (default: True)
         quiet (bool):
 
     Returns:
         Dictionary containing a dictionary with attribute: value
     """
     data = dict()
-    node_attrs = cmds.listAttr(node_name, settable=settable)
+    data["name"] = node_name
+    data["type"] = cmds.objectType(node_name)
+    attr_data = dict()
+    node_attrs = cmds.listAttr(node_name, settable=settable, visible=visible)
     for attr in node_attrs:
         try:
             if cmds.attributeQuery(attr, node=node_name, attributeType=True) != "compound":
-                data[attr] = cmds.getAttr("{}.{}".format(node_name, attr))
+                attr_data[attr] = cmds.getAttr("{}.{}".format(node_name, attr))
             else:
                 for sub_attr in cmds.attributeQuery(attr, node=node_name, listChildren=True):
-                    data[sub_attr] = cmds.getAttr("{}.{}".format(node_name, sub_attr))
-        except RuntimeError as err:
+                    attr_data[sub_attr] = cmds.getAttr("{}.{}.{}".format(node_name, attr, sub_attr))
+        except (RuntimeError, ValueError) as err:
             if not quiet:
                 print("get_node_data() -> Couldn't get {}.{} because of: {}".format(node_name, attr, err))
+    data["attrs"] = attr_data
     return data
 
 
-def set_node_data(node_name, node_data):
+def set_node_data(node_data, custom_name=""):
     """
     Sets the node data contained in a dictionary
     Args:
-        node_name (unicode): Name of the node to set data to
         node_data (dict): Dictionary of node data {attribute: value}
+        custom_name (unicode): Custom name of the node to set data to
     """
-    for attr in node_data:
-        set_attr(node_name, attr, node_data[attr])
+    if not custom_name:
+        custom_name = node_data["name"]
+    if not cmds.objExists(custom_name):
+        cmds.createNode(node_data["type"], name=custom_name)
+    for attr in node_data["attrs"]:
+        set_attr(custom_name, attr, node_data["attrs"][attr])
 
 
 def purge_missing(objects):

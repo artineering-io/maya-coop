@@ -304,15 +304,19 @@ def set_texture(material, tex_attr, file_path):
         material (unicode): name of the material
         tex_attr (unicode): name of the texture attribute
         file_path (unicode): filepath of texture
+    Returns:
+        (unicode): Name of connected file node
     """
+    file_node = ""
     if file_path:
         if file_path.startswith("/"):
             file_path = file_path[1:]  # making sure we remove the "/" at the beginning
         full_attr = "{}.{}".format(material, tex_attr)
         sources = cmds.listConnections(full_attr, type='file')
         if sources:
+            file_node = sources[0]
             # There can be only one source connected to a texture input attribute
-            cmds.setAttr(sources[0] + '.fileTextureName', file_path, type='string')
+            cmds.setAttr(file_node + '.fileTextureName', file_path, type='string')
         else:
             place2d_node = cmds.shadingNode('place2dTexture', asUtility=True, ss=True)
             file_node = cmds.shadingNode('file', asTexture=True, ss=True)
@@ -322,6 +326,7 @@ def set_texture(material, tex_attr, file_path):
             cmds.defaultNavigation(connectToExisting=True, source=file_node, destination=full_attr, force=True)
     else:
         clib.break_connections(material, tex_attr, delete_inputs=True)
+    return file_node
 
 
 def reload_textures(materials, tex_attr, rel=True):
