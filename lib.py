@@ -433,13 +433,13 @@ def create_empty_node(input_name):
         cmds.setAttr('{0}.{1}'.format(node_name[0], attribute), l=True, k=False)
 
 
-def get_node_data(node_name, settable=True, visible=True, quiet=False):
+def get_node_data(node_name, settable=True, visible=False, quiet=False):
     """
     Returns the node data in a dictionary
     Args:
         node_name (unicode): Name of the node to get data from
         settable (bool): Only the data that can be set (default: True)
-        settable (bool): Only the data that can be seen (default: True)
+        visible (bool): Only the data that can be seen (default: False)
         quiet (bool):
 
     Returns:
