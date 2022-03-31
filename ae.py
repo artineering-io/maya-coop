@@ -349,7 +349,6 @@ def _plain_attr_widget(node_attr, kwargs):
     widget_name = "{}{}".format(obj_type, attr)
     _check_attr_widgets(widget_name)
     attr_type = cmds.attributeQuery(attr, n=node, attributeType=True)
-    ctrl = ""
     if attr_type == "float":
         if "map" not in kwargs:
             ctrl = cmds.attrFieldSliderGrp(at=node_attr, label=lab, ann=ann, hideMapButton=True)
@@ -359,6 +358,8 @@ def _plain_attr_widget(node_attr, kwargs):
         ctrl = cmds.attrColorSliderGrp(at=node_attr, label=lab, ann=ann, showButton=False,
                                        cw=[4, 0], columnAttach4=["right", "both", "right", "both"],
                                        columnOffset4=[6, 1, -3, 0])
+    elif attr_type == "long2":
+        ctrl = cmds.attrFieldGrp(attribute=node_attr, label=lab, ann=ann, hideMapButton=True)
     elif attr_type == "bool":
         ctrl = cmds.attrControlGrp(attribute=node_attr, label=lab, ann=ann)
         if callback:  # manage callbacks manually to guarantee their existence
@@ -429,6 +430,8 @@ def _plain_attr_widget_update(node_attr, callback):
                     cmds.attrNavigationControlGrp(ctrl, at=node_attr, e=True)
             except RuntimeError:
                 LOG.error("Error updating attribute: {}".format(ctrl))
+        elif attr_type == "long2":
+            cmds.attrFieldGrp(ctrl, at=node_attr, e=True)
         elif attr_type == "float3":
             cmds.attrColorSliderGrp(ctrl, at=node_attr, e=True)
         elif attr_type == "bool":
