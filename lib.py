@@ -772,7 +772,7 @@ def set_attr(obj, attr, value, silent=False):
     # check for existence
     if not cmds.attributeQuery(attr, n=obj, ex=True):
         if not silent:
-            cmds.error("{} can't be set as it doesn't exist".format(node_attr))
+            cmds.warning("{} can't be set as it doesn't exist".format(node_attr))
         return False
     # try setting it
     try:
