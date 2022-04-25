@@ -360,7 +360,7 @@ def _plain_attr_widget(node_attr, kwargs):
                                        columnOffset4=[6, 1, -3, 0])
     elif attr_type == "long":
         ctrl = cmds.attrFieldSliderGrp(attribute=node_attr, label=lab, ann=ann, hideMapButton=True)
-    elif attr_type == "long2":
+    elif attr_type == "long2" or attr_type == "double4":
         ctrl = cmds.attrFieldGrp(attribute=node_attr, label=lab, ann=ann, hideMapButton=True)
     elif attr_type == "bool":
         ctrl = cmds.attrControlGrp(attribute=node_attr, label=lab, ann=ann)
@@ -434,7 +434,7 @@ def _plain_attr_widget_update(node_attr, callback):
                 LOG.error("Error updating attribute: {}".format(ctrl))
         elif attr_type == "long":
             cmds.attrFieldSliderGrp(ctrl, attribute=node_attr, e=True)
-        elif attr_type == "long2":
+        elif attr_type == "long2" or attr_type == "double4":
             cmds.attrFieldGrp(ctrl, at=node_attr, e=True)
         elif attr_type == "float3":
             cmds.attrColorSliderGrp(ctrl, at=node_attr, e=True)
