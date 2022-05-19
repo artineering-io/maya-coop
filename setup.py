@@ -295,6 +295,8 @@ def _uninstall_all_users(module_name):
     """
     module_dir = get_common_module_dir()
     modules = clib.Path(module_dir).find_all("{}.mod".format(module_name), relative=False)
+    if not modules:  # in case module mod file is lowercase
+        modules = clib.Path(module_dir).find_all("{}.mod".format(module_name.lower()), relative=False)
     py_cmd = _py_cmd_uninstall_all_users(modules)
     if is_admin():
         eval(py_cmd)
