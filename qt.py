@@ -240,6 +240,17 @@ def get_dpi_scale():
     return 1.0
 
 
+def read_python(file_path):
+    """
+    Reads python file and evaluates it
+    Args:
+        file_path (unicode): File path to *.py file
+    """
+    with open(file_path, 'r') as f:
+        raw_data = f.read()
+    return eval(raw_data)
+
+
 class CoopMayaUI(QtWidgets.QDialog):
 
     def __init__(self, title, dock=False, rebuild=False, brand="studio.coop", tooltip="", show=True,
