@@ -1281,6 +1281,29 @@ class Path(object):
         else:
             return found
 
+    def find_parent(self, parent_basename, search_path=""):
+        """
+        Finds the parent folder that has the parent_basename
+        Args:
+            parent_basename (unicode): Basename of parent folder
+            search_path (unicode): Custom search path to find parent folder in
+
+        Returns:
+            (unicode): Parent folder path or ""
+        """
+        cur_path = self.path
+        if search_path:  # custom search path (not self.path)
+            cur_path = search_path
+        parent_path = os.path.abspath(os.path.join(cur_path, os.pardir))
+        if parent_path == search_path:
+            print_warning("Can't find parent folder: {}".format(parent_basename))
+            return ""  # no parent available anymore
+        p_basename = os.path.basename(parent_path)
+        if p_basename == parent_basename:
+            return parent_path
+        else:
+            return self.find_parent(parent_basename, parent_path)
+
     def file_size(self):
         """
         Returns the file size of the path in MB
