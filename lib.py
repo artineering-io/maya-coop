@@ -11,6 +11,8 @@ import os, sys, subprocess, shutil, re, math, traceback, platform
 from functools import wraps
 import maya.mel as mel
 import maya.cmds as cmds
+import maya.utils
+
 from . import logger as clog
 from . import list as clist
 
@@ -317,6 +319,22 @@ def run_python_as_admin(py_cmd, close=True):
     mayapy = Path(sys.executable).parent().child("mayapy.exe").path
     ctypes.windll.shell32.ShellExecuteW(None, "runas", mayapy,
                                         subprocess.list2cmdline([str("-i"), str("-c"), py_cmd]), None, 1)
+
+
+def eval_deferred(function, lowestPriority=False):
+    """
+    Runs a function in a deferred manner (once Maya becomes idle)
+    Args:
+        function (unicode, func): Function to evaluate
+        lowestPriority (bool): True will make this priority lowest (normal is low)
+    """
+    if lowestPriority is None:
+        cmds.evalDeferred(function)
+    else:
+        try:
+            cmds.evalDeferred(function, lowestPriority=True)
+        except TypeError:
+            maya.utils.executeDeferred(function, lowestPriority=True)
 
 
 def dialog_restart(brute=True):
