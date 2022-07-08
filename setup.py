@@ -6,7 +6,8 @@
 """
 from __future__ import print_function
 from __future__ import unicode_literals
-import os, shutil, pprint, ctypes, sys
+import os, shutil, pprint
+
 import maya.cmds as cmds
 import maya.mel as mel
 from . import lib as clib
@@ -117,6 +118,7 @@ def is_admin():
     try:
         return os.getuid() == 0  # if Unix
     except AttributeError:
+        import ctypes
         return ctypes.windll.shell32.IsUserAnAdmin()  # if Windows
 
 
