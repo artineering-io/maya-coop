@@ -15,8 +15,7 @@ from . import logger as clog
 
 # python api 2.0
 import maya.api.OpenMaya as om
-def maya_useNewAPI():
-    pass
+maya_useNewAPI = True 
 
 
 LOG = clog.logger("coop.vertices")

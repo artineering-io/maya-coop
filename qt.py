@@ -262,7 +262,7 @@ class CoopMayaUI(QtWidgets.QDialog):
                 return
             cmds.deleteUI(title, wnd=True)
 
-        if parent is "":
+        if parent == "":
             parent = get_maya_window()
         elif cmds.window(clib.u_stringify(parent), exists=True, query=True):
             ptr = omUI.MQtUtil.findWindow(parent)
@@ -859,7 +859,7 @@ class ProgressDialog(QtWidgets.QProgressDialog):
         if cmds.about(batch=True):
             print("Initializing {}".format(window_title))
         else:
-            if parent is "":
+            if parent == "":
                 parent = get_maya_window()
             super(ProgressDialog, self).__init__(parent)
             self.setWindowModality(QtCore.Qt.WindowModal)

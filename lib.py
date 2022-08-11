@@ -20,8 +20,7 @@ from . import list as clist
 import maya.api.OpenMaya as om
 
 
-def maya_useNewAPI():
-    pass
+maya_useNewAPI = True 
 
 
 try:

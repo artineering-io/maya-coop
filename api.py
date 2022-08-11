@@ -8,8 +8,7 @@ from __future__ import print_function
 from __future__ import unicode_literals
 import maya.api.OpenMaya as om
 
-def maya_useNewAPI():
-    pass
+maya_useNewAPI = True 
 
 
 def get_node_mobject(node, get_type=False):

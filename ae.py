@@ -23,8 +23,7 @@ ATTR_WIDGETS = dict()  # Index of Custom Attribute Widgets
 PLAIN_ATTR_DATA = dict()
 
 
-def maya_useNewAPI():
-    pass
+maya_useNewAPI = True 
 
 
 class AETemplate(object):
