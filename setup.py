@@ -364,5 +364,5 @@ def _check_maya_env():
 def _restart_dialog():
     """ A Restart dialog to fully load the installed module """
     cmds.confirmDialog(title='Restart Maya',
-                       message='Installation successful!\nPlease restart Maya to make sure everything loads correctly',
+                       message='Changes were successful!\nPlease restart Maya to make sure everything loads correctly',
                        icn='information', button='OK', ma='center')
