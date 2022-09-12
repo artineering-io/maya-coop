@@ -881,8 +881,14 @@ def break_connections(objs, attrs, delete_inputs=False):
     objs = u_enlist(objs)
     attrs = u_enlist(attrs)
     for obj in objs:
+        if not cmds.objExists(obj):
+            LOG.warning("Could not break connections of {} as it doesn't exist".format(obj))
+            continue
         for attr in attrs:
             source = "{}.{}".format(obj, attr)
+            if not cmds.attributeQuery(attr, n=obj, ex=True):
+                LOG.warning("Could not break connections of {} as the attribute doesn't exist".format(source))
+                continue
             plugs = cmds.listConnections(source, p=True) or []
             for plug in plugs:
                 if cmds.listConnections(source, s=True, d=False) is None:
