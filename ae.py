@@ -204,7 +204,7 @@ class AETemplate(object):
         Adds a custom control to the template.
         Args:
             custom_obj (class): The custom control object,
-                                A class with buildControlUI() and replaceControlUI()
+                                A class with build_control_ui() and replace_control_ui()
             attrs (unicode, list): The attributes that this control manages
         """
         # print("custom_control({}, {})".format(custom_obj, attrs))

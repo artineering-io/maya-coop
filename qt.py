@@ -904,8 +904,10 @@ def print_children(qobject):
     """
     Prints all the children of qobject recursively
     Args:
-        qobject (QObject): The QObject to inspect
+        qobject (QObject, unicode): The QObject object or path to inspect
     """
+    if clib.is_string(qobject):
+        qobject = wrap_ctrl(qobject)
     children = qobject.children()
     for child in children:
         print(get_full_name(get_cpp_pointer(child)))
