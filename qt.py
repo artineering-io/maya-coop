@@ -6,7 +6,7 @@
 """
 from __future__ import print_function
 from __future__ import unicode_literals
-import time, threading, os
+import time, datetime, threading, os
 import maya.cmds as cmds
 import maya.OpenMayaUI as omUI
 from PySide2 import QtCore, QtGui, QtWidgets
@@ -853,9 +853,12 @@ class WebEnginePage(QWebEnginePage):
 
 class ProgressDialog(QtWidgets.QProgressDialog):
     """ Simple progress dialog """
-    def __init__(self, window_title, parent="", prefix="Processing"):
+    def __init__(self, window_title, parent="", prefix="Processing", time_remaining=False):
         self.prefix = prefix
         self.float_value = 0
+        self.start_time = time.time()
+        self.time_elapsed = 0
+        self.time_remaining = time_remaining
         if cmds.about(batch=True):
             print("Initializing {}".format(window_title))
         else:
@@ -874,16 +877,35 @@ class ProgressDialog(QtWidgets.QProgressDialog):
 
     def add(self, v, item):
         self.float_value += v
+        if self.time_remaining:
+            self.calculate_time()
         if cmds.about(batch=True):
-            print("{}% / 100%".format(round(self.float_value)))
-            print("{} {}".format(self.prefix, item))
+            self.log_progress(item)
         else:
             if self.wasCanceled():
                 return False
             self.setValue(int(self.float_value))
-            self.setLabelText("{} {}".format(self.prefix, item))
+            label = "{} {}".format(self.prefix, item)
+            if self.time_remaining:
+                label += "\nElapsed time {}".format(self.time_elapsed)
+                label += "\nRemaining time {}".format(self.time_remaining)
+            self.setLabelText(label)
             process_events()
         return True
+
+    def log_progress(self, item):
+        print("{}% / 100%".format(round(self.float_value)))
+        log_info = "{} {}".format(self.prefix, item)
+        if self.time_remaining:
+            log_info += " | elapsed: {} | remaining: {}".format(self.time_elapsed, self.time_remaining)
+        print(log_info)
+
+    def calculate_time(self):
+        self.time_elapsed = time.time() - self.start_time
+        self.time_remaining = (100.0 - self.float_value) * (self.time_elapsed / self.float_value)
+        # format to HH:MM:SS
+        self.time_elapsed = str(datetime.timedelta(seconds=int(self.time_elapsed)))
+        self.time_remaining = str(datetime.timedelta(seconds=int(self.time_remaining)))
 
     def finish(self):
         if cmds.about(batch=True):
