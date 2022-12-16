@@ -241,6 +241,21 @@ def get_lib_dir():
     return Path(__file__).parent().path
 
 
+def get_scene_name():
+    """
+    Gets the name of the currently opened scene
+    Returns:
+        scene_name (unicode): The name of the current scene or "unnamed_scene"
+    """
+    scene_name = cmds.file(q=True, sn=True, shn=True)
+    if scene_name:
+        end_idx = scene_name.rfind('.')
+        scene_name = scene_name[:end_idx]
+    else:
+        scene_name = "unnamed_scene"
+    return scene_name
+
+
 def open_url(url):
     """
     Opens the url in the default browser
