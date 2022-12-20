@@ -5,6 +5,7 @@
 @repository:    https://github.com/artineering-io/maya-coop
 """
 import logging
+import datetime
 
 
 def logger(name, debug=True):
@@ -19,3 +20,13 @@ def logger(name, debug=True):
     if debug:
         log.setLevel(logging.DEBUG)
     return log
+
+
+def today_as_int():
+    """
+    Get today's date as int: YYYYMMDD
+    Returns:
+        (int): Today as an integer: YYYYMMDD
+    """
+    today = datetime.datetime.now()
+    return int(today.strftime("%Y%m%d"))
