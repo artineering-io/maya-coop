@@ -325,23 +325,34 @@ class CoopMayaUI(QtWidgets.QDialog):
     def buildUI(self):
         pass
 
+    def refresh(self):
+        # if refresh is not overriden, then its going to rebuild the UI
+        clear_layout(self.layout)
+        self.buildUI()
+        self.populateUI()
 
-def refresh_window(window_title, quiet=True):
+
+def refresh_window(window_title_or_class, quiet=True):
     """
     Refresh the UI elements by deleting all widgets and rebuilding it
     Args:
-        window_title (unicode): Title of the window to refresh
+        window_title_or_class (unicode or class): Title of the window to refresh
         quiet (bool): If messages should be printed
     """
-    if cmds.window(window_title, exists=True):
-        ptr = omUI.MQtUtil.findWindow(window_title)  # pointer to main window
-        window = wrap_instance(ptr)
-        main_layout = window.layout()
-        clear_layout(main_layout)  # delete all widgets within main layout
-        window.window().buildUI()
+    if clib.is_string(window_title_or_class):
+        window_title = window_title_or_class
+        if cmds.window(window_title, exists=True):
+            ptr = omUI.MQtUtil.findWindow(window_title)  # pointer to main window
+            window = wrap_instance(ptr)
+            main_layout = window.layout()
+            clear_layout(main_layout)  # delete all widgets within main layout
+            window.window().buildUI()
     else:
-        if not quiet:
-            LOG.debug("{0} window doesn't exist".format(window_title))
+        window_title = window_title_or_class.windowTitle
+        if cmds.window(window_title, exists=True):
+            ptr = omUI.MQtUtil.findWindow(window_title)  # pointer to main window
+            window_title_or_class = wrap_instance(ptr, window_title_or_class)
+            window_title_or_class.refresh()
 
 
 def repopulate_window(window_title):

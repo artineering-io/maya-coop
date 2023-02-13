@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """
 @summary:       Maya cooperative python library
-@run:           import coop.coopLib as lib (suggested)
+@run:           import coop.coopLib as clib (suggested)
 @license:       MIT
 @repository:    https://github.com/artineering-io/maya-coop
 """
