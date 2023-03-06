@@ -17,31 +17,20 @@ from . import shelves as cshelf
 LOG = clog.logger("coop.setup")
 
 
-def install(install_dir, all_users=False, maya_versions=None):
+def install(install_dir, all_users=False, maya_versions=None, env_variables=None):
     """
     Install the module
     Args:
         install_dir (unicode): Root directory of the module file
         all_users (bool): If the installation should be for all users
         maya_versions (list): Maya versions to install onto
+        env_variables (dict): Additional enviroment variables to inject to Maya.env
     """
     install_dir = clib.u_decode(install_dir)
     maya_versions = clib.u_enlist(maya_versions)
     if not all_users:
         LOG.info("-> Installing module for current user")
-        new_variables = {'MAYA_MODULE_PATH': [os.path.abspath(install_dir)]}
-        maya_env_path = _check_maya_env()
-
-        # get and merge environment variables
-        env_variables, env_variables_order = _parse_environment_variables(maya_env_path)
-        _merge_variables(new_variables, env_variables, env_variables_order)
-
-        # write environment variables
-        temp_file_path = clib.Path(maya_env_path).parent().child("maya.tmp")
-        _write_variables(temp_file_path.path, env_variables, env_variables_order)
-
-        # replace environment file
-        shutil.move(temp_file_path.path, maya_env_path)
+        _install_local(install_dir, env_variables)
     else:
         LOG.info("-> Installing module for all users")
         _install_all_users(install_dir, maya_versions)
@@ -136,6 +125,24 @@ def is_installed_per_user(module_name):
         if clib.Path(path).slash_path() == installed_path:
             return True
     return False
+
+
+def _fmt_variables(env_variables):
+    """
+    Formats environment variables
+    Args:
+        env_variables (dict): Additional environment variables to inject into Maya.env
+    Returns:
+        (dict): Dictionary of formatted environment variables
+    """
+    new_variables = {}
+    if env_variables:
+        for var in env_variables:
+            values = []
+            for val in env_variables[var]:
+                values.append(os.path.abspath(val))
+            new_variables[var] = values
+    return new_variables
 
 
 def _parse_environment_variables(maya_env_path):
@@ -253,9 +260,40 @@ def _write_variables(file_path, variables, variables_order):
                     tmp.write(str(format_variable(var, variables[var])))
 
 
+def _install_local(install_dir, env_variables):
+    """
+    Installs module at install_dir for current local user.
+    Local installations adds the module path to the Maya.env file, together with
+    any other env_variables
+    Args:
+        install_dir (unicode): Directory where the .mod files are
+        env_variables (dict): Additional environment variables to inject into Maya.env
+    """
+    # adding module to environment variables
+    if 'MAYA_MODULE_PATH' in env_variables:
+        env_variables['MAYA_MODULE_PATH'].append(install_dir)
+    else:
+        env_variables['MAYA_MODULE_PATH'] = [install_dir]
+
+    new_variables = _fmt_variables(env_variables)
+    maya_env_path = _check_maya_env()
+
+    # get and merge environment variables
+    env_variables, env_variables_order = _parse_environment_variables(maya_env_path)
+    _merge_variables(new_variables, env_variables, env_variables_order)
+
+    # write environment variables
+    temp_file_path = clib.Path(maya_env_path).parent().child("maya.tmp")
+    _write_variables(temp_file_path.path, env_variables, env_variables_order)
+
+    # replace environment file
+    shutil.move(temp_file_path.path, maya_env_path)
+
+
 def _install_all_users(install_dir, maya_versions):
     """
-    Installs modules at install_dir for all users
+    Installs modules from install_dir for all users in:
+    Windows: C:/Program Files/Common Files/Autodesk Shared/Modules/maya
     Args:
         install_dir (unicode): Directory where the .mod files are
         maya_versions (list): List of Maya versions to install modules in
@@ -276,6 +314,7 @@ def _install_all_users(install_dir, maya_versions):
             new_mod_file.write(str(modified_module))
         new_modules.append(temp_path.path)
 
+    # paste module files with elevated priviledges
     py_cmd = _py_cmd_install_all_users(maya_versions, new_modules)
     print(py_cmd)
     if is_admin():

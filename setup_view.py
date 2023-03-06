@@ -18,11 +18,13 @@ class SetupUI(cqt.CoopMayaUI):
     """ Cross platform plugin setup """
 
     def __init__(self, title, module_name="", install_dir="", brand="Coop Installer",
-                 supported_os=None, supported_maya_versions=None, rebuild=True):
+                 supported_os=None, supported_maya_versions=None, env_variables=None,
+                 rebuild=True):
         self.module_name = module_name
         self.module_path = clib.get_module_path(module_name)
         self.install_dir = install_dir
         self.reinstall = False
+        self.env_variables = env_variables
 
         self.supported_os = supported_os
         if self.supported_os is None:
@@ -124,7 +126,7 @@ class SetupUI(cqt.CoopMayaUI):
             LOG.info("Installing {} for current user".format(self.module_name))
             if self.reinstall:
                 setup.uninstall(self.module_path, self.module_name, self.reinstall)
-            setup.install(self.install_dir, all_users=False)
+            setup.install(self.install_dir, all_users=False, env_variables=self.env_variables)
         else:
             setup.install(self.install_dir, all_users=True, maya_versions=self.supported_maya_versions)
             LOG.info("Installing {} for all users".format(self.module_name))
