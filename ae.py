@@ -353,6 +353,8 @@ def _plain_attr_widget(node_attr, kwargs):
             ctrl = cmds.attrFieldSliderGrp(at=node_attr, label=lab, ann=ann, hideMapButton=True)
         else:
             ctrl = cmds.attrNavigationControlGrp(at=node_attr, label=lab, ann=ann)
+        if callback:  # manage callbacks manually to guarantee their existence
+            cmds.scriptJob(attributeChange=[node_attr, callback], parent=ctrl, replacePrevious=True)
     elif attr_type == "float3":
         ctrl = cmds.attrColorSliderGrp(at=node_attr, label=lab, ann=ann, showButton=False,
                                        cw=[4, 0], columnAttach4=["right", "both", "right", "both"],
