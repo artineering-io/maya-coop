@@ -78,9 +78,12 @@ def uninstall(install_dir, module_name, reinstall=False, shelves=None, backgroun
         _uninstall_all_users(module_name)
 
     if not reinstall:
-        cshelf.delete_shelves(shelves, False)
+        if shelves:
+            cshelf.delete_shelves(shelves, False)
         if not background:
             _restart_dialog()
+
+    clib.print_info("{} successfully uninstalled".format(module_name.title()))
 
 
 def get_common_module_dir():
