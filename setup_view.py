@@ -121,7 +121,7 @@ class SetupUI(cqt.CoopMayaUI):
         option = options[self.button_grp.checkedId()]
         if option == "Uninstall":
             LOG.info("Uninstalling {}".format(self.module_name))
-            setup.uninstall(self.module_path, self.module_name)
+            setup.uninstall(self.module_path, self.module_name, env_vars_to_delete=self.env_variables)
         elif option == "Install":
             LOG.info("Installing {} for current user".format(self.module_name))
             if self.reinstall:

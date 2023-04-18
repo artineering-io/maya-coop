@@ -24,7 +24,7 @@ def install(install_dir, all_users=False, maya_versions=None, env_variables=None
         install_dir (unicode): Root directory of the module file
         all_users (bool): If the installation should be for all users
         maya_versions (list): Maya versions to install onto
-        env_variables (dict): Additional enviroment variables to inject to Maya.env
+        env_variables (dict): Additional environment variables to inject to Maya.env
     """
     install_dir = clib.u_decode(install_dir)
     maya_versions = clib.u_enlist(maya_versions)
@@ -39,7 +39,7 @@ def install(install_dir, all_users=False, maya_versions=None, env_variables=None
     _restart_dialog()
 
 
-def uninstall(install_dir, module_name, reinstall=False, shelves=None, background=False):
+def uninstall(install_dir, module_name, reinstall=False, shelves=None, background=False, env_vars_to_delete=None):
     """
     Uninstalls the module
     Args:
@@ -48,17 +48,23 @@ def uninstall(install_dir, module_name, reinstall=False, shelves=None, backgroun
         reinstall (bool): If uninstalling happens because of a re-install
         shelves (unicode, list): Shelves to uninstall
         background (bool): If uninstalling should happen in the background (without user prompts)
+        env_vars_to_delete (dict): Additional environment variables to delete from Maya.env
     """
     if is_installed_per_user(module_name):
         maya_env_path = _check_maya_env()
         env_variables, env_variables_order = _parse_environment_variables(maya_env_path)
 
-        if "MAYA_MODULE_PATH" in env_variables:
-            module_paths = list(env_variables["MAYA_MODULE_PATH"])
-            for path in module_paths:
-                if os.path.abspath(path) == os.path.abspath(install_dir):
-                    env_variables["MAYA_MODULE_PATH"].remove(path)
-                    break
+        # delete environment variables
+        if env_vars_to_delete is None:
+            env_vars_to_delete = dict()
+        if "MAYA_MODULE_PATH" in env_vars_to_delete:
+            env_vars_to_delete["MAYA_MODULE_PATH"].append(install_dir)
+        else:
+            env_vars_to_delete["MAYA_MODULE_PATH"] = [install_dir]
+        _delete_maya_env_vars(env_variables, env_vars_to_delete)
+
+        LOG.debug("CLEANED VARIABLES:")
+        pprint.pprint(env_variables)
 
         # write environment variables
         temp_file_path = clib.Path(maya_env_path).parent().child("maya.tmp")
@@ -401,6 +407,28 @@ def _check_maya_env():
         with open(maya_env_path.path, 'ab') as tmp:
             tmp.write(str(""))
     return maya_env_path.path
+
+
+def _delete_maya_env_vars(env_variables, env_vars_to_delete):
+    """
+    Delete environment variables from dictionary if they exist
+    Args:
+        env_variables (dict): Dictionary of environment variables
+        env_vars_to_delete (dict): Dictionary of environment variables to delete
+    """
+    if not env_vars_to_delete:
+        return
+
+    for var_to_delete in env_vars_to_delete:
+        if var_to_delete not in env_variables:
+            continue
+        var_paths_to_delete = list(env_vars_to_delete[var_to_delete])
+        var_paths = list(env_variables[var_to_delete])
+        for path_to_delete in var_paths_to_delete:
+            for path in var_paths:
+                if os.path.abspath(path_to_delete) == os.path.abspath(path):
+                    env_variables[var_to_delete].remove(path)
+                    break
 
 
 def _restart_dialog():
