@@ -880,6 +880,7 @@ class ProgressDialog(QtWidgets.QProgressDialog):
             self.setWindowTitle(window_title)
             self.setMinimumWidth(600)
             self.setAutoClose(True)
+            self.setAttribute(QtCore.Qt.WA_DeleteOnClose, True)
             self.setAutoReset(True)
             self.setRange(0, 100)
             self.setValue(int(self.float_value))
@@ -923,6 +924,7 @@ class ProgressDialog(QtWidgets.QProgressDialog):
             print("100% - COMPLETED")
         else:
             self.setValue(100)
+            self.close()
 
 
 def process_events():
