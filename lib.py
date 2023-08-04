@@ -342,6 +342,11 @@ def eval_deferred(function, lowestPriority=False):
         function (unicode, func): Function to evaluate
         lowestPriority (bool): True will make this priority lowest (normal is low)
     """
+    if is_string(function):
+        if function.startswith('cmds.'):
+            # in Maya 2023, one needs to explicitly say that the command is from maya.cmds
+            # otherwise it throws an error
+            function = "maya.{}".format(function)
     if lowestPriority is None:
         cmds.evalDeferred(function)
     else:
