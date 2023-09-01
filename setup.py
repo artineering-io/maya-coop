@@ -17,7 +17,7 @@ from . import shelves as cshelf
 LOG = clog.logger("coop.setup")
 
 
-def install(install_dir, all_users=False, maya_versions=None, env_variables=None):
+def install(install_dir, all_users=False, maya_versions=None, env_variables=None, custom_install_func=None):
     """
     Install the module
     Args:
@@ -25,6 +25,7 @@ def install(install_dir, all_users=False, maya_versions=None, env_variables=None
         all_users (bool): If the installation should be for all users
         maya_versions (list): Maya versions to install onto
         env_variables (dict): Additional environment variables to inject to Maya.env
+        custom_install_func (function): Custom partial install function to run
     """
     install_dir = clib.u_decode(install_dir)
     maya_versions = clib.u_enlist(maya_versions)
@@ -35,11 +36,15 @@ def install(install_dir, all_users=False, maya_versions=None, env_variables=None
         LOG.info("-> Installing module for all users")
         _install_all_users(install_dir, maya_versions)
 
+    if custom_install_func:
+        custom_install_func()
+
     clib.display_info("-> Installation complete <-")
     _restart_dialog()
 
 
-def uninstall(install_dir, module_name, reinstall=False, shelves=None, background=False, env_vars_to_delete=None):
+def uninstall(install_dir, module_name, reinstall=False, shelves=None, background=False, env_vars_to_delete=None,
+              custom_uninstall_func=None):
     """
     Uninstalls the module
     Args:
@@ -49,6 +54,7 @@ def uninstall(install_dir, module_name, reinstall=False, shelves=None, backgroun
         shelves (unicode, list): Shelves to uninstall
         background (bool): If uninstalling should happen in the background (without user prompts)
         env_vars_to_delete (dict): Additional environment variables to delete from Maya.env
+        custom_uninstall_func (function): Custom partial uninstall function to run
     """
     if is_installed_per_user(module_name):
         maya_env_path = _check_maya_env()
@@ -88,6 +94,9 @@ def uninstall(install_dir, module_name, reinstall=False, shelves=None, backgroun
             cshelf.delete_shelves(shelves, False)
         if not background:
             _restart_dialog()
+
+    if custom_uninstall_func:
+        custom_uninstall_func()
 
     clib.print_info("{} successfully uninstalled".format(module_name.title()))
 
