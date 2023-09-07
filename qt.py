@@ -253,7 +253,7 @@ def read_python(file_path):
 
 class CoopMayaUI(QtWidgets.QDialog):
 
-    def __init__(self, title, dock=False, rebuild=False, brand="studio.coop", tooltip="", show=True,
+    def __init__(self, title, dock=False, rebuild=False, brand="studio.coop", tooltip="", show=True, center=False,
                  parent=""):
 
         if cmds.window(title, exists=True):
@@ -317,6 +317,9 @@ class CoopMayaUI(QtWidgets.QDialog):
         if not dock and show:
             self.show()
 
+        if center:
+            self.center()
+
         LOG.debug("{0} was successfully generated".format(title))
 
     def populateUI(self):
@@ -330,6 +333,16 @@ class CoopMayaUI(QtWidgets.QDialog):
         clear_layout(self.layout)
         self.buildUI()
         self.populateUI()
+
+    def center(self):
+        """ Centers the QDialog relative to its parent or current screen """
+        if self.parent():
+            geo = self.parent().frameGeometry()
+        else:
+            cur_screen = QtGui.QGuiApplication.screenAt(QtGui.QCursor.pos())
+            geo = cur_screen.availableGeometry()
+        center_style = QtWidgets.QStyle.alignedRect(QtCore.Qt.LeftToRight, QtCore.Qt.AlignCenter, self.size(), geo)
+        self.setGeometry(center_style)
 
 
 def refresh_window(window_title_or_class, quiet=True):
