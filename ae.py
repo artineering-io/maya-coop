@@ -22,8 +22,7 @@ LOG = clog.logger("coop.ae")
 ATTR_WIDGETS = dict()  # Index of Custom Attribute Widgets
 PLAIN_ATTR_DATA = dict()
 
-
-maya_useNewAPI = True 
+maya_useNewAPI = True
 
 
 class AETemplate(object):
@@ -364,16 +363,7 @@ def _plain_attr_widget(node_attr, kwargs):
     elif attr_type == "long2" or attr_type == "double4":
         ctrl = cmds.attrFieldGrp(attribute=node_attr, label=lab, ann=ann, hideMapButton=True)
     elif attr_type == "bool":
-        ctrl = cmds.attrControlGrp(attribute=node_attr, label=lab, ann=ann)
-        if callback:  # manage callbacks manually to guarantee their existence
-            cmds.scriptJob(attributeChange=[node_attr, callback], parent=ctrl, replacePrevious=True)
-        widget = cqt.wrap_ctrl(ctrl, QtWidgets.QWidget)
-        widget.setAccessibleName(lab)
-        # widget.setLayoutDirection(QtCore.Qt.RightToLeft)  # move checkbox to the right
-        label = widget.findChildren(QtWidgets.QLabel)[0]
-        label.setText(lab)
-        checkbox = widget.findChildren(QtWidgets.QCheckBox)[0]
-        checkbox.setText("           ")
+        ctrl = attr_checkbox_grp(node_attr, lab=lab, tooltip=ann, callback=callback)
     elif attr_type == "enum":
         ctrl = cmds.attrEnumOptionMenuGrp(at=node_attr, label=lab, ann=ann)
         if callback:  # manage callbacks manually to guarantee their existence
@@ -678,6 +668,35 @@ def search_for_node_ae_windows(node_names):
     return windows
 
 
+def attr_checkbox_grp(node_attr, lab, label_width=None, tooltip="", callback=None):
+    """
+    Create a custom Attribute Checkbox Group widget that has the checkbox to the right
+    Args:
+        node_attr (unicode): The attribute the control should change in the format node.attr
+        lab (unicode): The label the control should have (can be different than attribute name)
+        label_width (int): The width available for the label
+        tooltip (unicode): Tooltip that appears when hovering over the control
+        callback (func): Function to call when the attribute is changed
+    Returns:
+        (ui path): The UI path of the custom attribute control group
+    """
+    ctrl = cmds.attrControlGrp(attribute=node_attr, label=lab, ann=tooltip)
+    if callback:  # manage callbacks manually to guarantee their existence
+        cmds.scriptJob(attributeChange=[node_attr, callback], parent=ctrl, replacePrevious=True)
+    widget = cqt.wrap_ctrl(ctrl, QtWidgets.QWidget)
+    widget.setAccessibleName(lab)
+    widget.setLayoutDirection(QtCore.Qt.RightToLeft)  # move checkbox to the right
+    cmds.checkBoxGrp(ctrl, columnWidth=[1, 0], e=True)  # remove empty label of ctrl group
+    cbox = widget.findChildren(QtWidgets.QCheckBox)[0]
+    if label_width is None:
+        label_width = int(mel.eval('$tempMelVar=$gTextColumnWidthIndex'))
+    dpi_scale = cqt.get_dpi_scale()
+    cbox.setFixedWidth(dpi_scale * (label_width + 2))
+    style_sheet = "margin-top: {0}px; margin-bottom: {0}px".format(dpi_scale * 2)
+    cbox.setStyleSheet(style_sheet)
+    return ctrl
+
+
 class AEControls:
     controls = OrderedDict()
     node_name = ""
@@ -712,7 +731,7 @@ class AEControls:
         if not cmds.objExists(node_name):
             clib.print_error("{} doesn't exist".format(node_name), True)
         self.node_name = clib.u_stringify(cmds.ls(node_name, l=True))
-        if not self.from_window:   # show ae by selecting the node
+        if not self.from_window:  # show ae by selecting the node
             selection = cmds.ls(sl=True, l=True)
             if node_name != selection[-1]:
                 cmds.select(node_name, r=True)
@@ -724,6 +743,7 @@ class AEControls:
         |AEStackLayout|AErootLayoutPane|AEbaseFormLayout|AEcontrolFormLayout|AttrEdflairShaderFormLayout
         |scrollLayout50|columnLayout1759|frameLayout614|columnLayout1801|columnLayout1803|attrFieldSliderGrp902
         """
+
         def _parse_ae_path(ui_path):
             path = ""
             scroll_idx = ui_path.find("|scrollLayout")
@@ -783,10 +803,10 @@ class AEControls:
             parent_object (QObject): Parent object to traverse
         """
         children = parent_object.children() or []
-        #print("--> Parent {}".format(parent_path))
+        # print("--> Parent {}".format(parent_path))
         for child in children:
             child_path = cqt.get_full_name(cqt.get_cpp_pointer(child))
-            #print(child_path)
+            # print(child_path)
             if child_path == parent_path:
                 continue  # children may have the same ui_path as the parent
             self._store_supported_ctrls(child_path)
