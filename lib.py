@@ -831,6 +831,8 @@ def set_attr(obj, attr, value, silent=False):
                 for sub_attr in cmds.attributeQuery(attr, node=obj, listChildren=True):
                     set_attr(obj, sub_attr, value[idx])
                     idx += 1
+            elif len(value) == 4:
+                cmds.setAttr(node_attr, value[0], value[1], value[2], value[3], type="double4")
             else:
                 cmds.setAttr(node_attr, tuple(value), type="doubleArray")
         else:
