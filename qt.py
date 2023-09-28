@@ -291,7 +291,10 @@ class CoopMayaUI(QtWidgets.QDialog):
         if dock:
             cmds.dockControl(title, con=title, area='left', label=title)
         else:
-            self.setGeometry(250, 250, 0, 0)  # default position when built
+            # default position in active window
+            cur_screen = QtGui.QGuiApplication.screenAt(QtGui.QCursor.pos())
+            geo = cur_screen.availableGeometry()
+            self.setGeometry(geo.x() + 250, geo.y() + 250, 0, 0)  # default position when built
 
         # default UI elements (keeping it simple)
         self.layout = QtWidgets.QVBoxLayout(self)  # self -> apply to QDialog
@@ -468,6 +471,28 @@ class HLine(QtWidgets.QFrame):
         return QtCore.QSize(self.width, self.height)
 
 
+class VLine(QtWidgets.QFrame):
+    """
+    Vertical line class object
+    """
+
+    def __init__(self, width=5, height=0):
+        """
+        Vertical line constructor
+        Args:
+            width (int):  Width of horizontal line (line thickness won't change)
+            height (int): Height of widget
+        """
+        super(VLine, self).__init__()
+        self.setFrameShape(QtWidgets.QFrame.VLine)
+        self.setFrameShadow(QtWidgets.QFrame.Sunken)
+        self.height = height
+        self.width = width
+
+    def sizeHint(self):
+        return QtCore.QSize(self.width, self.height)
+
+
 class RelativeSlider(QtWidgets.QSlider):
     """
     Relative slider class object
@@ -514,6 +539,41 @@ class RelativeSlider(QtWidgets.QSlider):
             return True  # blocking the event
         else:
             return False
+
+
+class VerticalLabel(QtWidgets.QWidget):
+    def __init__(self, text="", height=100, bg_color=QtGui.QColor(40, 40, 40, 255)):
+        """
+
+        Args:
+            text:
+            height:
+            bg_color:
+        """
+        super(self.__class__, self).__init__()
+        self.text = text
+        self.height = height
+        self.bg_color = bg_color
+        self.dpi = get_dpi_scale()
+
+    def paintEvent(self, event):
+        painter = QtGui.QPainter(self)
+        try:
+            painter.rotate(-90)
+            label = QtCore.QRect(-self.height, 0, self.height, 18 * self.dpi)
+            painter.setPen(self.bg_color)
+            painter.setBrush(self.bg_color)
+            painter.drawRect(label)
+
+            if self.text:
+                painter.setFont(QtGui.QFont(painter.font().family(), painter.font().pointSize(), QtGui.QFont.Bold))
+                painter.setPen(QtCore.Qt.lightGray)
+                painter.drawText(label, QtCore.Qt.AlignHCenter | QtCore.Qt.AlignVCenter, self.text)
+        finally:
+            painter.end()
+
+    def sizeHint(self):
+        return QtCore.QSize(18 * self.dpi, self.height)
 
 
 class LabeledFieldSliderGroup(QtWidgets.QWidget):

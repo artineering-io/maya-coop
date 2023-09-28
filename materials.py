@@ -50,6 +50,8 @@ def get_materials(objects):
         (list): Materials
     """
     objects = clib.u_enlist(objects)
+    if not objects:
+        return []
     materials = cmds.ls(objects, l=True, mat=True)
     transforms = cmds.ls(objects, l=True, et="transform")
     shapes = cmds.ls(objects, l=True, s=True, noIntermediate=True)
