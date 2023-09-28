@@ -7,7 +7,7 @@
 """
 from __future__ import print_function
 from __future__ import unicode_literals
-import os, sys, subprocess, shutil, re, math, traceback, platform
+import os, sys, subprocess, shutil, re, math, traceback, platform, datetime
 from functools import wraps
 import maya.mel as mel
 import maya.cmds as cmds
@@ -134,6 +134,13 @@ def keep_selection(f):
 ######################################################################################
 # GENERAL UTILITIES
 ######################################################################################
+def time_stamp():
+    """ Get a date stamp integer as YYYYMMDD """
+    now = datetime.datetime.now()
+    date_string = now.strftime("%Y%m%d")
+    return int(date_string)
+
+
 def get_host():
     """
     Checks for host application of python environment
