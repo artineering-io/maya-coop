@@ -582,7 +582,8 @@ class LabeledFieldSliderGroup(QtWidgets.QWidget):
     """
     valueChanged = QtCore.Signal()  # value changed signal of custom widget
 
-    def __init__(self, label="", value=0.0, soft_minv=0.0, soft_maxv=1.0, minv=None, maxv=None):
+    def __init__(self, label="", value=0.0, soft_minv=0.0, soft_maxv=1.0, minv=None, maxv=None,
+                 decimals=3, reverse_layout=False):
         super(LabeledFieldSliderGroup, self).__init__()
         self.dpiS = get_dpi_scale()
         self._set_slider_members(label, soft_minv, soft_maxv, minv, maxv)
@@ -592,14 +593,16 @@ class LabeledFieldSliderGroup(QtWidgets.QWidget):
         self.layout.setContentsMargins(0, 0, 0, 0)
 
         # create label
-        label = QtWidgets.QLabel(label)
-        label.setMinimumWidth(140 * self.dpiS)
-        label.setAlignment(QtCore.Qt.AlignRight | QtCore.Qt.AlignVCenter)
-        self.layout.addWidget(label)
+        if label:
+            lbl = QtWidgets.QLabel(label)
+            lbl.setMinimumWidth(140 * self.dpiS)
+            lbl.setAlignment(QtCore.Qt.AlignRight | QtCore.Qt.AlignVCenter)
+            self.layout.addWidget(lbl)
 
         # create field
         self.field = QtWidgets.QDoubleSpinBox()
-        self.field.setDecimals(3)
+        self.decimals = decimals
+        self.field.setDecimals(self.decimals)
         self.field.setButtonSymbols(QtWidgets.QAbstractSpinBox.NoButtons)
         self.field.setFixedWidth(60 * self.dpiS)
         self.field.setStyleSheet("border: 0; border-radius: {0}px".format(2 * self.dpiS))
@@ -611,9 +614,12 @@ class LabeledFieldSliderGroup(QtWidgets.QWidget):
         if self.max is not None:
             self.field.setMaximum(self.max)
 
-        self.field.setSingleStep(0.01 * pow(10, len(str(int(value)))))  # step depends on how many digits value has
+        # step depends on how many digits value or soft_maxv have
+        if value != 0.0:
+            self.field.setSingleStep(0.01 * pow(10, len(str(int(value)))))
+        else:
+            self.field.setSingleStep(0.01 * pow(10, len(str(int(soft_maxv)))))
         self.field.setObjectName("{0} field".format(label))
-        self.layout.addWidget(self.field)
 
         # create slider
         self.slider = QtWidgets.QSlider(QtCore.Qt.Horizontal)
@@ -622,14 +628,21 @@ class LabeledFieldSliderGroup(QtWidgets.QWidget):
         self.slider.setObjectName("{0} slider".format(label))
         self.slider.setSingleStep(10 * pow(10, len(str(int(value)))))  # step depends on how many digits value has
         self.slider.setPageStep(10 * pow(10, len(str(int(value)))))  # step depends on how many digits value has
-        self.layout.addWidget(self.slider)
+
+        # add to layout
+        if not reverse_layout:
+            self.layout.addWidget(self.field)
+            self.layout.addWidget(self.slider)
+        else:
+            self.layout.addWidget(self.slider)
+            self.layout.addWidget(self.field)
 
         # save data variables
         self.set_range(self.soft_min, self.soft_max)
 
         # set values
         self.field.setValue(value)
-        self.slider.setValue(value * 1000)  # sliders only operate on integers
+        self.slider.setValue(value * pow(10, self.decimals))  # sliders only operate on integers
         self.internalValue = value
 
         # create connections
@@ -658,7 +671,6 @@ class LabeledFieldSliderGroup(QtWidgets.QWidget):
             if soft_maxv > self.max:
                 self.soft_max = self.max
 
-
     def set_range(self, minv, maxv):
         """
         Sets the range of the slider to min and max
@@ -679,7 +691,7 @@ class LabeledFieldSliderGroup(QtWidgets.QWidget):
         else:
             LOG.warning("Minimum value of {} not less than maximum value of {} in {}"
                         .format(minv, maxv, self.label))
-        self.slider.setMinimum(self.soft_min * 1000)
+        self.slider.setMinimum(self.soft_min * pow(10, self.decimals))
         # check maximum
         if maxv > self.soft_min:
             if self.max is None:
@@ -693,13 +705,13 @@ class LabeledFieldSliderGroup(QtWidgets.QWidget):
         else:
             LOG.warning("Maximum value {} is not more than minimum value of {} in {}"
                         .format(maxv, self.soft_min, self.label))
-        self.slider.setMaximum(self.soft_max * 1000)
+        self.slider.setMaximum(self.soft_max * pow(10, self.decimals))
 
     def update_value(self):
         """ Update and synchronize the value between the spinbox and slider """
         value = self.sender().value()
         if self.sender() == self.slider:
-            value /= 1000.0
+            value /= pow(10, self.decimals)
             # print("{0} with value: {1}".format(self.sender().objectName(), value))
             self.field.setValue(value)
         if self.sender() == self.field:
@@ -711,7 +723,7 @@ class LabeledFieldSliderGroup(QtWidgets.QWidget):
             if value > self.soft_max:
                 self.set_range(self.soft_min, value)
             # set value
-            self.slider.setValue(value * 1000)
+            self.slider.setValue(value * pow(10, self.decimals))
             self.slider.blockSignals(False)
         self.internalValue = value
         self.valueChanged.emit()
