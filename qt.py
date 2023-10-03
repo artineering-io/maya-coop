@@ -707,6 +707,10 @@ class LabeledFieldSliderGroup(QtWidgets.QWidget):
                         .format(maxv, self.soft_min, self.label))
         self.slider.setMaximum(self.soft_max * pow(10, self.decimals))
 
+    def set_value(self, value):
+        """ Convenience function to set the value onto the widget """
+        self.field.setValue(value)
+
     def update_value(self):
         """ Update and synchronize the value between the spinbox and slider """
         value = self.sender().value()
