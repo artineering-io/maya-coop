@@ -366,3 +366,21 @@ def get_connected_node(material, attr, prefix=""):
     if sources:
         node = "{}{}".format(prefix, sources[0])
     return node
+
+
+def refresh_materials(materials=None):
+    """
+    Refreshes the shading engines of materials to fetch changes that might
+    not have been propagated
+    Args:
+        materials (list, unicode): Materials to refresh
+    """
+    if materials is None:
+        materials = cmds.ls(mat=True)
+    shading_engines = cmds.listConnections(materials, type="shadingEngine")
+    cmds.dgdirty(shading_engines)
+
+
+
+
+
