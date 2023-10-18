@@ -198,7 +198,7 @@ class AETemplate(object):
         mel.eval(mel_cmd)
 
     @staticmethod
-    def custom_control(custom_obj, attrs):
+    def custom_control(custom_obj, attrs=""):
         """
         Adds a custom control to the template.
         Args:
@@ -308,6 +308,7 @@ class CustomControl(object):
         pass
 
 
+##################################################################################
 class PlainAttrGrp(CustomControl):
     """ Maya attribute controls created depending on the type of the attribute """
 
@@ -372,7 +373,7 @@ def _plain_attr_widget(node_attr, kwargs):
         LOG.error("{} UI could not be generated. Attributes of type {} "
                   "have not been implemented for _plain_attr_widget())".format(node_attr, attr_type))
         return
-    if not ctrl.startswith("window"):  # do not updates/replace attributes that are in external windows
+    if not ctrl.startswith("window"):  # do not update/replace attributes that are in external windows
         if ctrl not in ATTR_WIDGETS[widget_name]:
             ATTR_WIDGETS[widget_name].append(ctrl)
 
@@ -668,7 +669,7 @@ def search_for_node_ae_windows(node_names):
     return windows
 
 
-def attr_checkbox_grp(node_attr, lab, label_width=None, tooltip="", callback=None):
+def attr_checkbox_grp(node_attr, lab, label_width=None, tooltip="", callback=None, enable=True):
     """
     Create a custom Attribute Checkbox Group widget that has the checkbox to the right
     Args:
@@ -677,10 +678,11 @@ def attr_checkbox_grp(node_attr, lab, label_width=None, tooltip="", callback=Non
         label_width (int): The width available for the label
         tooltip (unicode): Tooltip that appears when hovering over the control
         callback (func): Function to call when the attribute is changed
+        enable (bool): If widget should be enabled or disabled
     Returns:
         (ui path): The UI path of the custom attribute control group
     """
-    ctrl = cmds.attrControlGrp(attribute=node_attr, label=lab, ann=tooltip)
+    ctrl = cmds.attrControlGrp(attribute=node_attr, label=lab, ann=tooltip, enable=enable)
     if callback:  # manage callbacks manually to guarantee their existence
         cmds.scriptJob(attributeChange=[node_attr, callback], parent=ctrl, replacePrevious=True)
     widget = cqt.wrap_ctrl(ctrl, QtWidgets.QWidget)

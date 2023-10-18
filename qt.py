@@ -146,8 +146,19 @@ def get_maya_layout(ui_path=""):
     # Note: Maya layouts are explicit in the UI path.
     #       As Qt doesn't do this by default, Maya includes a dummy widget with the same name
     #       We can use this knowledge to extract the actual layout
-    parent_layout = parent.children()[-1].layout()
-    return parent_layout
+    return parent.children()[-1].layout()
+
+
+def get_maya_widget(ui_path):
+    """
+    Get Maya's widget from its UI path
+    Args:
+        ui_path (unicode): UI path of Maya control
+    Returns:
+        (QWidget): Maya's Qt widget
+    """
+    obj = wrap_instance(omUI.MQtUtil.findControl(ui_path), QtWidgets.QWidget)
+    return obj.children()[-1]
 
 
 def get_cpp_pointer(qobject):
