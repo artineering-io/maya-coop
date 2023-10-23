@@ -359,6 +359,8 @@ def _plain_attr_widget(node_attr, kwargs):
         ctrl = cmds.attrColorSliderGrp(at=node_attr, label=lab, ann=ann, showButton=False,
                                        cw=[4, 0], columnAttach4=["right", "both", "right", "both"],
                                        columnOffset4=[6, 1, -3, 0])
+    elif attr_type == "float2":
+        ctrl = attr_range_grp(node_attr, lab=lab, tooltip=ann, range_label=kwargs.get('range_label', ""))
     elif attr_type == "long":
         ctrl = cmds.attrFieldSliderGrp(attribute=node_attr, label=lab, ann=ann, hideMapButton=True)
     elif attr_type == "long2" or attr_type == "double4":
@@ -430,6 +432,8 @@ def _plain_attr_widget_update(node_attr, callback):
             cmds.attrFieldGrp(ctrl, at=node_attr, e=True)
         elif attr_type == "float3":
             cmds.attrColorSliderGrp(ctrl, at=node_attr, e=True)
+        elif attr_type == "float2":
+            cmds.attrFieldGrp(ctrl, at=node_attr, e=True)
         elif attr_type == "bool":
             cmds.attrControlGrp(ctrl, attribute=node_attr, e=True)
             _check_script_jobs(node_attr, ctrl, callback)
@@ -667,6 +671,31 @@ def search_for_node_ae_windows(node_names):
         else:
             LOG.error("{} does not exist".format(node_name))
     return windows
+
+
+def attr_range_grp(node_attr, lab, tooltip="", range_label="", enable=True):
+    """
+    Create a custom Attribute Range widget (float2) with a range label inbetween
+    Args:
+        node_attr (unicode): The attribute the control should change in the format node.attr
+        lab (unicode): The label the control should have (can be different than attribute name)
+        tooltip (unicode): Tooltip that appears when hovering over the control
+        range_label (unicode): The range label that appears between the range fields
+        enable (bool): If widget should be enabled or disabled
+    Returns:
+        (ui path): The UI path of the custom attribute control group
+    """
+    ctrl = cmds.attrFieldGrp(attribute=node_attr, label=lab, ann=tooltip, enable=enable)
+    widget = cqt.get_maya_widget(ctrl)
+    layout = widget.layout()
+    line_edits = widget.findChildren(QtWidgets.QLineEdit)
+    le_width = line_edits[0].width()
+    spacer = QtWidgets.QLabel(range_label)
+    spacer.setMinimumWidth(le_width * 2 + (10 * cqt.get_dpi_scale()))
+    spacer.setAlignment(QtCore.Qt.AlignCenter)
+    layout.insertWidget(2, spacer, 1)
+    line_edits[-1].setMinimumWidth(le_width + 5)
+    return ctrl
 
 
 def attr_checkbox_grp(node_attr, lab, label_width=None, tooltip="", callback=None, enable=True):

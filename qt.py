@@ -157,8 +157,19 @@ def get_maya_widget(ui_path):
     Returns:
         (QWidget): Maya's Qt widget
     """
-    obj = wrap_instance(omUI.MQtUtil.findControl(ui_path), QtWidgets.QWidget)
-    return obj.children()[-1]
+    return wrap_instance(omUI.MQtUtil.findControl(ui_path), QtWidgets.QWidget)
+
+
+def get_maya_qframe(ui_path):
+    """
+    Get Maya's QFrame widget of frameLayout from its UI path
+    Args:
+        ui_path (unicode): UI path of Maya control
+    Returns:
+        (QFrame): Maya's QFrame widget
+    """
+    widget = get_maya_widget(ui_path)
+    return widget.children()[-1]
 
 
 def get_cpp_pointer(qobject):
