@@ -255,11 +255,10 @@ def get_dpi_scale():
     Gets the dpi scale of the Maya window
     Returns:
         (float): DPI scaling factor of the Maya interface
-    TODO: MacOS and Linux version
     """
     if clib.get_local_os() == "win":
         return cmds.mayaDpiSetting(realScaleValue=True, q=True)
-    return 1.0
+    return omUI.MQtUtil.dpiScale(1.0)
 
 
 def read_python(file_path):
