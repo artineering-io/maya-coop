@@ -183,7 +183,7 @@ def get_cpp_pointer(qobject):
     return getCppPointer(qobject)[0]
 
 
-class UIPath:
+class UIPath(object):
     def __init__(self, path):
         if isinstance(path, str):
             self.path = clib.u_decode(path)
@@ -203,6 +203,25 @@ class UIPath:
         if idx != -1:
             return self.path[:idx]
         return ""
+
+    def parent(self):
+        """
+        Returns the path of the UI parent
+        Returns:
+            (UIPath): Parent UI path
+        """
+        idx = self.path.rfind('|')
+        if idx != 0:
+            self.path = self.path[:idx]
+            return self
+        else:
+            clib.print_error("{} is a root path".format(self.path))
+
+    def basename(self):
+        """
+        Returns the basename of the UI path
+        """
+        return self.path[self.path.rfind('|')+1:]
 
 
 def is_minimized(window):

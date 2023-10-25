@@ -375,11 +375,9 @@ class ResponsiveGridLayout(CustomControl):
             # build frame
             frame_title = self.build_kwargs.get('title', '')
             if frame_title:
-                frame_path = cmds.frameLayout(label=frame_title, collapse=False)
-                if bg_color:
-                    cmds.frameLayout(frame_path, backgroundColor=[bg_color[0], bg_color[1], bg_color[2]], edit=True)
+                self.frame_path = cmds.frameLayout(label=frame_title, collapse=False)
             else:
-                frame_path = cmds.columnLayout()
+                self.frame_path = cmds.columnLayout()
             # build grid
             self.grid = QtWidgets.QWidget()
             self.grid_layout = QtWidgets.QGridLayout(self.grid)
@@ -387,8 +385,12 @@ class ResponsiveGridLayout(CustomControl):
             self.grid_layout.setSpacing(self.build_kwargs.get("spacing", 0))
             self.populate_widgets()
             # add grid to frame
-            frame_widget = omUI.MQtUtil.findControl(frame_path)
+            frame_widget = omUI.MQtUtil.findControl(self.frame_path)
             omUI.MQtUtil.addWidgetToMayaLayout(cqt.get_cpp_pointer(self.grid), long(frame_widget))
+            # color frameLayout
+            if bg_color:
+                self.parent_frame()
+                cmds.frameLayout(self.frame_path, backgroundColor=[bg_color[0], bg_color[1], bg_color[2]], edit=True)
         finally:
             cmds.setUITemplate(popTemplate=True)
 
@@ -419,6 +421,13 @@ class ResponsiveGridLayout(CustomControl):
                 if column == self.build_kwargs.get("columns", 2):
                     row += 1
                     column = 0
+
+    def parent_frame(self):
+        ui_path = cqt.UIPath(self.frame_path)
+        if ui_path.basename().startswith("frameLayout"):
+            return self.frame_path
+        self.frame_path = ui_path.parent().path
+        return self.parent_frame()
 
 
 ##################################################################################
