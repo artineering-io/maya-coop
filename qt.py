@@ -930,7 +930,7 @@ class CollapsibleGrp(QtWidgets.QWidget):
     }
     w_height = 0
 
-    def __init__(self, title='', collapsed=False):
+    def __init__(self, title='', collapsed=False, bg_color=[0.2, 0.2, 0.2]):
         super(CollapsibleGrp, self).__init__()
         self.dpi = get_dpi_scale()
         self.title = title
@@ -943,12 +943,12 @@ class CollapsibleGrp(QtWidgets.QWidget):
         # create toggle button
         self.toggle_button = QtWidgets.QPushButton("{}{}".format(self.collapsed[collapsed], self.title))
         self.toggle_button.setObjectName("toggler")
-        self.setStyleSheet('QPushButton#toggler {'
-                           'text-align: left;'
-                           'font-weight: bold;'
-                           'background-color: #5d5d5d;'
-                           'padding: 0.3em;'
-                           'border-radius: 0.2em;}')
+        self.setStyleSheet("""QPushButton#toggler {{
+                           text-align: left;
+                           font-weight: bold;
+                           background-color: rgb({}, {}, {});
+                           padding: 0.3em;
+                           border-radius: 0.2em;}}""".format(bg_color[0]*255, bg_color[1]*255, bg_color[2]*255))
         self.toggle_button.released.connect(self.toggle_content)
         self.layout.addWidget(self.toggle_button)
 
