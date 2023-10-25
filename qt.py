@@ -936,6 +936,7 @@ class CollapsibleGrp(QtWidgets.QWidget):
         # content widget
         self.content = QtWidgets.QGroupBox()
         self.content_layout = QtWidgets.QVBoxLayout(self.content)
+        self.content_layout.setContentsMargins(0, 0, 0, 0)
         self.layout.addWidget(self.content)
         self.content.setVisible(not collapsed)
 
