@@ -821,13 +821,10 @@ def attr_range_grp(node_attr, lab, tooltip="", range_label="", enable=True):
     ctrl = cmds.attrFieldGrp(attribute=node_attr, label=lab, ann=tooltip, enable=enable)
     widget = cqt.get_maya_widget(ctrl)
     layout = widget.layout()
-    line_edits = widget.findChildren(QtWidgets.QLineEdit)
-    le_width = line_edits[0].width()
     spacer = QtWidgets.QLabel(range_label)
-    spacer.setMinimumWidth(le_width * 2 + (10 * cqt.get_dpi_scale()))
     spacer.setAlignment(QtCore.Qt.AlignCenter)
     layout.insertWidget(2, spacer, 1)
-    line_edits[-1].setMinimumWidth(le_width + 5)
+    cmds.rowLayout(ctrl, edit=True, adjustableColumn=3)
     return ctrl
 
 
