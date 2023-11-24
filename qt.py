@@ -1072,8 +1072,11 @@ def print_children(qobject):
         qobject (QObject, unicode): The QObject object or path to inspect
     """
     if clib.is_string(qobject):
+        print(qobject)
         qobject = wrap_ctrl(qobject)
+    else:
+        print(get_full_name(get_cpp_pointer(qobject)))
+    print(qobject)
     children = qobject.children()
     for child in children:
-        print(get_full_name(get_cpp_pointer(child)))
         print_children(child)

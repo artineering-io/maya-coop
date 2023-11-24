@@ -395,7 +395,7 @@ class ResponsiveGridLayout(CustomControl):
             cmds.setUITemplate(popTemplate=True)
 
     def replace_control_ui(self):
-        # as ctrls are parented on QT element, existence is managed by us
+        # as ctrls are parented on a QT element, existence is managed by us
         for i, attr in enumerate(self.attrs):
             node_attr = "{}.{}".format(self.node_name, attr.name)
             ctrl_path = cqt.get_full_name(cqt.get_cpp_pointer(self.ctrl_widgets[i]))
@@ -416,7 +416,10 @@ class ResponsiveGridLayout(CustomControl):
             if ctrl:
                 ctrl_widget = cqt.wrap_ctrl(ctrl, QtWidgets.QWidget)
                 self.ctrl_widgets.append(ctrl_widget)
-                self.grid_layout.addWidget(ctrl_widget, row, column, 1, 1)
+                if not ctrl_widget.objectName().startswith("checkBoxGrp"):
+                    self.grid_layout.addWidget(ctrl_widget, row, column, 1, 1, QtCore.Qt.AlignLeft)
+                else:  # otherwise the order of checkBoxGrp gets reversed again...
+                    self.grid_layout.addWidget(ctrl_widget, row, column, 1, 1)
                 column += 1
                 if column == self.build_kwargs.get("columns", 2):
                     row += 1
@@ -520,10 +523,7 @@ def _plain_attr_widget(node_attr, attr_data):
     elif attr_type == "bool":
         ctrl = attr_checkbox_grp(node_attr, lab, label_width, tooltip=ann, enable=enabled, callback=callback)
     elif attr_type == "enum":
-        ctrl = cmds.attrEnumOptionMenuGrp(at=node_attr, label=lab, ann=ann, enable=enabled,
-                                          columnWidth=[1, label_width])
-        if callback:  # manage callbacks manually to guarantee their existence
-            cmds.scriptJob(attributeChange=[node_attr, callback], parent=ctrl, replacePrevious=True)
+        ctrl = attr_enum_grp(node_attr, lab, label_width, tooltip=ann, enable=enabled, callback=callback)
     else:
         LOG.error("{} UI could not be generated. Attributes of type {} "
                   "have not been implemented for _plain_attr_widget())".format(node_attr, attr_type))
@@ -820,6 +820,15 @@ def attr_range_grp(node_attr, lab, tooltip="", range_label="", enable=True):
     """
     ctrl = cmds.attrFieldGrp(attribute=node_attr, label=lab, ann=tooltip, enable=enable)
     widget = cqt.get_maya_widget(ctrl)
+    field_factor = 1.0
+    dpi_scale = cqt.get_dpi_scale()
+    if dpi_scale == 1.0:
+        field_factor = 0.7
+    elif dpi_scale == 1.25:
+        field_factor = 0.88
+    line_edits = widget.findChildren(QtWidgets.QLineEdit)
+    width = line_edits[-1].width() * field_factor
+    line_edits[-1].setMinimumWidth(width)
     layout = widget.layout()
     spacer = QtWidgets.QLabel(range_label)
     spacer.setAlignment(QtCore.Qt.AlignCenter)
@@ -833,7 +842,7 @@ def attr_checkbox_grp(node_attr, lab, label_width=None, tooltip="", callback=Non
     Create a custom Attribute Checkbox Group widget that has the checkbox to the right
     Args:
         node_attr (unicode): The attribute the control should change in the format node.attr
-        lab (unicode): The label the control should have (can be different than attribute name)
+        lab (unicode): The label the control should have (can be different from the attribute name)
         label_width (int): The width available for the label
         tooltip (unicode): Tooltip that appears when hovering over the control
         callback (func): Function to call when the attribute is changed
@@ -855,4 +864,33 @@ def attr_checkbox_grp(node_attr, lab, label_width=None, tooltip="", callback=Non
     cbox.setFixedWidth(dpi_scale * (label_width + 2))
     style_sheet = "margin-top: {0}px; margin-bottom: {0}px".format(dpi_scale * 2)
     cbox.setStyleSheet(style_sheet)
+    return ctrl
+
+
+def attr_enum_grp(node_attr, lab, label_width=None, tooltip="", callback=None, enable=True):
+    """
+    Create a custom Enum Group widget that is shorter than Maya's default at different dpis
+    Args:
+        node_attr (unicode): The attribute the control should change in the format node.attr
+        lab (unicode): The label the control should have (can be different from the attribute name)
+        label_width (int): The width available for the label
+        tooltip (unicode): Tooltip that appears when hovering over the control
+        callback (func): Function to call when the attribute is changed
+        enable (bool): If widget should be enabled or disabled
+    Returns:
+        (ui path): The UI path of the custom attribute enum group
+    """
+    ctrl = cmds.attrEnumOptionMenuGrp(at=node_attr, label=lab, ann=tooltip, enable=enable,
+                                      columnWidth=[1, label_width])
+    if callback:  # manage callbacks manually to guarantee their existence
+        cmds.scriptJob(attributeChange=[node_attr, callback], parent=ctrl, replacePrevious=True)
+    dpi_scale = cqt.get_dpi_scale()
+    ctrl_widget = cqt.wrap_ctrl(ctrl)
+    combo_box = ctrl_widget.findChildren(QtWidgets.QComboBox)
+    width = combo_box[0].width()
+    if dpi_scale == 1.0:
+        ctrl_widget.setMaximumWidth(label_width * 1.8)
+        combo_box[0].setMaximumWidth(width * 0.85)
+    else:
+        combo_box[0].setMaximumWidth(width * dpi_scale * 0.9)
     return ctrl
