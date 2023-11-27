@@ -1224,6 +1224,7 @@ def display_error(error, show_traceback=False):
 #   | .__/ \__,_|\__|_| |_|
 #   |_|
 class Path(object):
+    """ Path library to work in Python 2 and 3 """
     def __init__(self, path):
         if isinstance(path, str):
             self.path = u_decode(path)
@@ -1365,6 +1366,14 @@ class Path(object):
         if self.exists():
             return os.path.getsize(self.path) / 1024.0 / 1024.0
         return 0
+
+    def rename(self, new_name):
+        old_name = self.path
+        _, ext = os.path.splitext(self.path)
+        self.parent().child("{}{}".format(new_name, ext))
+        if self.exists():
+            print_warning("File with name already existed, overwriting it")
+        shutil.move(old_name, self.path)
 
 
 def make_path_relative(path, root_path=None):
