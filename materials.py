@@ -68,10 +68,8 @@ def get_materials(objects):
         for se in shading_engines:
             mats = cmds.ls(cmds.listConnections(se), mat=True)
             if not mats:
-                # connect the default material to the shading engine
-                default_material = "lambert1"
-                clib.print_warning("No material connected to {}. Connecting default material.".format(se))
-                cmds.connectAttr("{}.outColor".format(default_material), "{}.surfaceShader".format(se), f=True)
+                clib.print_warning("No material connected to {}. Deleting shading engine.".format(se))
+                cmds.delete(se)  # cleanup to avoid issues later on i.e., light linking
             clist.update(materials, mats)
 
     return materials
@@ -216,17 +214,11 @@ def _get_material_of_components(components):
                     for m in mats:
                         if m not in materials:
                             materials.append(m)
-    # components might not have a material
+    # components might not have a material, get material from object
     if not materials:
         for c in components:
             if clib.is_component(c):
                 materials = get_materials(cmds.ls(components, objectsOnly=True))
-                if not materials:
-                    clib.display_warning("No materials on {}, assigning default Lambert material".format(components))
-                    default_material = "lambert1"
-                    set_material(default_material, c)
-                    if default_material not in materials:
-                        materials.append(default_material)
     return materials
 
 
