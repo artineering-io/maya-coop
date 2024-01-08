@@ -82,6 +82,34 @@ def timer(f):
     return wrapper
 
 
+def pause_viewport(f):
+    """
+    Decorator to pause viewport updates within function
+    Args:
+        f: function to pause viewport
+
+    Returns:
+        wrapped function with a viewport pause
+    """
+
+    @wraps(f)  # timer = wraps(timer) | helps wrap the docstring of original function
+    def wrapper(*args, **kwargs):
+        if cmds.about(batch=True):
+            return wrapper
+
+        if not cmds.ogs(pause=True, q=True):
+            cmds.ogs(pause=True)
+        try:
+            return f(*args, **kwargs)
+        except:
+            traceback.print_exc()
+        finally:
+            if cmds.ogs(pause=True, q=True):
+                cmds.ogs(pause=True)
+
+    return wrapper
+
+
 def undo(f):
     """
     Puts the wrapped `func` into a single Maya Undo action
