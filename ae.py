@@ -826,6 +826,8 @@ def attr_range_grp(node_attr, lab, tooltip="", range_label="", enable=True):
         field_factor = 0.7
     elif dpi_scale == 1.25:
         field_factor = 0.88
+    elif dpi_scale == 1.5:
+        field_factor = 1.075
     line_edits = widget.findChildren(QtWidgets.QLineEdit)
     width = line_edits[-1].width() * field_factor
     line_edits[-1].setMinimumWidth(width)
