@@ -135,7 +135,11 @@ def set_material(mat, objects, quiet=True):
     # assign new material
     try:
         # sets assign
-        shading_engine = cmds.sets(empty=True, renderable=True, noSurfaceShader=True, name="{}SG".format(mat))
+        shading_engine = cmds.listConnections(mat, type="shadingEngine") or []
+        if not shading_engine:  # create shading engine if none was connected to it
+            shading_engine = cmds.sets(empty=True, renderable=True, noSurfaceShader=True, name="{}SG".format(mat))
+        else:
+            shading_engine = shading_engine[0]
         cmds.defaultNavigation(connectToExisting=True, source=mat, destination=shading_engine, f=True)
         for shape in shapes:
             cmds.sets(shape, e=True, forceElement=shading_engine)
