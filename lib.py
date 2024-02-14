@@ -693,22 +693,22 @@ def get_shapes(objects, renderable=False, l=False, quiet=False):
     return shapes
 
 
-def get_view_camera(shape=False):
+def get_view_camera(shape=False, l=True):
     """
     Get the view camera transform or shape.
     Maya is quite inconsistent on what cmds.lookThru() returns, ergo this function
     Args:
         shape (bool): If the shape should be returned instead of the transform
-
+        l (bool): If full path is desired or not
     Returns:
         (unicode): Transform or shape of the current view camera
     """
     camera = cmds.lookThru(q=True)
     if shape:
         if not cmds.ls(camera, shapes=True):
-            camera = get_shapes(camera)
+            camera = get_shapes(camera, l=l)
     elif cmds.ls(camera, shapes=True):
-        camera = get_transform(camera)
+        camera = get_transform(camera, full_path=l)
     return u_stringify(camera)
 
 
