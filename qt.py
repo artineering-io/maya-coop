@@ -295,6 +295,9 @@ class CoopMayaUI(QtWidgets.QDialog):
 
     def __init__(self, title, dock=False, rebuild=False, brand="studio.coop", tooltip="", show=True, center=False,
                  parent=""):
+        # Qt window settings stored from previous sessions
+        self.settings = QtCore.QSettings("Artineering", title)
+        self.settings.beginGroup("Window")
 
         if cmds.window(title, exists=True):
             if not rebuild:
@@ -331,10 +334,13 @@ class CoopMayaUI(QtWidgets.QDialog):
         if dock:
             cmds.dockControl(title, con=title, area='left', label=title)
         else:
-            # default position in active window
-            cur_screen = QtGui.QGuiApplication.screenAt(QtGui.QCursor.pos())
-            geo = cur_screen.availableGeometry()
-            self.setGeometry(geo.x() + 250, geo.y() + 250, 0, 0)  # default position when built
+            if self.settings.contains("pos") and not rebuild:
+                pos = self.settings.value("pos")
+            else:  # default position in active window
+                cur_screen = QtGui.QGuiApplication.screenAt(QtGui.QCursor.pos())
+                geo = cur_screen.availableGeometry()
+                pos = QtCore.QPoint(geo.x() + 250, geo.y() + 250)
+            self.setGeometry(pos.x(), pos.y(), 0, 0)  # default position when built
 
         # default UI elements (keeping it simple)
         self.layout = QtWidgets.QVBoxLayout(self)  # self -> apply to QDialog
@@ -363,6 +369,8 @@ class CoopMayaUI(QtWidgets.QDialog):
         if center:
             self.center()
 
+        self.settings.endGroup()
+
         LOG.debug("{0} was successfully generated".format(title))
 
     def populateUI(self):
@@ -372,7 +380,7 @@ class CoopMayaUI(QtWidgets.QDialog):
         pass
 
     def refresh(self):
-        # if refresh is not overriden, then its going to rebuild the UI
+        # if refresh is not overriden, then it's going to rebuild the UI
         clear_layout(self.layout)
         self.buildUI()
         self.populateUI()
@@ -386,6 +394,24 @@ class CoopMayaUI(QtWidgets.QDialog):
             geo = cur_screen.availableGeometry()
         center_style = QtWidgets.QStyle.alignedRect(QtCore.Qt.LeftToRight, QtCore.Qt.AlignCenter, self.size(), geo)
         self.setGeometry(center_style)
+
+    def closeEvent(self, *args, **kwargs):
+        self.settings.beginGroup("Window")
+        try:
+            self.settings.setValue("size", self.size())
+            self.settings.setValue("pos", self.pos())
+            self.customSettings()
+        finally:
+            self.settings.endGroup()
+        self.customClose()
+
+    def customSettings(self):
+        """ Custom settings to save from the Window to be overriden by children windows"""
+        pass
+
+    def customClose(self):
+        """ Custom close procedures to run when closing the window to be overriden by children windows """
+        pass
 
 
 def refresh_window(window_title_or_class, quiet=True):
@@ -871,12 +897,14 @@ class WidgetGroup(QtWidgets.QWidget):
     Simple widget group class object with embedded layout and batch widget assignment
     """
 
-    def __init__(self, q_widgets=None, q_layout=None, parent=None, margins=0):
+    def __init__(self, q_widgets=None, q_layout=None, tooltip=None, margins=0, parent=None):
         """
         Widget Group constructor
         Args:
             q_widgets (list): List of widgets to group (default: [])
             q_layout (QLayout): Layout object -> layout of group (default: QtWidgets.QVBoxLayout())
+            tooltip (unicode): Tooltip over entire group
+            margins (int): Margins around widget
             parent (QWidget): Parent object (default: None)
         """
         super(WidgetGroup, self).__init__(parent)
@@ -888,6 +916,8 @@ class WidgetGroup(QtWidgets.QWidget):
         self.setLayout(self.group_layout)
         self.group_layout.setContentsMargins(margins, margins, margins, margins)
         self.add_widgets(q_widgets)
+        if tooltip:
+            self.setToolTip(tooltip)
 
     def add_widget(self, widget):
         """
