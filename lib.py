@@ -1261,6 +1261,9 @@ class Path(object):
                 self.path = path
         else:
             print_error("{} is not a string".format(path), True)
+        # make sure paths don't end up with slash
+        if self.path.endswith('/') or self.path.endswith('\\'):
+            self.path = self.path[:-1]
 
     def parent(self):
         """
@@ -1396,12 +1399,37 @@ class Path(object):
         return 0
 
     def rename(self, new_name):
+        """
+        Renames the file to a new name
+        Args:
+            new_name (unicode): New name to rename file to
+        """
         old_name = self.path
         _, ext = os.path.splitext(self.path)
         self.parent().child("{}{}".format(new_name, ext))
         if self.exists():
             print_warning("File with name already existed, overwriting it")
         shutil.move(old_name, self.path)
+
+    def is_relative(self):
+        """ Returns true if path is relative """
+        slash_path = self.slash_path()
+        try:
+            index = slash_path.index('/')
+        except ValueError:
+            return True
+        return not Path(slash_path[:index]).exists()
+
+    def relative(self, root_path):
+        """
+        Returns the relative path to the root path
+        Args:
+            root_path (unicode): Root path to make relative to
+        """
+        if self.path.startswith(root_path):
+            print("relativing to: {}".format(self.path[len(root_path):]))
+            return self.path[len(root_path):]
+        print_error("{} is not relative to {}".format(self.path, root_path))
 
 
 def make_path_relative(path, root_path=None):
