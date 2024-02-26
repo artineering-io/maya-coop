@@ -466,7 +466,7 @@ def dialog_select_dir(starting_directory="", title="Open file"):
                                     dialogStyle=2)
     if not selected_dir:
         display_error("No directory specified", True)
-    return selected_dir[0]
+    return selected_dir[0].replace('\\', '/')
 
 
 def dialog_yes_no(title="Confirmation", message="Are you sure?", icon=""):
@@ -525,7 +525,10 @@ def get_node_data(node_name, settable=True, visible=False, quiet=False):
     for attr in node_attrs:
         try:
             if cmds.attributeQuery(attr, node=node_name, attributeType=True) != "compound":
-                attr_data[attr] = cmds.getAttr("{}.{}".format(node_name, attr))
+                attr_value = cmds.getAttr("{}.{}".format(node_name, attr))
+                if is_string(attr_value):
+                    attr_value = attr_value.replace('\\', '/')  # make sure we are not saving backslashes
+                attr_data[attr] = attr_value
             else:
                 for sub_attr in cmds.attributeQuery(attr, node=node_name, listChildren=True):
                     attr_data[sub_attr] = cmds.getAttr("{}.{}.{}".format(node_name, attr, sub_attr))
