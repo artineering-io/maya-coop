@@ -291,6 +291,15 @@ def get_scene_name():
     return scene_name
 
 
+def project_dir():
+    """
+    Gets the directory of the project
+    Returns:
+        The directory of the project
+    """
+    return cmds.workspace(rd=True, q=True)
+
+
 def open_url(url):
     """
     Opens the url in the default browser
