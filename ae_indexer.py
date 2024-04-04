@@ -5,7 +5,10 @@
 @repository:    https://github.com/artineering-io/maya-coop
 """
 from collections import OrderedDict
-from PySide2 import QtCore
+try:
+    from PySide6 import QtCore
+except ImportError:
+    from PySide2 import QtCore
 import maya.mel as mel
 import maya.cmds as cmds
 

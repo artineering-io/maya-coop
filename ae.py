@@ -14,7 +14,10 @@ import maya.OpenMayaUI as omUI
 from . import lib as clib
 from . import qt as cqt
 from . import logger as clog
-from PySide2 import QtCore, QtWidgets, QtGui
+try:
+    from PySide6 import QtWidgets, QtCore
+except ImportError:
+    from PySide2 import QtWidgets, QtCore
 from functools import partial
 
 LOG = clog.logger("coop.ae")

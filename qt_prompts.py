@@ -5,7 +5,10 @@
 @repository:    https://github.com/artineering-io/maya-coop
 """
 from __future__ import print_function
-from PySide2 import QtCore, QtWidgets, QtGui
+try:
+    from PySide6 import QtWidgets, QtCore
+except ImportError:
+    from PySide2 import QtWidgets, QtCore
 import coop.qt as cqt
 
 

@@ -9,16 +9,20 @@ from __future__ import unicode_literals
 import time, datetime, threading, os
 import maya.cmds as cmds
 import maya.OpenMayaUI as omUI
-from PySide2 import QtCore, QtGui, QtWidgets
-from shiboken2 import wrapInstance, getCppPointer
+try:
+    from PySide6 import QtWidgets, QtGui, QtCore
+    from shiboken6 import wrapInstance, getCppPointer
+except ImportError:
+    from PySide2 import QtWidgets, QtGui, QtCore
+    from shiboken2 import wrapInstance, getCppPointer
 from . import lib as clib
 from . import logger as clog
 
-# Python 2-3 checks
 try:
-    from PySide2.QtWebEngineWidgets import QWebEngineView, QWebEnginePage  # Doesn't work with Maya 2017
+    from PySide6.QtWebEngineWidgets import QWebEngineView
+    from PySide6.QtWebEngineCore import QWebEnginePage
 except ImportError:
-    from PySide2.QtWebKitWidgets import QWebView as QWebEngineView
+    from PySide2.QtWebEngineWidgets import QWebEngineView, QWebEnginePage
 
 try:
     long  # Python 2
@@ -485,7 +489,8 @@ class IconButton(QtWidgets.QLabel):
         self.setFixedSize(size[0], size[1])
         self.setScaledContents(True)
         self.setToolTip(tooltip)
-        self.setPixmap(image)
+        self.pixmap = QtGui.QPixmap(image)
+        self.setPixmap(self.pixmap)
         self.b_color = b_color
         self.h_color = h_color
         self.set_colors()
@@ -495,7 +500,8 @@ class IconButton(QtWidgets.QLabel):
         self.clicked.emit()
 
     def change_icon(self, image):
-        self.setPixmap(image)
+        self.pixmap = QtGui.QPixmap(image)
+        self.setPixmap(self.pixmap)
 
     def toggle(self):
         if not self.active:
