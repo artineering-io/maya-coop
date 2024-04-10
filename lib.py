@@ -310,6 +310,21 @@ def open_url(url):
     webbrowser.open(url, new=2, autoraise=True)
 
 
+def open_file(file_path):
+    """
+    Opens the file with the default application
+    Args:
+        file_path (unicode): The path to the file to open
+    """
+    if get_local_os() == "windows":
+        os.startfile(file_path)
+    elif get_local_os() == "linux":
+        subprocess.run(['xdg-open', file_path])
+    else:
+        subprocess.run(['open', file_path])  # untested
+
+
+
 def downloader(url, dest):
     """
     Downloads a file at the specified url to the destination
