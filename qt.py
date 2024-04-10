@@ -964,6 +964,11 @@ class CollapsibleGrp(QtWidgets.QWidget):
         True: u'  \u2BC8   ',
         False: u'  \u2BC6   '
     }
+    if clib.get_local_os() == "linux":
+        collapsed = {
+            True: u'  >   ',
+            False: u' ▼   '
+        }
     w_height = 0
 
     def __init__(self, title='', collapsed=False, bg_color=[0.2, 0.2, 0.2]):
