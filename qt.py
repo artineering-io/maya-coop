@@ -396,7 +396,10 @@ class CoopMayaUI(QtWidgets.QDialog):
         else:
             cur_screen = QtGui.QGuiApplication.screenAt(QtGui.QCursor.pos())
             geo = cur_screen.availableGeometry()
-        center_style = QtWidgets.QStyle.alignedRect(QtCore.Qt.LeftToRight, QtCore.Qt.AlignCenter, self.size(), geo)
+        w_size = self.size()
+        if self.width() == 0 and self.height() == 0:  # some dialogs don't have width (e.g., setup_view)
+            w_size = QtCore.QSize(self.brand.width(), 300)
+        center_style = QtWidgets.QStyle.alignedRect(QtCore.Qt.LeftToRight, QtCore.Qt.AlignCenter, w_size, geo)
         self.setGeometry(center_style)
 
     def closeEvent(self, *args, **kwargs):
