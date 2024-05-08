@@ -16,12 +16,14 @@ from . import lib as clib
 LOG = clog.logger("coop.shelf")
 
 
-def delete_shelves(shelves=None, restart=True):
+def delete_shelves(shelves=None, restart=True, no_trace=False):
     """
     Delete shelves specified in dictionary
     Args:
         shelves (unicode, list): Shelves to delete e.g. "Animation", "Animation.mel"
         restart (bool): If a restart dialog should appear in the end
+        no_trace (bool): If no trace of the shelf should be left
+                         (shelves are usually "deleted" by Maya by adding the .deleted suffix)
     """
     if not shelves:
         LOG.warning('No shelves specified to delete')
@@ -47,10 +49,14 @@ def delete_shelves(shelves=None, restart=True):
         shelf_path = os.path.join(shelf_dir, shelf)
         deleted_shelf_path = shelf_path + '.deleted'
         if os.path.isfile(shelf_path):
-            # make sure the deleted file doesn't already exist
-            if os.path.isfile(deleted_shelf_path):
+            if os.path.isfile(deleted_shelf_path):  # make sure the deleted file doesn't already exist
                 os.remove(shelf_path)
-            os.rename(shelf_path, deleted_shelf_path)
+                if no_trace:
+                    os.remove(deleted_shelf_path)
+            if no_trace:
+                os.remove(shelf_path)
+            else:
+                os.rename(shelf_path, deleted_shelf_path)
     if restart:
         clib.dialog_restart()
 
