@@ -276,6 +276,42 @@ def get_lib_dir():
     return Path(__file__).parent().path
 
 
+def get_app_documents_dir(folder=None):
+    """
+    Gets the AppDocuments folder
+    The AppDocuments folder is like AppData but within the Documents folder so that the user can back it up
+    Args:
+        folder (unicode): A specific folder name within the AppDocuments folder
+    Returns:
+        (unicode): The path to the AppDocuments folder
+    """
+    app_documents = Path(get_env_dir()).parent().parent().child("AppDocuments")
+    if folder:
+        app_documents.child(folder)
+    return app_documents.slash_path()
+
+
+def get_program_data_dir(folder=None):
+    """
+    Gets the ProgramData folder or its equivalent on Linux and Mac
+    Args:
+        folder (unicode): A specific folder name within the ProgramData folder
+    Returns:
+        (unicode): The path to the ProgramData folder
+    """
+    local_os = get_local_os()
+    program_data = ""
+    if local_os == "win":
+        program_data = Path(os.getenv('PROGRAMDATA'))
+    elif local_os == "linux":
+        program_data = Path("/etc/opt")
+    else:
+        print_warning("UNIMPLEMENTED")
+    if folder:
+        program_data.child(folder)
+    return program_data.slash_path()
+
+
 def get_scene_name():
     """
     Gets the name of the currently opened scene
@@ -316,13 +352,12 @@ def open_file(file_path):
     Args:
         file_path (unicode): The path to the file to open
     """
-    if get_local_os() == "windows":
+    if get_local_os() == "win":
         os.startfile(file_path)
     elif get_local_os() == "linux":
         subprocess.run(['xdg-open', file_path])
     else:
         subprocess.run(['open', file_path])  # untested
-
 
 
 def downloader(url, dest):
