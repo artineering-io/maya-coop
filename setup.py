@@ -43,7 +43,7 @@ def install(install_dir, all_users=False, maya_versions=None, env_variables=None
     _restart_dialog()
 
 
-def uninstall(install_dir, module_name, reinstall=False, shelves=None, background=False, env_vars_to_delete=None,
+def uninstall(install_dir, module_name, reinstall=False, shelves=None, no_trace=False, background=False, env_vars_to_delete=None,
               custom_uninstall_func=None):
     """
     Uninstalls the module
@@ -52,6 +52,7 @@ def uninstall(install_dir, module_name, reinstall=False, shelves=None, backgroun
         module_name (unicode): Name of the module
         reinstall (bool): If uninstalling happens because of a re-install
         shelves (unicode, list): Shelves to uninstall
+        no_trace (bool): If uninstallation should leave no traces behind (complete wipe)
         background (bool): If uninstalling should happen in the background (without user prompts)
         env_vars_to_delete (dict): Additional environment variables to delete from Maya.env
         custom_uninstall_func (function): Custom partial uninstall function to run
@@ -96,7 +97,7 @@ def uninstall(install_dir, module_name, reinstall=False, shelves=None, backgroun
             _restart_dialog()
 
     if custom_uninstall_func:
-        custom_uninstall_func()
+        custom_uninstall_func(no_trace)
 
     clib.print_info("{} successfully uninstalled".format(module_name.title()))
 
@@ -143,6 +144,21 @@ def is_installed_per_user(module_name):
         if clib.Path(path).slash_path() == installed_path:
             return True
     return False
+
+
+def delete_license(module_name, license_path):
+    """
+    Deletes the license on the machine
+    Args:
+        module_name (unicode): Name of the module to delete license from
+        license_path (Path): Path of the license file
+    """
+    if is_installed_per_user(module_name):
+        license_path.delete()
+    else:
+        py_cmd = "import os; "
+        py_cmd += "os.remove('{}')".format(license_path.slash_path())
+        clib.run_python_as_admin(py_cmd, close=True)
 
 
 def _fmt_variables(env_variables):
@@ -332,7 +348,7 @@ def _install_all_users(install_dir, maya_versions):
             new_mod_file.write(str(modified_module))
         new_modules.append(temp_path.path)
 
-    # paste module files with elevated priviledges
+    # paste module files with elevated privileges
     py_cmd = _py_cmd_install_all_users(maya_versions, new_modules)
     print(py_cmd)
     if is_admin():
