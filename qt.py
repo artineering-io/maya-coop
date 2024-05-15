@@ -350,7 +350,6 @@ class CoopMayaUI(QtWidgets.QDialog):
         self.layout = QtWidgets.QVBoxLayout(self)  # self -> apply to QDialog
         self.layout.setContentsMargins(0, 0, 0, 0)
         self.layout.setSpacing(0)
-        # self.layout.setSizeConstraint(QtWidgets.QLayout.SetFixedSize)
 
         header_margin = 10 * self.dpi
         self.header = QtWidgets.QLabel(title)

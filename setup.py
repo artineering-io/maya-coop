@@ -146,16 +146,17 @@ def is_installed_per_user(module_name):
     return False
 
 
-def delete_license(module_name, license_path):
+def delete_license(license_path):
     """
     Deletes the license on the machine
     Args:
-        module_name (unicode): Name of the module to delete license from
-        license_path (Path): Path of the license file
+        license_path (clib.Path): Path of the license file
     """
-    if is_installed_per_user(module_name):
+    try:
         license_path.delete()
-    else:
+    except PermissionError:
+        clib.print_warning("You don't have permission to remove license in {}".format(license_path.slash_path()))
+        clib.print_info("Prompting for admin access")
         py_cmd = "import os; "
         py_cmd += "os.remove('{}')".format(license_path.slash_path())
         clib.run_python_as_admin(py_cmd, close=True)

@@ -139,13 +139,13 @@ class SetupUI(cqt.CoopMayaUI):
 
     def process(self):
         """ Processes the selected options to install """
-        if self.delete_license_cbox.isChecked():
-            setup.delete_license(self.module_name, self.license_path)
+        delete_everything = self.delete_everything_cbox.isChecked()
+        if self.delete_license_cbox.isChecked() or delete_everything:
+            setup.delete_license(self.license_path)
 
         option = self.options[self.install_options_grp.checkedId()]
         if option == "Uninstall":
             LOG.info("Uninstalling {}".format(self.module_name))
-            delete_everything = self.delete_everything_cbox.isChecked()
             setup.uninstall(self.module_path, self.module_name, shelves=self.module_name, no_trace=delete_everything,
                             env_vars_to_delete=self.env_variables, custom_uninstall_func=self.custom_uninstall_func)
         elif option == "Install":
