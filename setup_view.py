@@ -33,6 +33,7 @@ class SetupUI(cqt.CoopMayaUI):
         self.custom_install_func = custom_install_func
         self.custom_uninstall_func = custom_uninstall_func
         self.license_path = clib.Path(license_path)
+        self.license_deletion_checked = False
 
         self.options = ["Uninstall", "Install", "Install for all"]
 
@@ -105,6 +106,7 @@ class SetupUI(cqt.CoopMayaUI):
 
         self.delete_everything_cbox = QtWidgets.QCheckBox("Delete everything {}-related".format(self.module_name))
         self.delete_everything_cbox.setStyleSheet("margin-left: {}px;".format(20 * self.dpi))
+        self.delete_everything_cbox.stateChanged.connect(self.delete_everything_changed)
         self.content_layout.addWidget(self.delete_everything_cbox)
         self.delete_everything_cbox.hide()
 
@@ -133,6 +135,7 @@ class SetupUI(cqt.CoopMayaUI):
         self.delete_license_cbox = QtWidgets.QCheckBox("Delete existing license")
         delete_license_grp = cqt.WidgetGroup([cqt.HLine(height=15*self.dpi), self.delete_license_cbox])
         self.delete_license_cbox.setStyleSheet("font-weight: bold; color: #E6ACBB;")
+        self.delete_license_cbox.released.connect(self.cache_license_choice)
         self.content_layout.addWidget(delete_license_grp)
         if not self.license_path.exists():
             delete_license_grp.hide()
@@ -167,5 +170,21 @@ class SetupUI(cqt.CoopMayaUI):
         option = self.options[self.install_options_grp.checkedId()]
         if option == "Uninstall":
             self.delete_everything_cbox.show()
+            if self.delete_everything_cbox.isChecked():
+                self.delete_license_cbox.setChecked(True)
         else:
             self.delete_everything_cbox.hide()
+            self.delete_license_cbox.setChecked(self.license_deletion_checked)
+
+    def cache_license_choice(self):
+        """ Caches the user made decision regarding licensing """
+        self.license_deletion_checked = self.delete_license_cbox.isChecked()
+
+    def delete_everything_changed(self, state):
+        """
+        Enables/Disables the license deletion option
+        """
+        if state > 0:
+            self.delete_license_cbox.setChecked(True)
+        else:
+            self.delete_license_cbox.setChecked(self.license_deletion_checked)
