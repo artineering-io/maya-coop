@@ -109,11 +109,13 @@ def get_common_module_dir():
         (unicode): Directory to common modules
     """
     module_dirs = mel.eval("getenv MAYA_MODULE_PATH;").split(clib.get_os_separator())
-    for module_dir in module_dirs:
+    for module_dir in reversed(module_dirs):
         if clib.get_local_os() == "win":
             if "Common Files" in module_dir:
                 return clib.Path(module_dir).parent().path
-        # TODO: Other OS
+        else:  # linux and mac
+            if module_dir.endswith("modules/maya"):
+                return module_dir
     return ""
 
 
