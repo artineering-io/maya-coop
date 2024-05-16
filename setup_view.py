@@ -75,8 +75,9 @@ class SetupUI(cqt.CoopMayaUI):
         self.install_txt = "Install"
 
         # populate options
-        if self.module_path:
-            self.uninstall_option()
+        self.uninstall_option()
+        if not self.module_path:
+            self.uninstall_widgets.hide()
         self.install_options()
 
         dialog_buttons = QtWidgets.QDialogButtonBox()
@@ -98,19 +99,17 @@ class SetupUI(cqt.CoopMayaUI):
         """ Populates the uninstallation option """
         installed_lbl = QtWidgets.QLabel("{} already installed in {}".format(self.module_name, self.module_path))
         installed_lbl.setStyleSheet("font-weight: bold; color: #E6E2AC;")
-        self.content_layout.addWidget(installed_lbl)
         uninstall_rad = QtWidgets.QRadioButton("Uninstall {}".format(self.module_name))
         self.install_options_grp.addButton(uninstall_rad, 0)
         self.install_options_grp.buttonReleased.connect(self.install_method_changed)
-        self.content_layout.addWidget(uninstall_rad)
 
         self.delete_everything_cbox = QtWidgets.QCheckBox("Delete everything {}-related".format(self.module_name))
         self.delete_everything_cbox.setStyleSheet("margin-left: {}px;".format(20 * self.dpi))
         self.delete_everything_cbox.stateChanged.connect(self.delete_everything_changed)
-        self.content_layout.addWidget(self.delete_everything_cbox)
         self.delete_everything_cbox.hide()
 
-        self.content_layout.addWidget(cqt.HLine(height=15*self.dpi))
+        self.uninstall_widgets = cqt.WidgetGroup([installed_lbl, uninstall_rad, self.delete_everything_cbox, cqt.HLine(height=15*self.dpi)])
+        self.content_layout.addWidget(self.uninstall_widgets)
         self.install_txt = "Re-install"
         self.reinstall = True
 
