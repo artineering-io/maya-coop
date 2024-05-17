@@ -17,11 +17,12 @@ from . import shelves as cshelf
 LOG = clog.logger("coop.setup")
 
 
-def install(install_dir, all_users=False, maya_versions=None, env_variables=None, custom_install_func=None):
+def install(install_dir, module_name, all_users=False, maya_versions=None, env_variables=None, custom_install_func=None):
     """
     Install the module
     Args:
         install_dir (unicode): Root directory of the module file
+        module_name (unicode): Name of the module
         all_users (bool): If the installation should be for all users
         maya_versions (list): Maya versions to install onto
         env_variables (dict): Additional environment variables to inject to Maya.env
@@ -34,10 +35,10 @@ def install(install_dir, all_users=False, maya_versions=None, env_variables=None
         _install_local(install_dir, env_variables)
     else:
         LOG.info("-> Installing module for all users")
-        _install_all_users(install_dir, maya_versions)
+        _install_all_users(install_dir, module_name, maya_versions)
 
     if custom_install_func:
-        custom_install_func()
+        custom_install_func(all_users)
 
     clib.display_info("-> Installation complete <-")
     _restart_dialog()
@@ -161,7 +162,7 @@ def delete_license(license_path):
         clib.print_info("Prompting for admin access")
         py_cmd = "import os; "
         py_cmd += "os.remove('{}')".format(license_path.slash_path())
-        clib.run_python_as_admin(py_cmd, close=True)
+        clib.run_python_as_admin(py_cmd, close=True, info_prompt="to remove the license")
 
 
 def _fmt_variables(env_variables):
@@ -327,12 +328,14 @@ def _install_local(install_dir, env_variables):
     shutil.move(temp_file_path.path, maya_env_path)
 
 
-def _install_all_users(install_dir, maya_versions):
+def _install_all_users(install_dir, module_name, maya_versions):
     """
     Installs modules from install_dir for all users in:
     Windows: C:/Program Files/Common Files/Autodesk Shared/Modules/maya
+    Linux: /usr/autodesk/modules/maya
     Args:
         install_dir (unicode): Directory where the .mod files are
+        module_name (unicode): Name of the module
         maya_versions (list): List of Maya versions to install modules in
     """
     install_dir = clib.Path(install_dir)
@@ -352,16 +355,11 @@ def _install_all_users(install_dir, maya_versions):
         new_modules.append(temp_path.path)
 
     # paste module files with elevated privileges
-    py_cmd = _py_cmd_install_all_users(maya_versions, new_modules)
-    print(py_cmd)
-    if is_admin():
-        eval(py_cmd)
-    elif clib.get_local_os() == "win":
-        clib.run_python_as_admin(py_cmd, close=True)
-    else:
-        # TODO: MacOS and Linux versions
-        clib.print_error("OS ({}) is not supported yet".format(clib.get_local_os()), True)
-
+    py_cmd = _py_cmd_install_all_users(module_name, maya_versions, new_modules)
+    try:
+        exec(py_cmd)
+    except PermissionError:
+        clib.run_python_as_admin(py_cmd, close=True, info_prompt="to continue the installation")
     LOG.info("Installation finished")
 
 
@@ -376,16 +374,18 @@ def _uninstall_all_users(module_name):
     if not modules:  # in case module mod file is lowercase
         modules = clib.Path(module_dir).find_all("{}.mod".format(module_name.lower()), relative=False)
     py_cmd = _py_cmd_uninstall_all_users(modules)
-    if is_admin():
-        eval(py_cmd)
-    else:
-        clib.run_python_as_admin(py_cmd, close=True)
+    print(py_cmd)
+    try:
+        exec(py_cmd)
+    except PermissionError:
+        clib.run_python_as_admin(py_cmd, close=True, info_prompt="to finish uninstalling")
 
 
-def _py_cmd_install_all_users(maya_versions, modules):
+def _py_cmd_install_all_users(module_name, maya_versions, modules):
     """
     Creates the Python command to run with elevated permissions
     Args:
+        module_name (unicode): Name of the module
         maya_versions (list): List of Maya versions to install onto i.e., [2019, 2020]
         modules (list): List of module paths
     Returns:
@@ -399,12 +399,15 @@ def _py_cmd_install_all_users(maya_versions, modules):
             py_cmd += "import os; os.makedirs('{}'); ".format(shared_module_dir.slash_path())
         for module in modules:
             mod = clib.Path(module).slash_path()
-            module_name = clib.Path(module).swap_extension(".mod").basename()
-            shared_module_path = clib.Path(shared_module_dir.path).child(module_name).slash_path()
+            module_file = clib.Path(module).swap_extension(".mod").basename()
+            shared_module_path = clib.Path(shared_module_dir.path).child(module_file).slash_path()
             py_cmd += "shutil.copyfile('{}', '{}'); ".format(mod, shared_module_path)
     py_cmd += "import os; "
     for temp in modules:
         py_cmd += "os.remove('{}'); ".format(clib.Path(temp).slash_path())
+    if clib.get_local_os() == "linux":
+        program_data = clib.get_program_data_dir(module_name)
+        py_cmd += "os.makedirs('{0}', exist_ok=True); os.chmod('{0}', 0o777); ".format(program_data)
     return py_cmd
 
 

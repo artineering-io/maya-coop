@@ -78,6 +78,9 @@ class SetupUI(cqt.CoopMayaUI):
         self.uninstall_option()
         if not self.module_path:
             self.uninstall_widgets.hide()
+        else:
+            self.install_txt = "Re-install"
+            self.reinstall = True
         self.install_options()
 
         dialog_buttons = QtWidgets.QDialogButtonBox()
@@ -110,8 +113,6 @@ class SetupUI(cqt.CoopMayaUI):
 
         self.uninstall_widgets = cqt.WidgetGroup([installed_lbl, uninstall_rad, self.delete_everything_cbox, cqt.HLine(height=15*self.dpi)])
         self.content_layout.addWidget(self.uninstall_widgets)
-        self.install_txt = "Re-install"
-        self.reinstall = True
 
     def install_options(self):
         """ Populates the installation options """
@@ -155,10 +156,10 @@ class SetupUI(cqt.CoopMayaUI):
             if self.reinstall:
                 setup.uninstall(self.module_path, self.module_name, self.reinstall,
                                 custom_uninstall_func=self.custom_uninstall_func)
-            setup.install(self.install_dir, all_users=False, env_variables=self.env_variables,
+            setup.install(self.install_dir, self.module_name, all_users=False, env_variables=self.env_variables,
                           custom_install_func=self.custom_install_func)
         else:
-            setup.install(self.install_dir, all_users=True, maya_versions=self.supported_maya_versions,
+            setup.install(self.install_dir, self.module_name, all_users=True, maya_versions=self.supported_maya_versions,
                           custom_install_func=self.custom_install_func)
             LOG.info("Installing {} for all users".format(self.module_name))
 

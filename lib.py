@@ -411,12 +411,13 @@ def run_cmd(cmd, cwd):
         print("Error: {}".format(error))
 
 
-def run_python_as_admin(py_cmd, close=True):
+def run_python_as_admin(py_cmd, close=True, info_prompt=""):
     """
     Runs a python command in a separate interactive python shell with admin rights prompt
     Args:
         py_cmd (unicode): One liner python command
         close (bool): Close python shell if no errors occurred
+        info_prompt (unicode): If an information prompt sould appear before
     """
     local_os = get_local_os()
     if local_os == "win":
@@ -430,6 +431,9 @@ def run_python_as_admin(py_cmd, close=True):
         ctypes.windll.shell32.ShellExecuteW(None, "runas", mayapy,
                                             subprocess.list2cmdline([str("-i"), str("-c"), py_cmd]), None, 1)
     elif local_os == "linux":
+        if info_prompt:
+            m = "You may need to enter sudo password in the terminal\n{}.".format(info_prompt)
+            dialog_ok("Root access", m)
         mayapy = Path(sys.executable).parent().child("mayapy").path
         cmd = "sudo {} -c \"{}\"".format(mayapy, py_cmd)
         process = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True)
