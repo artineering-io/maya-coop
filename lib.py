@@ -304,7 +304,7 @@ def get_program_data_dir(folder=None):
     if local_os == "win":
         program_data = Path(os.getenv('PROGRAMDATA'))
     elif local_os == "linux":
-        program_data = Path("/etc/opt")
+        program_data = Path("/opt")
     else:
         print_warning("UNIMPLEMENTED")
     if folder:
@@ -418,15 +418,28 @@ def run_python_as_admin(py_cmd, close=True):
         py_cmd (unicode): One liner python command
         close (bool): Close python shell if no errors occurred
     """
-    import ctypes
-    py_cmd = py_cmd.rstrip()
-    if close:
-        if py_cmd[-1] != ';':
-            py_cmd += ';'
-        py_cmd += " import os; os.kill(os.getpid(), 9);"
-    mayapy = Path(sys.executable).parent().child("mayapy.exe").path
-    ctypes.windll.shell32.ShellExecuteW(None, "runas", mayapy,
-                                        subprocess.list2cmdline([str("-i"), str("-c"), py_cmd]), None, 1)
+    local_os = get_local_os()
+    if local_os == "win":
+        import ctypes
+        py_cmd = py_cmd.rstrip()
+        if close:
+            if py_cmd[-1] != ';':
+                py_cmd += ';'
+            py_cmd += " import os; os.kill(os.getpid(), 9);"
+        mayapy = Path(sys.executable).parent().child("mayapy.exe").path
+        ctypes.windll.shell32.ShellExecuteW(None, "runas", mayapy,
+                                            subprocess.list2cmdline([str("-i"), str("-c"), py_cmd]), None, 1)
+    elif local_os == "linux":
+        mayapy = Path(sys.executable).parent().child("mayapy").path
+        cmd = "sudo {} -c \"{}\"".format(mayapy, py_cmd)
+        process = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True)
+        (output, error) = process.communicate()
+        if output:
+            print("Output: {}".format(output))
+        if error:
+            print("Error: {}".format(error))
+    else:
+        print_error("OS ({}) is not supported yet".format(local_os), True)
 
 
 def eval_deferred(function, lowestPriority=False):
@@ -545,6 +558,18 @@ def dialog_yes_no(title="Confirmation", message="Are you sure?", icon=""):
     if confirm == "Yes":
         return True
     return False
+
+
+def dialog_ok(title="Information", message="Hello World"):
+    """
+    Simple confirmation dialog
+    Args:
+        title (unicode): Title of the dialog (default: Confirmation)
+        message (unicode): Dialog message (default: "Are you sure?")
+    """
+    cmds.confirmDialog(title=title, message=message, ma='center', icon="information",
+                       button=['OK'], defaultButton='OK', cancelButton='OK', dismissString='OK')
+    return True
 
 
 ######################################################################################
