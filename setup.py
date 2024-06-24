@@ -81,7 +81,7 @@ def uninstall(install_dir, module_name, reinstall=False, shelves=None, no_trace=
         # replace environment file
         shutil.move(temp_file_path.path, maya_env_path)
     elif not reinstall and not background:
-        t = "Heads-up"
+        t = "ALL users confirmation"
         m = "Are you sure you wish to uninstall {} for ALL users?".format(module_name)
         reply = cmds.confirmDialog(title=t, message=m, button=['Yes', 'No'],
                                    defaultButton='Yes', cancelButton='No', dismissString='No', icn="warning")
