@@ -6,7 +6,7 @@
 """
 from __future__ import print_function
 from __future__ import unicode_literals
-import time, datetime, threading, os
+import time, datetime, threading, os, math
 import maya.cmds as cmds
 import maya.OpenMayaUI as omUI
 try:
@@ -1058,7 +1058,7 @@ class ProgressDialog(QtWidgets.QProgressDialog):
             self.setRange(0, 100)
             self.setValue(int(self.float_value))
             self.show()
-            process_events()
+            process_events()  # not needed on windows
 
     def add(self, v, item):
         self.float_value += v
@@ -1069,13 +1069,16 @@ class ProgressDialog(QtWidgets.QProgressDialog):
         else:
             if self.wasCanceled():
                 return False
-            self.setValue(int(self.float_value))
+            int_value = math.ceil(self.float_value)
+            if int_value >= 100:
+                return True
+            self.setValue(int_value)
             label = "{} {}".format(self.prefix, item)
             if self.time_remaining:
                 label += "\nElapsed time {}".format(self.time_elapsed)
                 label += "\nRemaining time {}".format(self.time_remaining)
             self.setLabelText(label)
-            process_events()
+            process_events()  # not needed on windows
         return True
 
     def log_progress(self, item):
@@ -1097,7 +1100,7 @@ class ProgressDialog(QtWidgets.QProgressDialog):
             print("100% - COMPLETED")
         else:
             self.setValue(100)
-            self.close()
+            self.close()  # not needed on windows (auto close in place)
 
 
 def process_events():
