@@ -12,6 +12,7 @@ from functools import wraps
 import maya.mel as mel
 import maya.cmds as cmds
 import maya.utils
+import time
 
 from . import logger as clog
 from . import list as clist
@@ -20,7 +21,8 @@ from . import list as clist
 import maya.api.OpenMaya as om
 
 
-maya_useNewAPI = True 
+maya_useNewAPI = True
+LAST_TIMED = 0
 
 
 try:
@@ -69,7 +71,6 @@ def timer(f):
 
     @wraps(f)  # timer = wraps(timer) | helps wrap the docstring of original function
     def wrapper(*args, **kwargs):
-        import time
         time_start = time.time()
         try:
             return f(*args, **kwargs)
@@ -167,6 +168,21 @@ def time_stamp():
     now = datetime.datetime.now()
     date_string = now.strftime("%Y%m%d")
     return int(date_string)
+
+
+def time_it(stage=""):
+    """
+    Time between each call to this function
+    Args:
+        stage (unicode): stage at which time_it was called (if specified)
+    """
+    global LAST_TIMED
+    if LAST_TIMED == 0:
+        print("Initializing time_it")
+        LAST_TIMED = time.time()
+        return
+    LOG.debug("[Time it {0}:    {1:.6f} sec]".format(stage, time.time() - LAST_TIMED))
+    LAST_TIMED = time.time()
 
 
 def get_host():
