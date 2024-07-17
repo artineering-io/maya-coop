@@ -211,9 +211,7 @@ def _get_material_of_components(components):
             shading_engines = clist.remove_duplicates(cmds.listConnections(obj, type="shadingEngine"))
             # Note: we could have used set() above, but the order of elements can be important for certain tools
             for se in shading_engines:
-                s = cmds.sets(se, q=True)
-                intersection = set(cmds.ls(s, flatten=True)).intersection(set(cmds.ls(c, flatten=True)))
-                if intersection:
+                if _is_component_in_se(c, se):
                     mats = cmds.ls(cmds.listConnections(se), mat=True) or []
                     for m in mats:
                         if m not in materials:
@@ -261,6 +259,26 @@ def _clean_shading_engines(objects):
                         except RuntimeError:
                             clib.print_warning("Couldn't disconnect {0} from {1}".format(shape, dest))
     return shading_engines
+
+
+def _is_component_in_se(c, se):
+    """
+    Return if a component is within a Shading Engine
+    Args:
+        c (unicode): Component to check set membership of
+        se (unicode): Shading engine to check within
+
+    Returns:
+        (bool): If component is within shading engine
+    """
+    # s = cmds.sets(se, q=True)
+    # intersection = set(cmds.ls(s, flatten=True)).intersection(set(cmds.ls(c, flatten=True)))
+    # print("Intersection: {}".format(bool(intersection)))
+    sets = cmds.listSets(object=c) or []
+    if se in sets:
+        # print("inside: {}".format(True))
+        return True
+    return False
 
 
 def delete_unused_materials():

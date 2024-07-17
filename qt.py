@@ -1058,7 +1058,7 @@ class ProgressDialog(QtWidgets.QProgressDialog):
             self.setRange(0, 100)
             self.setValue(int(self.float_value))
             self.show()
-            process_events()  # not needed on windows
+            process_events()  # to show UI even if first process takes long
 
     def add(self, v, item):
         self.float_value += v
