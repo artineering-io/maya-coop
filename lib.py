@@ -764,6 +764,8 @@ def get_shapes(objects, renderable=False, l=False, quiet=False):
     Returns:
         (list): List of shapes
     """
+    if not objects:
+        return []
     passed_objs = clist.flatten_list(objects)
 
     # convert any passed components and avoid duplicates (keeping the order)
