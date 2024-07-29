@@ -32,7 +32,7 @@ class AEControls:
                           "attrNavigationControlGrp",  # textures
                           "attrEnumOptionMenuGrp",  # combo box
                           "separator",  # separator
-                          "attrFieldGrp"
+                          "attrFieldGrp"  # vec2 vec3 vec4
                           # spinbox  # TODO?
                           ]
     layout_controls = ["frameLayout", "separator"]
@@ -202,11 +202,14 @@ class AEControls:
         if control == "attrColorSliderGrp":
             self._store_color_slider_data(attr, ctrl_data)
         else:
+            # store ctrl data
             if control == "attrFieldSliderGrp":
                 self._store_slider_data(attr, ctrl_data)
             elif control == "attrEnumOptionMenuGrp":
-                enum_list = cmds.attributeQuery(attr, n=self.node_name, listEnum=True)[0]
-                ctrl_data['__options__'] = enum_list.split(':')
+                self._store_enum_data(attr, ctrl_data)
+            elif control == "attrFieldGrp":
+                self._store_field_grp_data(attr, ctrl_data)
+            # store values
             if control == "attrNavigationControlGrp":
                 self._store_texture_data(attr, ctrl_data)
             elif control == "attrFieldGrp":
@@ -272,9 +275,30 @@ class AEControls:
             ctrl_data['__max__'] = cmds.attributeQuery(attr, n=self.node_name, maximum=True)[0]
         if cmds.attributeQuery(attr, n=self.node_name, softMaxExists=True):
             ctrl_data['__softMax__'] = cmds.attributeQuery(attr, n=self.node_name, softMax=True)[0]
-        # old method based solely on ctrl data
-        # ctrl_data['__max__'] = cmds.attrFieldSliderGrp(control_path, sliderMaxValue=True, q=True)
-        # ctrl_data['__min__'] = cmds.attrFieldSliderGrp(control_path, sliderMinValue=True, q=True)
+
+    def _store_enum_data(self, attr, ctrl_data):
+        """
+        Store combo box data
+        Returns:
+            attr (unicode): Attribute to get values from
+            ctrl_data (OrderedDict): Dictionary of control data
+        """
+        enum_list = cmds.attributeQuery(attr, n=self.node_name, listEnum=True)[0]
+        ctrl_data['__options__'] = enum_list.split(':')
+
+    def _store_field_grp_data(self, attr, ctrl_data):
+        """
+        Store field group data
+        Returns:
+            attr (unicode): Attribute to get values from
+            ctrl_data (OrderedDict): Dictionary of control data
+        """
+        if cmds.attributeQuery(attr, n=self.node_name, minExists=True):
+            ctrl_data['__min__'] = cmds.attributeQuery(attr, n=self.node_name, minimum=True)
+        if cmds.attributeQuery(attr, n=self.node_name, maxExists=True):
+            ctrl_data['__max__'] = cmds.attributeQuery(attr, n=self.node_name, maximum=True)
+        if cmds.attributeQuery(attr, n=self.node_name, numberOfChildren=True):
+            ctrl_data['__children__'] = cmds.attributeQuery(attr, n=self.node_name, listChildren=True)
 
     def _store_texture_data(self, attr, ctrl_data):
         """
