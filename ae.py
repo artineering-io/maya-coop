@@ -821,7 +821,7 @@ def attr_range_grp(node_attr, lab, tooltip="", range_label="", enable=True):
     Returns:
         (ui path): The UI path of the custom attribute control group
     """
-    ctrl = cmds.attrFieldGrp(attribute=node_attr, label=lab, ann=tooltip, enable=enable)
+    ctrl = cmds.attrFieldGrp(attribute=node_attr, label=lab, ann=tooltip, enable=enable, hideMapButton=True)
     widget = cqt.get_maya_widget(ctrl)
     field_factor = 1.0
     dpi_scale = cqt.get_dpi_scale()

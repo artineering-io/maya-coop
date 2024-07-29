@@ -31,7 +31,8 @@ class AEControls:
                           "checkBoxGrp",  # check boxes
                           "attrNavigationControlGrp",  # textures
                           "attrEnumOptionMenuGrp",  # combo box
-                          "separator"  # separator
+                          "separator",  # separator
+                          "attrFieldGrp"
                           # spinbox  # TODO?
                           ]
     layout_controls = ["frameLayout", "separator"]
@@ -208,6 +209,8 @@ class AEControls:
                 ctrl_data['__options__'] = enum_list.split(':')
             if control == "attrNavigationControlGrp":
                 self._store_texture_data(attr, ctrl_data)
+            elif control == "attrFieldGrp":
+                ctrl_data['__value__'] = cmds.getAttr("{}.{}".format(self.node_name, attr))[0]
             else:
                 ctrl_data['__value__'] = cmds.getAttr("{}.{}".format(self.node_name, attr))
 
@@ -225,6 +228,8 @@ class AEControls:
             attribute = clib.split_node_attr(cmds.attrColorSliderGrp(control_path, attribute=True, q=True))[-1]
         elif control_type == "checkBoxGrp":
             attribute = clib.split_node_attr(cmds.attrControlGrp(control_path, attribute=True, q=True))[-1]
+        elif control_type == "attrFieldGrp":
+            attribute = clib.split_node_attr(cmds.attrFieldGrp(control_path, attribute=True, q=True))[-1]
         elif control_type == "attrEnumOptionMenuGrp":
             # Note: We can't query the attribute though the "cmds.attrEnumOptionMenuGrp"
             attribute = _compare_nice_names_of_each_attr(cmds.attributeInfo(node_name, enumerated=True))
