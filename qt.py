@@ -299,15 +299,16 @@ class CoopMayaUI(QtWidgets.QDialog):
 
     def __init__(self, title, dock=False, rebuild=False, brand="studio.coop", tooltip="", show=True, center=False,
                  parent=""):
-        # Qt window settings stored from previous sessions
-        self.settings = QtCore.QSettings("Artineering", title)
-        self.settings.beginGroup("Window")
 
         if cmds.window(title, exists=True):
             if not rebuild:
                 cmds.showWindow(title)
                 return
             cmds.deleteUI(title, wnd=True)
+
+        # Qt window settings stored from previous sessions
+        self.settings = QtCore.QSettings("Artineering", title)
+        self.settings.beginGroup("Window")
 
         if parent == "":
             parent = get_maya_window()
