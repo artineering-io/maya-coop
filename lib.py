@@ -7,7 +7,7 @@
 """
 from __future__ import print_function
 from __future__ import unicode_literals
-import os, sys, subprocess, shutil, re, math, traceback, platform, datetime
+import os, sys, subprocess, shutil, re, math, traceback, platform, datetime, json
 from functools import wraps
 import maya.mel as mel
 import maya.cmds as cmds
@@ -20,11 +20,6 @@ from . import list as clist
 # python api 2.0
 import maya.api.OpenMaya as om
 
-
-maya_useNewAPI = True
-LAST_TIMED = 0
-
-
 try:
     basestring  # Python 2
 except NameError:
@@ -35,22 +30,15 @@ try:
 except NameError:
     xrange = range  # Python 3
 
-# Please follow google style docstrings!
-"""
-This is an example of Google style.
-
-Args:
-    param1: This is the first param.
-    param2: This is a second param.
-
-Returns:
-    This is a description of what is returned.
-
-Raises:
-    KeyError: Raises an exception.
-"""
-
+maya_useNewAPI = True
 LOG = clog.logger("coop.lib")
+LAST_TIMED = 0
+CUSTOM_DIRS = dict()
+_custom_dir_path = os.path.abspath(os.path.join(__file__, os.pardir, "_custom_dirs.json"))
+if os.path.isfile(_custom_dir_path):
+    with open(_custom_dir_path, 'r') as f:
+        CUSTOM_DIRS = json.load(f)
+        LOG.info("Loaded custom directories.")
 
 
 #        _                          _
@@ -294,14 +282,20 @@ def get_lib_dir():
 
 def get_app_documents_dir(folder=None):
     """
-    Gets the AppDocuments folder
+    Gets the AppDocuments folder containing user-specific files like preferences and presets (read/write)
     The AppDocuments folder is like AppData but within the Documents folder so that the user can back it up
+    - Windows: "Documents/AppDocuments"
+    - Linux: "~/AppDocuments"
+    Override the app_documents directory by specifying it in _custom_dirs_example.json
     Args:
         folder (unicode): A specific folder name within the AppDocuments folder
     Returns:
         (unicode): The path to the AppDocuments folder
     """
-    app_documents = Path(get_env_dir()).parent().parent().child("AppDocuments")
+    if "app_documents" in CUSTOM_DIRS:
+        app_documents = Path(CUSTOM_DIRS["app_documents"])
+    else:
+        app_documents = Path(get_env_dir()).parent().parent().child("AppDocuments")
     if folder:
         app_documents.child(folder)
     return app_documents.slash_path()
@@ -309,20 +303,27 @@ def get_app_documents_dir(folder=None):
 
 def get_program_data_dir(folder=None):
     """
-    Gets the ProgramData folder or its equivalent on Linux and Mac
+    Gets the ProgramData folder containing workspace-specific files like caches (read/write)
+    - Windows: "C:/ProgramData"
+    - Linux: "/opt"
+    - MacOS: "Not implemented yet"
+    Override the program_data directory by specifying it in _custom_dirs_example.json
     Args:
         folder (unicode): A specific folder name within the ProgramData folder
     Returns:
         (unicode): The path to the ProgramData folder
     """
-    local_os = get_local_os()
-    program_data = ""
-    if local_os == "win":
-        program_data = Path(os.getenv('PROGRAMDATA'))
-    elif local_os == "linux":
-        program_data = Path("/opt")
+    if "program_data" in CUSTOM_DIRS:
+        program_data = Path(CUSTOM_DIRS["program_data"])
     else:
-        print_warning("UNIMPLEMENTED")
+        local_os = get_local_os()
+        program_data = ""
+        if local_os == "win":
+            program_data = Path(os.getenv('PROGRAMDATA'))
+        elif local_os == "linux":
+            program_data = Path("/opt")
+        else:
+            print_error("UNIMPLEMENTED", True)
     if folder:
         program_data.child(folder)
     return program_data.slash_path()
