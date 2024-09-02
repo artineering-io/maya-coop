@@ -99,6 +99,41 @@ def pause_viewport(f):
     return wrapper
 
 
+def change_viewport(f):
+    """
+    Decorator to change to normal viewport 2.0 within function
+    Args:
+        f: function to pause viewport
+
+    Returns:
+        wrapped function with a viewport pause
+    """
+
+    @wraps(f)  # timer = wraps(timer) | helps wrap the docstring of original function
+    def wrapper(*args, **kwargs):
+        if cmds.about(batch=True):
+            return wrapper
+
+        viewport = get_active_model_panel()
+        viewport_renderer = cmds.modelEditor(viewport, rendererName=True, q=True)
+        viewport_override = ""
+        if viewport_renderer == "vp2Renderer":
+            viewport_override = cmds.modelEditor(viewport, rendererOverrideName=True, q=True)
+        cmds.modelEditor(viewport, e=True, rendererName="vp2Renderer", rendererOverrideName="")
+        try:
+            return f(*args, **kwargs)
+        except:
+            traceback.print_exc()
+        finally:
+            if viewport_override:
+                cmds.modelEditor(viewport, e=True, rendererName=viewport_renderer,
+                                 rendererOverrideName=viewport_override)
+            else:
+                cmds.modelEditor(viewport, e=True, rendererName=viewport_renderer)
+
+    return wrapper
+
+
 def undo(f):
     """
     Puts the wrapped `func` into a single Maya Undo action
