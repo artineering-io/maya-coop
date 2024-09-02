@@ -1215,8 +1215,6 @@ def snap(source='', targets=None, snap_type="translation"):
 ######################################################################################
 IMGFORMATS = {'.jpg': 8, '.png': 32, '.tif': 3, '.exr': 40, '.iff': 7}
 IMGFORMATS_ORDER = ['.png', '.jpg', '.exr', '.tif', '.iff']
-if get_local_os() == "linux":
-    IMGFORMATS_ORDER = ['.jpg', '.exr', '.tif', '.iff']
 QUALITIES_ORDER = {'Standard', 'FXAA', '4x SSAA', 'TAA'}
 
 
