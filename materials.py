@@ -6,6 +6,7 @@
 """
 from __future__ import print_function
 from __future__ import unicode_literals
+import maya.mel as mel
 import maya.cmds as cmds
 from . import lib as clib
 from . import logger as clog
@@ -87,6 +88,29 @@ def get_shading_engines(objects):
     shapes = clib.get_shapes(objects, l=True)
     shading_engines = clist.remove_duplicates(cmds.listConnections(shapes, type="shadingEngine") or [])
     return shading_engines
+
+
+def show_ae(material=None):
+    """
+    Change to the material tab in the attribute editor
+    Args:
+        material (unicode): Material to show its tab of in the attribute editor
+    """
+    if cmds.about(batch=True):
+        clib.print_error("Cannot show_material_ae() in Maya standalone")
+        return
+    mel.eval("openAEWindow")
+    if not material:
+        material = get_materials(cmds.ls(sl=True))
+        if not material:
+            clib.display_warning("No materials in selection")
+            return
+        material = material[0]
+    ae_tab_layout = mel.eval('$temp = $gAETabLayoutName;')
+    tabs = cmds.tabLayout(ae_tab_layout, q=True, tabLabelIndex=True)
+    mat_tab_idx = tabs.index(material) + 1
+    cmds.tabLayout(ae_tab_layout, selectTabIndex=mat_tab_idx, e=True)
+    mel.eval("AEbuildControls;")  # force building of controls
 
 
 def create_material(mat_type, name="", select_it=False):
@@ -393,8 +417,3 @@ def refresh_materials(materials=None):
         materials = cmds.ls(mat=True)
     shading_engines = cmds.listConnections(materials, type="shadingEngine")
     cmds.dgdirty(shading_engines)
-
-
-
-
-

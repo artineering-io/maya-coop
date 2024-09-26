@@ -438,7 +438,7 @@ class ResponsiveGridLayout(CustomControl):
 
 ##################################################################################
 class PlainAttrGrp(CustomControl):
-    """ Maya attribute controls created depending on the type of the attribute 
+    """ Maya attribute controls created depending on the type of the attribute
     Args:
         attr (BaseAttr): A BaseAttr object containing attribute information
         attr_data (kwargs): The attribute data as keyword arguments
@@ -784,10 +784,12 @@ def toggle_attributes(node_name, driving_attribute, ctrls, shown_attributes, str
     Args:
         node_name (unicode): Name of the node to check
         driving_attribute (unicode): name of the driving attribute
-        ctrls (dict): Dictionary of frame layout controls
+        ctrls (dict): Dictionary of controls
         shown_attributes (unicode, list): attributes that need to be shown depending on driving attribute
         strict (bool): If error messages should be displayed when a widget can't be found in the Attribute Editor
     """
+    if not ctrls:
+        return
     if not cmds.attributeQuery(driving_attribute, n=node_name, ex=True):
         LOG.error("No driving attribute '{}' found in node '{}'".format(driving_attribute, node_name))
         return
