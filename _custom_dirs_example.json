@@ -3,4 +3,4 @@
 
     "app_documents": "Per user documents folder to contain things like presets, preferences, etc. Needs read-write permission for active user. Used by: clib.get_app_documents_dir()",
     "program_data": "Per workstation data folder to contain caches, etc. Needs read-write permission by all users. Used by: clib.get_program_data_dir()"
-  }
+}
