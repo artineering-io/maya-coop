@@ -353,9 +353,11 @@ def set_texture(material, tex_attr, file_path):
         full_attr = "{}.{}".format(material, tex_attr)
         sources = cmds.listConnections(full_attr, type='file')
         if sources:
-            file_node = sources[0]
-            # There can be only one source connected to a texture input attribute
-            cmds.setAttr(file_node + '.fileTextureName', file_path, type='string')
+            file_node = sources[0]  # There can be only one source connected to a texture input attribute
+            if check_if_texture_exists(file_path):
+                cmds.setAttr(file_node + '.fileTextureName', file_path, type='string')
+            else:
+                clib.print_warning("{} does not exist and could not be set onto {}".format(file_path, material))
         else:
             place2d_node = cmds.shadingNode('place2dTexture', asUtility=True, ss=True)
             file_node = cmds.shadingNode('file', asTexture=True, ss=True)
@@ -417,3 +419,22 @@ def refresh_materials(materials=None):
         materials = cmds.ls(mat=True)
     shading_engines = cmds.listConnections(materials, type="shadingEngine")
     cmds.dgdirty(shading_engines)
+
+
+def check_if_texture_exists(file_path):
+    """
+    Checks if a texture at the given file_path exists
+    Args:
+        file_path (unicode): Texture path to check
+    Returns:
+        True if it exists, False if it doesn't
+    """
+    p = clib.Path(file_path)
+    if p.exists():
+        return True
+    else:
+        if p.is_relative():
+            abs_p = clib.Path(cmds.workspace(q=True, rootDirectory=True)).child(p.path)
+            if abs_p.exists():
+                return True
+    return False
