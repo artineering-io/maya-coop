@@ -186,6 +186,19 @@ def keep_selection(f):
 ######################################################################################
 # GENERAL UTILITIES
 ######################################################################################
+def install_dependency(dependency):
+    """
+    Installs missing dependencies on the mayapy interpreter
+    Args:
+        dependency (unicode):
+    """
+    print("Installing {}".format(dependency))
+    cwd = Path(sys.executable).parent().slash_path()
+    interpreter_path = Path(cwd).child("mayapy.exe").slash_path()
+    cmd = '"{}" -m pip install {}'.format(interpreter_path, dependency)
+    run_cmd(cmd, cwd)
+
+
 def time_stamp():
     """ Get a date stamp integer as YYYYMMDD """
     now = datetime.datetime.now()
@@ -591,7 +604,7 @@ def dialog_select_dir(starting_directory="", title="Open file"):
         starting_directory = cmds.workspace(rd=True, q=True)
     selected_dir = cmds.fileDialog2(dir=starting_directory,
                                     fileMode=3, cap=title,
-                                    dialogStyle=2)
+                                    dialogStyle=2, okCaption="Select")
     if not selected_dir:
         display_error("No directory specified", True)
     return selected_dir[0].replace('\\', '/')
