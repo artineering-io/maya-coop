@@ -924,7 +924,7 @@ class WidgetGroup(QtWidgets.QWidget):
         self.group_layout = q_layout
         self.setLayout(self.group_layout)
         self.group_layout.setContentsMargins(margins, margins, margins, margins)
-        self.add_widgets(q_widgets)
+        self.add_widgets(*q_widgets)
         if tooltip:
             self.setToolTip(tooltip)
 
@@ -932,9 +932,12 @@ class WidgetGroup(QtWidgets.QWidget):
         """
         Add a single widget to the group
         Args:
-            widget (QWidget): Widget to be added
+            widget (QWidget, unicode): Widget to be added
         """
-        self.group_layout.addWidget(widget)
+        if widget == "stretch":
+            self.group_layout.addStretch()
+        else:
+            self.group_layout.addWidget(widget)
 
     def add_widget_into(self, widget, row, column):
         """
@@ -946,17 +949,14 @@ class WidgetGroup(QtWidgets.QWidget):
         """
         self.group_layout.addWidget(widget, row, column)
 
-    def add_widgets(self, widgets):
+    def add_widgets(self, *widgets):
         """
-        Adds a list of widgets to the group
+        Adds widgets to the group
         Args:
             widgets (list): List of QWidgets to be added
         """
-        for widget in widgets:
-            if widget == "stretch":
-                self.group_layout.addStretch()
-            else:
-                self.group_layout.addWidget(widget)
+        for w in widgets:
+            self.add_widget(w)
 
 
 class CollapsibleGrp(QtWidgets.QWidget):
