@@ -1224,6 +1224,24 @@ def distance_between(obj1, obj2):
     return distance(v1_world, v2_world)
 
 
+def center_to_bounding_box(obj_to_center, obj=None):
+    """
+    Move an object to the center of another object's or components' bounding box
+    Args:
+        obj_to_center (unicode): Object to be centered
+        obj (unicode): Objects/components to center to
+    """
+    new_pos = [0, 0, 0]
+    if obj is None:
+        obj = cmds.ls(sl=True)
+    if obj:
+        bounding_box = cmds.exactWorldBoundingBox(obj)
+        new_pos[0] = (bounding_box[0] + bounding_box[3]) / 2
+        new_pos[1] = (bounding_box[1] + bounding_box[4]) / 2
+        new_pos[2] = (bounding_box[2] + bounding_box[5]) / 2
+    cmds.xform(obj_to_center, worldSpace=True, t=(new_pos[0], new_pos[1], new_pos[2]))
+
+
 def snap(source='', targets=None, snap_type="translation"):
     """
     Snap targets objects to source object
