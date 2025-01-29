@@ -703,6 +703,8 @@ class LabeledFieldSliderGroup(QtWidgets.QWidget):
         self.slider.setObjectName("{0} slider".format(label))
         self.slider.setSingleStep(10 * pow(10, len(str(int(value)))))  # step depends on how many digits value has
         self.slider.setPageStep(10 * pow(10, len(str(int(value)))))  # step depends on how many digits value has
+        self.slider.sliderPressed.connect(clib.open_undo)
+        self.slider.sliderReleased.connect(clib.close_undo)
 
         # add to layout
         if not reverse_layout:

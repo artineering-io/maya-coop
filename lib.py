@@ -148,13 +148,13 @@ def undo(f):
     def undo_wrapper(*args, **kwargs):
         try:
             # start an undo chunk
-            cmds.undoInfo(openChunk=True, cn="{0}".format(f))
+            open_undo("{}".format(f))
             return f(*args, **kwargs)
         except:
             traceback.print_exc()
         finally:
             # after calling the func, end the undo chunk
-            cmds.undoInfo(closeChunk=True, cn="{0}".format(f))
+            close_undo("{}".format(f))
 
     return undo_wrapper
 
@@ -723,6 +723,25 @@ def purge_missing(objects):
             if cmds.objExists(obj):
                 objs.append(obj)
     return objs
+
+
+def open_undo(chunk_name=""):
+    """
+    Open the undo chunk
+    Make sure to close the chunk to not have Maya's undo queue in a bad state
+    Args:
+        chunk_name (unicode): Name to open the chunk with
+    """
+    cmds.undoInfo(openChunk=True, cn=chunk_name)
+
+
+def close_undo(chunk_name=""):
+    """
+    Close the undo chunk
+    Args:
+        chunk_name (unicode): Name to close the chunk with
+    """
+    cmds.undoInfo(closeChunk=True, cn=chunk_name)
 
 
 def get_active_model_panel():
