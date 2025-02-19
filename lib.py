@@ -658,14 +658,15 @@ def create_empty_node(input_name):
         cmds.setAttr('{0}.{1}'.format(node_name[0], attribute), l=True, k=False)
 
 
-def get_node_data(node_name, settable=True, visible=False, quiet=False):
+def get_node_data(node_name, settable=True, keyable=False, visible=False, quiet=False):
     """
     Returns the node data in a dictionary
     Args:
         node_name (unicode): Name of the node to get data from
         settable (bool): Only the data that can be set (default: True)
+        keyable (bool): Only the data that can be keyed (default: False)
         visible (bool): Only the data that can be seen (default: False)
-        quiet (bool):
+        quiet (bool): If no error messages should be printed (default: False)
 
     Returns:
         Dictionary containing a dictionary with attribute: value
@@ -674,7 +675,7 @@ def get_node_data(node_name, settable=True, visible=False, quiet=False):
     data["name"] = node_name
     data["type"] = cmds.objectType(node_name)
     attr_data = dict()
-    node_attrs = cmds.listAttr(node_name, settable=settable, visible=visible)
+    node_attrs = cmds.listAttr(node_name, settable=settable, keyable=keyable, visible=visible)
     for attr in node_attrs:
         try:
             if cmds.attributeQuery(attr, node=node_name, attributeType=True) != "compound":
