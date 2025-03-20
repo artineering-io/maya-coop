@@ -108,8 +108,9 @@ def show_ae(material=None):
         material = material[0]
     ae_tab_layout = mel.eval('$temp = $gAETabLayoutName;')
     tabs = cmds.tabLayout(ae_tab_layout, q=True, tabLabelIndex=True)
-    mat_tab_idx = tabs.index(material) + 1
-    cmds.tabLayout(ae_tab_layout, selectTabIndex=mat_tab_idx, e=True)
+    if material in tabs:
+        mat_tab_idx = tabs.index(material) + 1
+        cmds.tabLayout(ae_tab_layout, selectTabIndex=mat_tab_idx, e=True)
     mel.eval("AEbuildControls;")  # force building of controls
 
 
@@ -359,14 +360,25 @@ def set_texture(material, tex_attr, file_path):
             else:
                 clib.print_warning("{} does not exist and could not be set onto {}".format(file_path, material))
         else:
-            place2d_node = cmds.shadingNode('place2dTexture', asUtility=True, ss=True)
-            file_node = cmds.shadingNode('file', asTexture=True, ss=True)
-            clib.set_attr(file_node, "fileTextureName", file_path)
-            # Make the default connections
-            cmds.defaultNavigation(connectToExisting=True, source=place2d_node, destination=file_node)
+            file_node = create_file_node(file_path)
             cmds.defaultNavigation(connectToExisting=True, source=file_node, destination=full_attr, force=True)
     else:
         clib.break_connections(material, tex_attr, delete_inputs=True)
+    return file_node
+
+
+def create_file_node(file_path):
+    """
+    Creates and returns a new file node with the specified texture
+    Args:
+        file_path (unicode): File path to the texture
+    Returns:
+        (unicode): Name of the created file node
+    """
+    place2d_node = cmds.shadingNode('place2dTexture', asUtility=True, ss=True)
+    file_node = cmds.shadingNode('file', asTexture=True, ss=True)
+    clib.set_attr(file_node, "fileTextureName", file_path)
+    cmds.defaultNavigation(connectToExisting=True, source=place2d_node, destination=file_node)
     return file_node
 
 
@@ -438,3 +450,27 @@ def check_if_texture_exists(file_path):
             if abs_p.exists():
                 return True
     return False
+
+
+def pxr_tex_to_file(pxr_tex):
+    """
+    Convert a pxrTexture node to a normal Maya file node
+    Args:
+        pxr_tex (unicode): Name of the PxrTexture node
+    Returns:
+        (unicode): Name of the new file node
+    """
+    if not cmds.attributeQuery("filename", n=pxr_tex, ex=True):
+        connections = cmds.listConnections(pxr_tex, destination=False, p=False)
+        if connections:
+            return pxr_tex_to_file(connections[0])
+        return None
+    file_path = cmds.getAttr("{}.filename".format(pxr_tex)).split("<ws>/")[-1]
+    tiled_texture = False
+    if '<udim>' in file_path:
+        tiled_texture = True
+        file_path = file_path.replace('<udim>', '1001')
+    file_node = create_file_node(file_path)
+    if tiled_texture:
+        clib.set_attr(file_node, "uvTilingMode", 3)  # UDIM
+    return file_node
