@@ -955,7 +955,7 @@ class WidgetGroup(QtWidgets.QWidget):
         """
         Adds widgets to the group
         Args:
-            widgets (list): List of QWidgets to be added
+            *widgets (tuple): tuple): Tuple of positional QWidgets to be added
         """
         for w in widgets:
             self.add_widget(w)
