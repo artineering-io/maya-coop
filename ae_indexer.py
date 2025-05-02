@@ -139,7 +139,8 @@ class AEControls:
             try:
                 self._parse_ae_children(child_path, child)
             except AttributeError:
-                clib.print_warning("Couldn't parse children of {}".format(child_path))
+                pass
+                # clib.print_warning("Couldn't parse children of {}".format(child_path))
 
     def _store_supported_ctrls(self, ui_path):
         """
