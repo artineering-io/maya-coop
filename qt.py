@@ -6,7 +6,11 @@
 """
 from __future__ import print_function
 from __future__ import unicode_literals
-import time, datetime, threading, os, math
+import time
+import datetime
+import threading
+import os
+import math
 import maya.cmds as cmds
 import maya.OpenMayaUI as omUI
 try:
@@ -144,7 +148,8 @@ def get_maya_layout(ui_path=""):
         (QLayout): Maya's parent layout wrapped in a QLayout
     """
     if ui_path:
-        parent = wrap_instance(omUI.MQtUtil.findLayout(ui_path), QtCore.QObject)
+        parent = wrap_instance(
+            omUI.MQtUtil.findLayout(ui_path), QtCore.QObject)
     else:
         parent = wrap_instance(omUI.MQtUtil.getCurrentParent(), QtCore.QObject)
     # Note: Maya layouts are explicit in the UI path.
@@ -342,10 +347,12 @@ class CoopMayaUI(QtWidgets.QDialog):
             if self.settings.contains("pos") and not rebuild:
                 pos = self.settings.value("pos")
             else:  # default position in active window
-                cur_screen = QtGui.QGuiApplication.screenAt(QtGui.QCursor.pos())
+                cur_screen = QtGui.QGuiApplication.screenAt(
+                    QtGui.QCursor.pos())
                 geo = cur_screen.availableGeometry()
                 pos = QtCore.QPoint(geo.x() + 250, geo.y() + 250)
-            self.setGeometry(pos.x(), pos.y(), 0, 0)  # default position when built
+            # default position when built
+            self.setGeometry(pos.x(), pos.y(), 0, 0)
 
         # default UI elements (keeping it simple)
         self.layout = QtWidgets.QVBoxLayout(self)  # self -> apply to QDialog
@@ -356,12 +363,14 @@ class CoopMayaUI(QtWidgets.QDialog):
         self.header = QtWidgets.QLabel(title)
         self.header.setAlignment(QtCore.Qt.AlignHCenter)
         self.header.setFont(FONT_HEADER)
-        self.header.setContentsMargins(header_margin, header_margin, header_margin, header_margin)
+        self.header.setContentsMargins(
+            header_margin, header_margin, header_margin, header_margin)
 
         self.brand = QtWidgets.QLabel(brand)
         self.brand.setAlignment(QtCore.Qt.AlignHCenter)
         self.brand.setToolTip(tooltip)
-        self.brand.setStyleSheet("background-color: rgb(40,40,40); color: rgb(180,180,180); border:solid black 1px;")
+        self.brand.setStyleSheet(
+            "background-color: rgb(40,40,40); color: rgb(180,180,180); border:solid black 1px;")
         self.brand.setFont(FONT_FOOTER)
         self.brand.setFixedHeight(15*self.dpi)
 
@@ -399,8 +408,12 @@ class CoopMayaUI(QtWidgets.QDialog):
         w_size = self.size()
         if self.width() == 0 and self.height() == 0:  # some dialogs don't have width (e.g., setup_view)
             w_size = QtCore.QSize(self.brand.width(), 300)
-        center_style = QtWidgets.QStyle.alignedRect(QtCore.Qt.LeftToRight, QtCore.Qt.AlignCenter, w_size, geo)
+        center_style = QtWidgets.QStyle.alignedRect(
+            QtCore.Qt.LeftToRight, QtCore.Qt.AlignCenter, w_size, geo)
         self.setGeometry(center_style)
+
+    def showEvent(self, *args, **kwargs):
+        self.customShow()
 
     def closeEvent(self, *args, **kwargs):
         self.settings.beginGroup("Window")
@@ -413,11 +426,15 @@ class CoopMayaUI(QtWidgets.QDialog):
         self.customClose()
 
     def customSettings(self):
-        """ Custom settings to save from the Window to be overriden by children windows"""
+        """ Custom settings to save from the Window. To be overriden by inherited windows"""
+        pass
+
+    def customShow(self):
+        """ Custom show procedures to run when showing the window. To be overriden by inherited windows """
         pass
 
     def customClose(self):
-        """ Custom close procedures to run when closing the window to be overriden by children windows """
+        """ Custom close procedures to run when closing the window. To be overriden by inherited windows """
         pass
 
 
@@ -431,7 +448,8 @@ def refresh_window(window_title_or_class, quiet=True):
     if clib.is_string(window_title_or_class):
         window_title = window_title_or_class
         if cmds.window(window_title, exists=True):
-            ptr = omUI.MQtUtil.findWindow(window_title)  # pointer to main window
+            ptr = omUI.MQtUtil.findWindow(
+                window_title)  # pointer to main window
             window = wrap_instance(ptr)
             main_layout = window.layout()
             clear_layout(main_layout)  # delete all widgets within main layout
@@ -439,7 +457,8 @@ def refresh_window(window_title_or_class, quiet=True):
     else:
         window_title = window_title_or_class.windowTitle
         if cmds.window(window_title, exists=True):
-            ptr = omUI.MQtUtil.findWindow(window_title)  # pointer to main window
+            ptr = omUI.MQtUtil.findWindow(
+                window_title)  # pointer to main window
             window_title_or_class = wrap_instance(ptr, window_title_or_class)
             window_title_or_class.refresh()
 
@@ -514,13 +533,15 @@ class IconButton(QtWidgets.QLabel):
 
     def set_colors(self):
         style_sheet = "QLabel{background-color: rgb" + "{0}".format(self.b_color) + \
-                      ";} QLabel:hover{background-color: rgb" + "{0}".format(self.h_color) + ";}"
+                      ";} QLabel:hover{background-color: rgb" + \
+            "{0}".format(self.h_color) + ";}"
         self.setStyleSheet(style_sheet)
 
     def set_active_colors(self):
         """ Sets an active background color """
         style_sheet = "QLabel{background-color: rgb" + "{0}".format(self.h_color) + \
-                      ";} QLabel:hover{background-color: rgb" + "{0}".format(self.h_color) + ";}"
+                      ";} QLabel:hover{background-color: rgb" + \
+            "{0}".format(self.h_color) + ";}"
         self.setStyleSheet(style_sheet)
 
 
@@ -641,9 +662,11 @@ class VerticalLabel(QtWidgets.QWidget):
             painter.drawRect(label)
 
             if self.text:
-                painter.setFont(QtGui.QFont(painter.font().family(), painter.font().pointSize(), QtGui.QFont.Bold))
+                painter.setFont(QtGui.QFont(painter.font().family(
+                ), painter.font().pointSize(), QtGui.QFont.Bold))
                 painter.setPen(QtCore.Qt.lightGray)
-                painter.drawText(label, QtCore.Qt.AlignHCenter | QtCore.Qt.AlignVCenter, self.text)
+                painter.drawText(label, QtCore.Qt.AlignHCenter |
+                                 QtCore.Qt.AlignVCenter, self.text)
         finally:
             painter.end()
 
@@ -680,7 +703,8 @@ class LabeledFieldSliderGroup(QtWidgets.QWidget):
         self.field.setDecimals(self.decimals)
         self.field.setButtonSymbols(QtWidgets.QAbstractSpinBox.NoButtons)
         self.field.setFixedWidth(60 * self.dpiS)
-        self.field.setStyleSheet("border: 0; border-radius: {0}px".format(2 * self.dpiS))
+        self.field.setStyleSheet(
+            "border: 0; border-radius: {0}px".format(2 * self.dpiS))
         self.field.setAlignment(QtCore.Qt.AlignVCenter)
         self.field.setMinimum(-999999999)
         if self.min is not None:
@@ -701,8 +725,10 @@ class LabeledFieldSliderGroup(QtWidgets.QWidget):
         self.slider.installEventFilter(self)
         self.slider.setMinimumWidth(200 * self.dpiS)
         self.slider.setObjectName("{0} slider".format(label))
-        self.slider.setSingleStep(10 * pow(10, len(str(int(value)))))  # step depends on how many digits value has
-        self.slider.setPageStep(10 * pow(10, len(str(int(value)))))  # step depends on how many digits value has
+        # step depends on how many digits value has
+        self.slider.setSingleStep(10 * pow(10, len(str(int(value)))))
+        # step depends on how many digits value has
+        self.slider.setPageStep(10 * pow(10, len(str(int(value)))))
         self.slider.sliderPressed.connect(clib.open_undo)
         self.slider.sliderReleased.connect(clib.close_undo)
 
@@ -719,7 +745,8 @@ class LabeledFieldSliderGroup(QtWidgets.QWidget):
 
         # set values
         self.field.setValue(value)
-        self.slider.setValue(value * pow(10, self.decimals))  # sliders only operate on integers
+        # sliders only operate on integers
+        self.slider.setValue(value * pow(10, self.decimals))
         self.internalValue = value
 
         # create connections
@@ -862,7 +889,8 @@ class FileBrowserGrp(QtWidgets.QWidget):
         self.line_edit = QtWidgets.QLineEdit(file_path)
         self.line_edit.setPlaceholderText(placeholder)
         self.line_edit.returnPressed.connect(self.update_path)
-        size_policy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Preferred, QtWidgets.QSizePolicy.Preferred)
+        size_policy = QtWidgets.QSizePolicy(
+            QtWidgets.QSizePolicy.Preferred, QtWidgets.QSizePolicy.Preferred)
         size_policy.setHorizontalStretch(1)
         self.line_edit.setSizePolicy(size_policy)
 
@@ -925,7 +953,8 @@ class WidgetGroup(QtWidgets.QWidget):
             q_layout = QtWidgets.QVBoxLayout()
         self.group_layout = q_layout
         self.setLayout(self.group_layout)
-        self.group_layout.setContentsMargins(margins, margins, margins, margins)
+        self.group_layout.setContentsMargins(
+            margins, margins, margins, margins)
         self.add_widgets(*q_widgets)
         if tooltip:
             self.setToolTip(tooltip)
@@ -987,7 +1016,8 @@ class CollapsibleGrp(QtWidgets.QWidget):
         self.layout.setSpacing(0)
 
         # create toggle button
-        self.toggle_button = QtWidgets.QPushButton("{}{}".format(self.collapsed[collapsed], self.title))
+        self.toggle_button = QtWidgets.QPushButton(
+            "{}{}".format(self.collapsed[collapsed], self.title))
         self.toggle_button.setObjectName("toggler")
         self.setStyleSheet("""QPushButton#toggler {{
                            text-align: left;
@@ -1013,17 +1043,21 @@ class CollapsibleGrp(QtWidgets.QWidget):
         """ Toggles the content of the collapsible group """
         if self.content.isVisible():
             self.content.setVisible(False)
-            self.toggle_button.setText("{}{}".format(self.collapsed[True], self.title))
+            self.toggle_button.setText("{}{}".format(
+                self.collapsed[True], self.title))
             if self.w_height:
-                self.window().resize(self.window().width(), self.w_height)  # TODO: make this somehow work
+                # TODO: make this somehow work
+                self.window().resize(self.window().width(), self.w_height)
         else:
             self.w_height = self.window().height()
             self.content.setVisible(True)
-            self.toggle_button.setText("{}{}".format(self.collapsed[False], self.title))
+            self.toggle_button.setText("{}{}".format(
+                self.collapsed[False], self.title))
 
 
 class SplashView(QWebEngineView):
     """ SplashView is a QWebEngineView that opens links in a browser instead of in the QWebEngineView"""
+
     def __init__(self, *args, **kwargs):
         QWebEngineView.__init__(self, *args, **kwargs)
         self.setPage(WebEnginePage(self))
@@ -1040,6 +1074,7 @@ class WebEnginePage(QWebEnginePage):
 
 class ProgressDialog(QtWidgets.QProgressDialog):
     """ Simple progress dialog """
+
     def __init__(self, window_title, parent="", prefix="Processing", time_remaining=False):
         self.prefix = prefix
         self.float_value = 0
@@ -1088,15 +1123,19 @@ class ProgressDialog(QtWidgets.QProgressDialog):
         print("{}% / 100%".format(round(self.float_value)))
         log_info = "{} {}".format(self.prefix, item)
         if self.time_remaining:
-            log_info += " | elapsed: {} | remaining: {}".format(self.time_elapsed, self.time_remaining)
+            log_info += " | elapsed: {} | remaining: {}".format(
+                self.time_elapsed, self.time_remaining)
         print(log_info)
 
     def calculate_time(self):
         self.time_elapsed = time.time() - self.start_time
-        self.time_remaining = (100.0 - self.float_value) * (self.time_elapsed / self.float_value)
+        self.time_remaining = (100.0 - self.float_value) * \
+            (self.time_elapsed / self.float_value)
         # format to HH:MM:SS
-        self.time_elapsed = str(datetime.timedelta(seconds=int(self.time_elapsed)))
-        self.time_remaining = str(datetime.timedelta(seconds=int(self.time_remaining)))
+        self.time_elapsed = str(datetime.timedelta(
+            seconds=int(self.time_elapsed)))
+        self.time_remaining = str(datetime.timedelta(
+            seconds=int(self.time_remaining)))
 
     def finish(self):
         if cmds.about(batch=True):
