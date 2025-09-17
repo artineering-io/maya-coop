@@ -27,7 +27,8 @@ class SetupUI(cqt.CoopMayaUI):
         self.module_path = clib.get_module_path(module_name)
         self.install_dir = install_dir
         self.supported_os = supported_os or ["win", "mac", "linux"]
-        self.supported_maya_versions = supported_maya_versions or [clib.get_maya_version()]
+        self.supported_maya_versions = supported_maya_versions or [
+            clib.get_maya_version()]
         self.reinstall = False
         self.env_variables = env_variables
         self.custom_install_func = custom_install_func
@@ -37,7 +38,8 @@ class SetupUI(cqt.CoopMayaUI):
 
         self.options = ["Uninstall", "Install", "Install for all"]
 
-        super(SetupUI, self).__init__(title, center=True, rebuild=rebuild, brand=brand, show=False)
+        super(SetupUI, self).__init__(title, center=True,
+                                      rebuild=rebuild, brand=brand, show=False)
         self.layout.setSizeConstraint(QtWidgets.QLayout.SetFixedSize)
         self.brand.setMinimumWidth(600)
 
@@ -50,13 +52,18 @@ class SetupUI(cqt.CoopMayaUI):
 
         # left pane
         img_label = QtWidgets.QLabel()
+        img_label.setFixedSize(75*self.dpi, 75*self.dpi)
         icon_path = clib.Path(__file__).parent().child("icons/install.png")
-        pixmap = QtGui.QPixmap(icon_path.path)
+        icon = QtGui.QPixmap(icon_path.path)
+        pixmap = icon.scaled(
+            img_label.size(),
+            QtCore.Qt.KeepAspectRatio,
+            QtCore.Qt.SmoothTransformation
+        )
         img_label.setPixmap(pixmap)
-        img_label.setScaledContents(True)
-        img_label.setFixedSize(100, 90)
-        img_label.setContentsMargins(0, 10, 20, 0)
         left_grp = cqt.WidgetGroup([img_label, "stretch"])
+        left_grp.setFixedWidth(85*self.dpi)
+        left_grp.setContentsMargins(0, 10, 0, 0)
         setup_layout.addWidget(left_grp)
 
         # right pane (content)
@@ -85,38 +92,49 @@ class SetupUI(cqt.CoopMayaUI):
 
         dialog_buttons = QtWidgets.QDialogButtonBox()
         dialog_buttons.setOrientation(QtCore.Qt.Horizontal)
-        dialog_buttons.addButton("Cancel", QtWidgets.QDialogButtonBox.RejectRole)
-        dialog_buttons.addButton("Accept", QtWidgets.QDialogButtonBox.AcceptRole)
+        dialog_buttons.addButton(
+            "Cancel", QtWidgets.QDialogButtonBox.RejectRole)
+        dialog_buttons.addButton(
+            "Accept", QtWidgets.QDialogButtonBox.AcceptRole)
         dialog_buttons.accepted.connect(self.process)
         dialog_buttons.rejected.connect(self.reject)
         self.content_layout.addWidget(dialog_buttons)
 
     def unsupported_os(self):
         self.content_layout.setAlignment(QtCore.Qt.AlignCenter)
-        not_supported_lbl = QtWidgets.QLabel("{} doesn't work on this operating system.".format(self.module_name))
+        not_supported_lbl = QtWidgets.QLabel(
+            "{} doesn't work on this operating system.".format(self.module_name))
         not_supported_lbl.setStyleSheet("font-weight: bold; color: #ff5b5b")
         self.content_layout.addWidget(not_supported_lbl)
         self.layout.addWidget(self.brand)
 
     def uninstall_option(self):
         """ Populates the uninstallation option """
-        installed_lbl = QtWidgets.QLabel("{} already installed in {}".format(self.module_name, self.module_path))
+        installed_lbl = QtWidgets.QLabel(
+            "{} already installed in {}".format(self.module_name, self.module_path))
         installed_lbl.setStyleSheet("font-weight: bold; color: #E6E2AC;")
-        uninstall_rad = QtWidgets.QRadioButton("Uninstall {}".format(self.module_name))
+        uninstall_rad = QtWidgets.QRadioButton(
+            "Uninstall {}".format(self.module_name))
         self.install_options_grp.addButton(uninstall_rad, 0)
-        self.install_options_grp.buttonReleased.connect(self.install_method_changed)
+        self.install_options_grp.buttonReleased.connect(
+            self.install_method_changed)
 
-        self.delete_everything_cbox = QtWidgets.QCheckBox("Delete everything {}-related".format(self.module_name))
-        self.delete_everything_cbox.setStyleSheet("margin-left: {}px;".format(20 * self.dpi))
-        self.delete_everything_cbox.stateChanged.connect(self.delete_everything_changed)
+        self.delete_everything_cbox = QtWidgets.QCheckBox(
+            "Delete everything {}-related".format(self.module_name))
+        self.delete_everything_cbox.setStyleSheet(
+            "margin-left: {}px;".format(20 * self.dpi))
+        self.delete_everything_cbox.stateChanged.connect(
+            self.delete_everything_changed)
         self.delete_everything_cbox.hide()
 
-        self.uninstall_widgets = cqt.WidgetGroup([installed_lbl, uninstall_rad, self.delete_everything_cbox, cqt.HLine(height=15*self.dpi)])
+        self.uninstall_widgets = cqt.WidgetGroup(
+            [installed_lbl, uninstall_rad, self.delete_everything_cbox, cqt.HLine(height=15*self.dpi)])
         self.content_layout.addWidget(self.uninstall_widgets)
 
     def install_options(self):
         """ Populates the installation options """
-        install_lbl = QtWidgets.QLabel("{} {} from {}".format(self.install_txt, self.module_name, self.install_dir))
+        install_lbl = QtWidgets.QLabel("{} {} from {}".format(
+            self.install_txt, self.module_name, self.install_dir))
         install_lbl.setStyleSheet("font-weight: bold; color: #add8e6")
         self.content_layout.addWidget(install_lbl)
 
@@ -126,15 +144,19 @@ class SetupUI(cqt.CoopMayaUI):
         self.install_options_grp.addButton(user_install_rad, 1)
         self.content_layout.addWidget(user_install_rad)
 
-        self.all_users_install_rad = QtWidgets.QRadioButton("Install for all users")
+        self.all_users_install_rad = QtWidgets.QRadioButton(
+            "Install for all users")
         self.all_users_install_rad.setAccessibleName("Install for all users")
         self.all_users_install_rad.setToolTip("System-wide installation")
         self.install_options_grp.addButton(self.all_users_install_rad, 2)
         self.content_layout.addWidget(self.all_users_install_rad)
 
-        self.delete_license_cbox = QtWidgets.QCheckBox("Delete existing license")
-        delete_license_grp = cqt.WidgetGroup([cqt.HLine(height=15*self.dpi), self.delete_license_cbox])
-        self.delete_license_cbox.setStyleSheet("font-weight: bold; color: #E6ACBB;")
+        self.delete_license_cbox = QtWidgets.QCheckBox(
+            "Delete existing license")
+        delete_license_grp = cqt.WidgetGroup(
+            [cqt.HLine(height=15*self.dpi), self.delete_license_cbox])
+        self.delete_license_cbox.setStyleSheet(
+            "font-weight: bold; color: #E6ACBB;")
         self.delete_license_cbox.released.connect(self.cache_license_choice)
         self.content_layout.addWidget(delete_license_grp)
         if not self.license_path.exists():
