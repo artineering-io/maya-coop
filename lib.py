@@ -7,7 +7,16 @@
 """
 from __future__ import print_function
 from __future__ import unicode_literals
-import os, sys, subprocess, shutil, re, math, traceback, platform, datetime, json
+import os
+import sys
+import subprocess
+import shutil
+import re
+import math
+import traceback
+import platform
+import datetime
+import json
 from functools import wraps
 import maya.mel as mel
 import maya.cmds as cmds
@@ -34,7 +43,8 @@ maya_useNewAPI = True
 LOG = clog.logger("coop.lib")
 LAST_TIMED = 0
 CUSTOM_DIRS = dict()
-_custom_dir_path = os.path.abspath(os.path.join(__file__, os.pardir, "_custom_dirs.json"))
+_custom_dir_path = os.path.abspath(os.path.join(
+    __file__, os.pardir, "_custom_dirs.json"))
 if os.path.isfile(_custom_dir_path):
     with open(_custom_dir_path, 'r') as f:
         CUSTOM_DIRS = json.load(f)
@@ -66,9 +76,61 @@ def timer(f):
             traceback.print_exc()
         finally:
             time_end = time.time()
-            LOG.debug("[Time elapsed at {0}:    {1:.4f} sec]".format(f.__name__, time_end - time_start))
+            LOG.debug("[Time elapsed at {0}:    {1:.4f} sec]".format(
+                f.__name__, time_end - time_start))
 
     return wrapper
+
+
+class ProfileTimer:
+    """Context manager and decorator for profiling code blocks"""
+
+    results = {}  # Class variable to store all timings
+
+    def __init__(self, name, print_result=False):
+        self.name = name
+        self.print_result = print_result
+        self.start_time = None
+
+    def __enter__(self):
+        self.start_time = time.time()
+        return self
+
+    def __exit__(self, *args):
+        elapsed = time.time() - self.start_time
+        ProfileTimer.results[self.name] = elapsed
+        if self.print_result:
+            print(f"[PROFILE] {self.name}: {elapsed:.4f}s")
+
+    def __call__(self, func):
+        """Use as decorator"""
+        @wraps(func)
+        def wrapper(*args, **kwargs):
+            with ProfileTimer(func.__name__, self.print_result):
+                return func(*args, **kwargs)
+        return wrapper
+
+    @classmethod
+    def print_summary(cls, sort_by_time=True):
+        """Print all profiling results"""
+        print("\n" + "="*60)
+        print("PROFILING SUMMARY")
+        print("="*60)
+        items = sorted(cls.results.items(),
+                       key=lambda x: x[1],
+                       reverse=sort_by_time)
+        total = sum(cls.results.values())
+        for name, elapsed in items:
+            pct = (elapsed / total * 100) if total > 0 else 0
+            print(f"{name:40s} {elapsed:8.4f}s  ({pct:5.1f}%)")
+        print("-"*60)
+        print(f"{'TOTAL':40s} {total:8.4f}s")
+        print("="*60 + "\n")
+
+    @classmethod
+    def reset(cls):
+        """Clear all results"""
+        cls.results = {}
 
 
 def pause_viewport(f):
@@ -115,11 +177,14 @@ def change_viewport(f):
             return wrapper
 
         viewport = get_active_model_panel()
-        viewport_renderer = cmds.modelEditor(viewport, rendererName=True, q=True)
+        viewport_renderer = cmds.modelEditor(
+            viewport, rendererName=True, q=True)
         viewport_override = ""
         if viewport_renderer == "vp2Renderer":
-            viewport_override = cmds.modelEditor(viewport, rendererOverrideName=True, q=True)
-        cmds.modelEditor(viewport, e=True, rendererName="vp2Renderer", rendererOverrideName="")
+            viewport_override = cmds.modelEditor(
+                viewport, rendererOverrideName=True, q=True)
+        cmds.modelEditor(viewport, e=True,
+                         rendererName="vp2Renderer", rendererOverrideName="")
         try:
             return f(*args, **kwargs)
         except:
@@ -129,7 +194,8 @@ def change_viewport(f):
                 cmds.modelEditor(viewport, e=True, rendererName=viewport_renderer,
                                  rendererOverrideName=viewport_override)
             else:
-                cmds.modelEditor(viewport, e=True, rendererName=viewport_renderer)
+                cmds.modelEditor(viewport, e=True,
+                                 rendererName=viewport_renderer)
 
     return wrapper
 
@@ -217,7 +283,8 @@ def time_it(stage=""):
         print("Initializing time_it")
         LAST_TIMED = time.time()
         return
-    LOG.debug("[Time it {0}:    {1:.6f} sec]".format(stage, time.time() - LAST_TIMED))
+    LOG.debug("[Time it {0}:    {1:.6f} sec]".format(
+        stage, time.time() - LAST_TIMED))
     LAST_TIMED = time.time()
 
 
@@ -343,7 +410,8 @@ def get_app_documents_dir(folder=None):
     if "app_documents" in CUSTOM_DIRS:
         app_documents = Path(CUSTOM_DIRS["app_documents"])
     else:
-        app_documents = Path(get_env_dir()).parent().parent().child("AppDocuments")
+        app_documents = Path(get_env_dir()).parent(
+        ).parent().child("AppDocuments")
     if folder:
         app_documents.child(folder)
     return app_documents.slash_path()
@@ -468,7 +536,8 @@ def run_cmd(cmd, cwd):
         cwd (unicode): Current working directory (path where command will be executed from)
     """
     print("> {}".format(cmd))
-    process = subprocess.Popen(cmd, cwd=cwd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True)
+    process = subprocess.Popen(
+        cmd, cwd=cwd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True)
     (output, error) = process.communicate()
     if output:
         print("Output: {}".format(output))
@@ -497,11 +566,13 @@ def run_python_as_admin(py_cmd, close=True, info_prompt=""):
                                             subprocess.list2cmdline([str("-i"), str("-c"), py_cmd]), None, 1)
     elif local_os == "linux":
         if info_prompt:
-            m = "You may need to enter sudo password in the terminal\n{}.".format(info_prompt)
+            m = "You may need to enter sudo password in the terminal\n{}.".format(
+                info_prompt)
             dialog_ok("Root access", m)
         mayapy = Path(sys.executable).parent().child("mayapy").path
         cmd = "sudo {} -c \"{}\"".format(mayapy, py_cmd)
-        process = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True)
+        process = subprocess.Popen(
+            cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True)
         (output, error) = process.communicate()
         if output:
             print("Output: {}".format(output))
@@ -655,7 +726,8 @@ def create_empty_node(input_name):
     node_name = cmds.ls(sl=True)
     keyable_attributes = cmds.listAttr(node_name, k=True)
     for attribute in keyable_attributes:
-        cmds.setAttr('{0}.{1}'.format(node_name[0], attribute), l=True, k=False)
+        cmds.setAttr('{0}.{1}'.format(
+            node_name[0], attribute), l=True, k=False)
 
 
 def get_node_data(node_name, settable=True, keyable=False, visible=False, quiet=False):
@@ -675,20 +747,24 @@ def get_node_data(node_name, settable=True, keyable=False, visible=False, quiet=
     data["name"] = node_name
     data["type"] = cmds.objectType(node_name)
     attr_data = dict()
-    node_attrs = cmds.listAttr(node_name, settable=settable, keyable=keyable, visible=visible)
+    node_attrs = cmds.listAttr(
+        node_name, settable=settable, keyable=keyable, visible=visible)
     for attr in node_attrs:
         try:
             if cmds.attributeQuery(attr, node=node_name, attributeType=True) != "compound":
                 attr_value = cmds.getAttr("{}.{}".format(node_name, attr))
                 if is_string(attr_value):
-                    attr_value = attr_value.replace('\\', '/')  # make sure we are not saving backslashes
+                    # make sure we are not saving backslashes
+                    attr_value = attr_value.replace('\\', '/')
                 attr_data[attr] = attr_value
             else:
                 for sub_attr in cmds.attributeQuery(attr, node=node_name, listChildren=True):
-                    attr_data[sub_attr] = cmds.getAttr("{}.{}.{}".format(node_name, attr, sub_attr))
+                    attr_data[sub_attr] = cmds.getAttr(
+                        "{}.{}.{}".format(node_name, attr, sub_attr))
         except (RuntimeError, ValueError) as err:
             if not quiet:
-                print("get_node_data() -> Couldn't get {}.{} because of: {}".format(node_name, attr, err))
+                print(
+                    "get_node_data() -> Couldn't get {}.{} because of: {}".format(node_name, attr, err))
     data["attrs"] = attr_data
     return data
 
@@ -775,7 +851,8 @@ def detach_shelf():
     """
     Detaches the current shelves
     """
-    shelf_top_level = mel.eval('global string $gShelfTopLevel;\r$tempMelStringVar=$gShelfTopLevel')
+    shelf_top_level = mel.eval(
+        'global string $gShelfTopLevel;\r$tempMelStringVar=$gShelfTopLevel')
     shelf_name = cmds.shelfTabLayout(shelf_top_level, st=True, q=True)
     shelf_paths = cmds.internalVar(ush=True).split(get_os_separator())
     shelf_file = "shelf_{0}.mel".format(shelf_name)
@@ -787,7 +864,8 @@ def detach_shelf():
         if shelf_file in files:
             shelf_file_path = os.path.join(shelfPath, shelf_file)
     if not shelf_file_path:
-        display_error("Can't detach shelf, try closing Maya with the shelf open and try again")
+        display_error(
+            "Can't detach shelf, try closing Maya with the shelf open and try again")
         return
 
     # read mel shelf file
@@ -796,7 +874,8 @@ def detach_shelf():
     # build new mel command
     mel_commands = ""
     buttons = 0
-    lines = [line for line in text.splitlines() if line]  # get rid of empty lines
+    # get rid of empty lines
+    lines = [line for line in text.splitlines() if line]
     for line in lines:
         if line.strip() == "shelfButton":
             buttons += 1
@@ -845,10 +924,12 @@ def get_shapes(objects, renderable=False, l=False, quiet=False):
             if obj not in objs:
                 objs.append(obj)
         else:
-            print_error("Passing non-string values to get_shapes(): {}".format(objects))
+            print_error(
+                "Passing non-string values to get_shapes(): {}".format(objects))
 
     if not objs and not quiet:
-        print_error("No mesh or component to extract the shape from: {}".format(objects))
+        print_error(
+            "No mesh or component to extract the shape from: {}".format(objects))
         return []
 
     objs = purge_missing(objs)  # make sure all objects exist
@@ -857,7 +938,8 @@ def get_shapes(objects, renderable=False, l=False, quiet=False):
     for obj in objs:
         potential_shape = cmds.ls(obj, shapes=True, l=l)
         if not potential_shape:
-            potential_shape = cmds.listRelatives(obj, shapes=True, noIntermediate=True, path=True, fullPath=l) or []
+            potential_shape = cmds.listRelatives(
+                obj, shapes=True, noIntermediate=True, path=True, fullPath=l) or []
         # check if renderable
         if renderable and potential_shape:
             if not is_renderable(potential_shape[0]):
@@ -1006,7 +1088,8 @@ def split_node_attr(node_attr):
         attr = node_attr[split_idx + 1:]
         return node, attr
     else:
-        print_error("'{}' could not be split into node and attribute".format(node_attr), True)
+        print_error(
+            "'{}' could not be split into node and attribute".format(node_attr), True)
 
 
 def set_attr(obj, attr, value, silent=False):
@@ -1022,7 +1105,8 @@ def set_attr(obj, attr, value, silent=False):
     # check for existence
     if not cmds.attributeQuery(attr, n=obj, ex=True):
         if not silent:
-            cmds.warning("{} can't be set as it doesn't exist".format(node_attr))
+            cmds.warning(
+                "{} can't be set as it doesn't exist".format(node_attr))
         return False
     # try setting it
     try:
@@ -1030,7 +1114,8 @@ def set_attr(obj, attr, value, silent=False):
             cmds.setAttr(node_attr, value, type="string")
         elif isinstance(value, list) or isinstance(value, tuple):
             if len(value) == 3:
-                cmds.setAttr(node_attr, value[0], value[1], value[2], type="double3")
+                cmds.setAttr(node_attr, value[0],
+                             value[1], value[2], type="double3")
             elif len(value) == 2:
                 cmds.setAttr(node_attr, value[0], value[1], type="double2")
             elif len(value) == 1:
@@ -1045,7 +1130,8 @@ def set_attr(obj, attr, value, silent=False):
                     set_attr(obj, sub_attr, value[idx])
                     idx += 1
             elif len(value) == 4:
-                cmds.setAttr(node_attr, value[0], value[1], value[2], value[3], type="double4")
+                cmds.setAttr(
+                    node_attr, value[0], value[1], value[2], value[3], type="double4")
             else:
                 cmds.setAttr(node_attr, tuple(value), type="doubleArray")
         else:
@@ -1056,7 +1142,8 @@ def set_attr(obj, attr, value, silent=False):
         if cmds.listConnections(node_attr):
             return False
         # Could fail because of parent
-        parent_attr = cmds.attributeQuery(attr, node=obj, listParent=True) or []
+        parent_attr = cmds.attributeQuery(
+            attr, node=obj, listParent=True) or []
         if parent_attr:
             return False
         # No excuse, fail gracefully
@@ -1117,12 +1204,14 @@ def break_connections(objs, attrs, delete_inputs=False):
     attrs = u_enlist(attrs)
     for obj in objs:
         if not cmds.objExists(obj):
-            LOG.warning("Could not break connections of {} as it doesn't exist".format(obj))
+            LOG.warning(
+                "Could not break connections of {} as it doesn't exist".format(obj))
             continue
         for attr in attrs:
             source = "{}.{}".format(obj, attr)
             if not cmds.attributeQuery(attr, n=obj, ex=True):
-                LOG.warning("Could not break connections of {} as the attribute doesn't exist".format(source))
+                LOG.warning(
+                    "Could not break connections of {} as the attribute doesn't exist".format(source))
                 continue
             plugs = cmds.listConnections(source, p=True) or []
             for plug in plugs:
@@ -1146,7 +1235,8 @@ def disconnect_attrs(source, source_attr, dest, dest_attr):
         dest_attr (unicode): Destination attribute
     """
     if cmds.isConnected("{}.{}".format(source, source_attr), "{}.{}".format(dest, dest_attr)):
-        cmds.disconnectAttr("{}.{}".format(source, source_attr), "{}.{}".format(dest, dest_attr))
+        cmds.disconnectAttr("{}.{}".format(
+            source, source_attr), "{}.{}".format(dest, dest_attr))
 
 
 def get_next_free_multi_index(node, attr, idx=0):
@@ -1180,7 +1270,8 @@ def get_next_free_multi_index_considering_children(node, attr, idx=0):
     while idx < 10000000:  # assume a max of 10 million connections
         if len(cmds.listConnections('{0}.{1}[{2}]'.format(node, attr, idx)) or []) == 0:
             free = True
-            child_attrs = cmds.attributeQuery(attr, n=node, listChildren=True) or []
+            child_attrs = cmds.attributeQuery(
+                attr, n=node, listChildren=True) or []
             for childAttr in child_attrs:
                 if cmds.attributeQuery(childAttr, n="{0}.{1}".format(node, attr), multi=True):
                     if get_next_free_multi_index_considering_children("{0}.{1}[{2}]".format(node, attr, idx),
@@ -1220,8 +1311,10 @@ def distance_between(obj1, obj2):
     Returns:
         Distance between the objects (in world space)
     """
-    v1_world = cmds.xform('{0}'.format(obj1), q=True, worldSpace=True, piv=True)  # list with 6 elements
-    v2_world = cmds.xform('{0}'.format(obj2), q=True, worldSpace=True, piv=True)  # list with 6 elements
+    v1_world = cmds.xform('{0}'.format(obj1), q=True,
+                          worldSpace=True, piv=True)  # list with 6 elements
+    v2_world = cmds.xform('{0}'.format(obj2), q=True,
+                          worldSpace=True, piv=True)  # list with 6 elements
     return distance(v1_world, v2_world)
 
 
@@ -1240,7 +1333,8 @@ def center_to_bounding_box(obj_to_center, obj=None):
         new_pos[0] = (bounding_box[0] + bounding_box[3]) / 2
         new_pos[1] = (bounding_box[1] + bounding_box[4]) / 2
         new_pos[2] = (bounding_box[2] + bounding_box[5]) / 2
-    cmds.xform(obj_to_center, worldSpace=True, t=(new_pos[0], new_pos[1], new_pos[2]))
+    cmds.xform(obj_to_center, worldSpace=True, t=(
+        new_pos[0], new_pos[1], new_pos[2]))
 
 
 def snap(source='', targets=None, snap_type="translation"):
@@ -1282,17 +1376,23 @@ def snap(source='', targets=None, snap_type="translation"):
         print_info("Translation snapped")
 
     if snap_type == "rotation":
-        source_xform = cmds.xform('{0}'.format(source), q=True, worldSpace=True, ro=True)
+        source_xform = cmds.xform('{0}'.format(
+            source), q=True, worldSpace=True, ro=True)
         for target in targets:
-            cmds.xform('{0}'.format(target), worldSpace=True, ro=(source_xform[0], source_xform[1], source_xform[2]))
+            cmds.xform('{0}'.format(target), worldSpace=True, ro=(
+                source_xform[0], source_xform[1], source_xform[2]))
         print_info("Rotation snapped")
 
     if snap_type == "position":
-        source_pos = cmds.xform('{0}'.format(source), q=True, worldSpace=True, piv=True)  # list with 6 elements
-        source_rot = cmds.xform('{0}'.format(source), q=True, worldSpace=True, ro=True)
+        source_pos = cmds.xform('{0}'.format(
+            source), q=True, worldSpace=True, piv=True)  # list with 6 elements
+        source_rot = cmds.xform('{0}'.format(
+            source), q=True, worldSpace=True, ro=True)
         for target in targets:
-            cmds.xform('{0}'.format(target), worldSpace=True, t=(source_pos[0], source_pos[1], source_pos[2]))
-            cmds.xform('{0}'.format(target), worldSpace=True, ro=(source_rot[0], source_rot[1], source_rot[2]))
+            cmds.xform('{0}'.format(target), worldSpace=True, t=(
+                source_pos[0], source_pos[1], source_pos[2]))
+            cmds.xform('{0}'.format(target), worldSpace=True, ro=(
+                source_rot[0], source_rot[1], source_rot[2]))
         print_info("Position snapped")
 
 
@@ -1329,7 +1429,8 @@ def change_texture_path(path):
     for node in all_file_nodes:
         file_path = cmds.getAttr("{0}.fileTextureName".format(node))
         file_name = os.path.basename(file_path)
-        cmds.setAttr("{0}.fileTextureName".format(node), "{0}/{1}".format(path, file_name), type='string')
+        cmds.setAttr("{0}.fileTextureName".format(node),
+                     "{0}/{1}".format(path, file_name), type='string')
 
 
 def screenshot(file_dir, width, height, img_format=".jpg", override="", ogs=True):
@@ -1344,12 +1445,15 @@ def screenshot(file_dir, width, height, img_format=".jpg", override="", ogs=True
     # set render settings
     cmds.setAttr("defaultRenderGlobals.imageFormat", IMGFORMATS[img_format])
     if override:
-        cmds.setAttr("hardwareRenderingGlobals.renderOverrideName", override, type="string")
+        cmds.setAttr("hardwareRenderingGlobals.renderOverrideName",
+                     override, type="string")
 
     if ogs:
         # render viewport
-        rendered_dir = cmds.ogsRender(cv=True, w=width, h=height)  # render the frame
-        shutil.move(os.path.abspath(rendered_dir), os.path.abspath(file_dir))  # move to specified dir
+        rendered_dir = cmds.ogsRender(
+            cv=True, w=width, h=height)  # render the frame
+        shutil.move(os.path.abspath(rendered_dir), os.path.abspath(
+            file_dir))  # move to specified dir
     else:
         frame = cmds.currentTime(q=True)
         cmds.playblast(cf=file_dir, fo=True, fmt='image', w=width, h=height,
@@ -1357,7 +1461,8 @@ def screenshot(file_dir, width, height, img_format=".jpg", override="", ogs=True
 
     # bring everything back to normal
     cmds.setAttr("defaultRenderGlobals.imageFormat", prev_format)
-    cmds.setAttr("hardwareRenderingGlobals.renderOverrideName", prev_override, type="string")
+    cmds.setAttr("hardwareRenderingGlobals.renderOverrideName",
+                 prev_override, type="string")
 
     print_info("Image saved successfully in {0}".format(file_dir))
     return file_dir
@@ -1408,7 +1513,8 @@ def display_warning(warning):
         warning (unicode): Warning to be displayed
     """
     if get_maya_version() > 2018 and not cmds.about(batch=True):
-        m = '<span style="color:#F4FA58;">Warning: </span><span style="color:#DDD">{}</span>'.format(warning)
+        m = '<span style="color:#F4FA58;">Warning: </span><span style="color:#DDD">{}</span>'.format(
+            warning)
         cmds.inViewMessage(msg=m, pos="midCenter", fade=True)
     print_warning(warning)
 
@@ -1424,7 +1530,8 @@ def print_error(error, show_traceback=False):
         om.MGlobal.displayError(error)
     else:
         if not cmds.about(batch=True):
-            cmds.evalDeferred(lambda: print_error(error))  # to show in the Maya UI
+            # to show in the Maya UI
+            cmds.evalDeferred(lambda: print_error(error))
         raise RuntimeError(error)
 
 
@@ -1437,7 +1544,8 @@ def display_error(error, show_traceback=False):
         show_traceback (bool): If python should error our and show a traceback
     """
     if get_maya_version() > 2018 and not cmds.about(batch=True):
-        m = '<span style="color:#F05A5A;">Error: </span><span style="color:#DDD">{}</span>'.format(error)
+        m = '<span style="color:#F05A5A;">Error: </span><span style="color:#DDD">{}</span>'.format(
+            error)
         cmds.inViewMessage(msg=m, pos="midCenterBot", fade=True)
     print_error(error, show_traceback)
 
@@ -1450,6 +1558,7 @@ def display_error(error, show_traceback=False):
 #   |_|
 class Path(object):
     """ Path library to work in Python 2 and 3 """
+
     def __init__(self, path):
         if isinstance(path, str):
             self.path = u_decode(path)
@@ -1577,7 +1686,8 @@ class Path(object):
             cur_path = search_path
         parent_path = os.path.abspath(os.path.join(cur_path, os.pardir))
         if parent_path == search_path:
-            print_warning("Can't find parent folder: {}".format(parent_basename))
+            print_warning(
+                "Can't find parent folder: {}".format(parent_basename))
             return ""  # no parent available anymore
         p_basename = os.path.basename(parent_path)
         if p_basename == parent_basename:
@@ -1645,7 +1755,8 @@ def make_path_relative(path, root_path=None):
         if new_path.startswith(root_path):
             new_path = new_path[len(root_path):]
     else:
-        project_path = Path(cmds.workspace(q=True, rootDirectory=True)).slash_path()
+        project_path = Path(cmds.workspace(
+            q=True, rootDirectory=True)).slash_path()
         if new_path.startswith(project_path):
             new_path = new_path[len(project_path):]
     if new_path != path:
@@ -1885,7 +1996,8 @@ def change_namespace(object_name, change_dict):
     if namespace:
         namespace = namespace[0] + ":"
         if namespace in change_dict:
-            object_name = object_name.replace(namespace, change_dict[namespace])
+            object_name = object_name.replace(
+                namespace, change_dict[namespace])
     return object_name
 
 
@@ -1953,7 +2065,8 @@ def u_stringify(arg, silent=True):
         str_arg = arg
         if isinstance(arg, list) or isinstance(arg, tuple):
             if not silent:
-                LOG.info("{0} is a list/tuple, taking first element".format(arg))
+                LOG.info(
+                    "{0} is a list/tuple, taking first element".format(arg))
             str_arg = arg[0]
         elif isinstance(arg, int):
             str_arg = str(arg)
