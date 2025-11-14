@@ -1652,7 +1652,7 @@ class Path(object):
         contents = []
         try:
             contents = os.listdir(self.path)
-        except WindowsError:
+        except FileNotFoundError:
             traceback.print_exc()
         return contents
 
