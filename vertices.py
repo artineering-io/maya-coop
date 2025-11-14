@@ -92,12 +92,13 @@ def delete_color_set_history(shapes):
 
 
 @clib.undo
-def delete_color_sets(shapes, color_sets):
+def delete_color_sets(shapes, color_sets, retry=False):
     """
     Deletes vertex color sets and their history from shapes
     Args:
         shapes (list): Shapes to delete vertex color sets from
         color_sets (list, unicode): Vertex color sets to delete
+        retry (bool): Internal use only, for retrying on failure
     """
     shapes = clib.u_enlist(shapes)  # put in list
     color_sets = clib.u_enlist(color_sets)  # put in list
@@ -105,28 +106,55 @@ def delete_color_sets(shapes, color_sets):
     nodes2delete = []
 
     for shape in shapes:
-        # query and delete color sets
         shape_color_sets = cmds.polyColorSet(
             shape, query=True, allColorSets=True) or []
-        for color_set in color_sets:
-            if color_set in shape_color_sets:
-                cmds.polyColorSet(shape, colorSet=color_set, delete=True)
-
-        history = cmds.listHistory(shape) or []
-        vertex_color_nodes = cmds.ls(
-            history, type=['polyColorPerVertex', 'createColorSet', 'deleteColorSet']) or []
-
-        # These nodes always have colorSetName, so just get it directly
-        for node in vertex_color_nodes:
-            # check name of color set name
-            color_set_name = cmds.getAttr(
-                "{}.colorSetName".format(node))
-            if color_set_name in color_sets_set:
-                nodes2delete.append(node)
+        found = False
+        for color_set in shape_color_sets:
+            if color_set in color_sets_set:
+                found = True
+                break
+        if found:
+            history = cmds.listHistory(shape) or []
+            vertex_color_nodes = cmds.ls(
+                history, type=['polyColorPerVertex', 'createColorSet', 'deleteColorSet']) or []
+            # These nodes always have colorSetName, so just get it directly
+            for node in vertex_color_nodes:
+                # check name of color set name
+                color_set_name = cmds.getAttr(
+                    "{}.colorSetName".format(node))
+                if color_set_name in color_sets_set:
+                    nodes2delete.append(node)
     if nodes2delete:
         cmds.delete(nodes2delete)
-        LOG.debug("Vertex color sets {} deleted for: {}".format(
-            color_sets, shapes))
+
+    # verify deletion
+    nodes2delete = []
+    for shape in shapes:
+        # query remaining color sets (that might not have history anymore)
+        shape_color_sets = cmds.polyColorSet(
+            shape, query=True, allColorSets=True) or []
+        found = False
+        for color_set in shape_color_sets:
+            if color_set in color_sets_set:
+                found = True
+                cmds.polyColorSet(shape, colorSet=color_set, delete=True)
+        if found:
+            history = cmds.listHistory(shape) or []
+            vertex_color_nodes = cmds.ls(
+                history, type=['polyColorPerVertex', 'createColorSet', 'deleteColorSet']) or []
+            # These nodes always have colorSetName, so just get it directly
+            for node in vertex_color_nodes:
+                # check name of color set name
+                color_set_name = cmds.getAttr(
+                    "{}.colorSetName".format(node))
+                if color_set_name in color_sets_set:
+                    nodes2delete.append(node)
+    if nodes2delete:
+        print("Nodes deleted in fallback")
+        cmds.delete(nodes2delete)
+
+    LOG.debug("Vertex color sets {} deleted for: {}".format(
+        color_sets, shapes))
 
 
 def _bake_vertex_colors(shapes):
