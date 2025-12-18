@@ -381,9 +381,12 @@ def get_module_path(module):
         (unicode): Path to the module (empty if it doesn't exist)
     """
     try:
-        return cmds.moduleInfo(path=True, moduleName=module)
+        module_path = cmds.moduleInfo(path=True, moduleName=module)
+        if Path(module_path).exists():
+            return module_path
     except RuntimeError:
-        return ""
+        pass    
+    return ""
 
 
 def get_lib_dir():
