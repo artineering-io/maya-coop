@@ -333,6 +333,7 @@ def _install_all_users(install_dir, module_name, maya_versions):
     Installs modules from install_dir for all users in:
     Windows: C:/Program Files/Common Files/Autodesk Shared/Modules/maya
     Linux: /usr/autodesk/modules/maya
+    MacOS: /Users/Shared/Autodesk/modules/maya/
     Args:
         install_dir (unicode): Directory where the .mod files are
         module_name (unicode): Name of the module
@@ -405,7 +406,7 @@ def _py_cmd_install_all_users(module_name, maya_versions, modules):
     py_cmd += "import os; "
     for temp in modules:
         py_cmd += "os.remove('{}'); ".format(clib.Path(temp).slash_path())
-    if clib.get_local_os() == "linux":
+    if clib.get_local_os() != "win":
         program_data = clib.get_program_data_dir(module_name)
         py_cmd += "os.makedirs('{0}', exist_ok=True); os.chmod('{0}', 0o777); ".format(program_data)
     return py_cmd

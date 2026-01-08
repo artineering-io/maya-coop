@@ -425,7 +425,7 @@ def get_program_data_dir(folder=None):
     Gets the ProgramData folder containing workspace-specific files like caches (read/write)
     - Windows: "C:/ProgramData"
     - Linux: "/opt"
-    - MacOS: "Not implemented yet"
+    - MacOS: "/Users/Shared"
     Override the program_data directory by specifying it in _custom_dirs_example.json
     Args:
         folder (unicode): A specific folder name within the ProgramData folder
@@ -441,6 +441,8 @@ def get_program_data_dir(folder=None):
             program_data = Path(os.getenv('PROGRAMDATA'))
         elif local_os == "linux":
             program_data = Path("/opt")
+        elif local_os == "mac":
+            program_data = Path("/Users/Shared")
         else:
             print_error("UNIMPLEMENTED", True)
     if folder:
@@ -493,7 +495,7 @@ def open_file(file_path):
     elif get_local_os() == "linux":
         subprocess.run(['xdg-open', file_path])
     else:
-        subprocess.run(['open', file_path])  # untested
+        subprocess.run(['open', file_path])
 
 
 def downloader(url, dest):
@@ -576,6 +578,23 @@ def run_python_as_admin(py_cmd, close=True, info_prompt=""):
         cmd = "sudo {} -c \"{}\"".format(mayapy, py_cmd)
         process = subprocess.Popen(
             cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True)
+        (output, error) = process.communicate()
+        if output:
+            print("Output: {}".format(output))
+        if error:
+            print("Error: {}".format(error))
+    elif local_os == "mac":
+        mayapy = Path(sys.executable).parent().child("mayapy").path
+        safe_cmd = py_cmd.replace('"', '\\"')
+        prompt_msg = "Flair needs administrator privileges to continue."
+        applescript = 'do shell script "{} -c \\"{}\\"" with administrator privileges with prompt "{}"'.format(
+            mayapy, safe_cmd, prompt_msg
+        )
+        process = subprocess.Popen(
+            ['osascript', '-e', applescript],
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE
+        )
         (output, error) = process.communicate()
         if output:
             print("Output: {}".format(output))
