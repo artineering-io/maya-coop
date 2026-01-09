@@ -571,7 +571,7 @@ def run_python_as_admin(py_cmd, close=True, info_prompt=""):
                                             subprocess.list2cmdline([str("-i"), str("-c"), py_cmd]), None, 1)
     elif local_os == "linux":
         if info_prompt:
-            m = "You may need to enter sudo password in the terminal\n{}.".format(
+            m = "You may need to enter sudo password in the terminal.\n{}".format(
                 info_prompt)
             dialog_ok("Root access", m)
         mayapy = Path(sys.executable).parent().child("mayapy").path
@@ -584,11 +584,15 @@ def run_python_as_admin(py_cmd, close=True, info_prompt=""):
         if error:
             print("Error: {}".format(error))
     elif local_os == "mac":
+        import base64
         mayapy = Path(sys.executable).parent().child("mayapy").path
-        safe_cmd = py_cmd.replace('"', '\\"')
-        prompt_msg = "Flair needs administrator privileges to continue."
+        # Base64 encode the entire Python command to avoid escaping issues with applescript
+        py_cmd_bytes = py_cmd.encode('utf-8')
+        py_cmd_b64 = base64.b64encode(py_cmd_bytes).decode('ascii')
+        # The command decodes and executes the base64 string
+        exec_cmd = "import base64; exec(base64.b64decode('{}'))".format(py_cmd_b64)
         applescript = 'do shell script "{} -c \\"{}\\"" with administrator privileges with prompt "{}"'.format(
-            mayapy, safe_cmd, prompt_msg
+            mayapy, exec_cmd, info_prompt
         )
         process = subprocess.Popen(
             ['osascript', '-e', applescript],
