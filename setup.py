@@ -162,7 +162,8 @@ def delete_license(license_path):
         clib.print_info("Prompting for admin access")
         py_cmd = "import os; "
         py_cmd += "os.remove('{}')".format(license_path.slash_path())
-        clib.run_python_as_admin(py_cmd, close=True, info_prompt="to remove the license")
+        info_prompt = "The application needs administrator privileges to remove the license."
+        clib.run_python_as_admin(py_cmd, close=True, info_prompt=info_prompt)
 
 
 def _fmt_variables(env_variables):
@@ -360,7 +361,8 @@ def _install_all_users(install_dir, module_name, maya_versions):
     try:
         exec(py_cmd)
     except PermissionError:
-        clib.run_python_as_admin(py_cmd, close=True, info_prompt="to continue the installation")
+        info_prompt = "The application needs administrator privileges to install the modules."
+        clib.run_python_as_admin(py_cmd, close=True, info_prompt=info_prompt)
     LOG.info("Installation finished")
 
 
@@ -379,7 +381,8 @@ def _uninstall_all_users(module_name):
     try:
         exec(py_cmd)
     except PermissionError:
-        clib.run_python_as_admin(py_cmd, close=True, info_prompt="to finish uninstalling")
+        info_prompt = "The application needs administrator privileges to uninstall the modules."
+        clib.run_python_as_admin(py_cmd, close=True, info_prompt=info_prompt)
 
 
 def _py_cmd_install_all_users(module_name, maya_versions, modules):
