@@ -755,23 +755,19 @@ class AEControlIndexer:
         return None
 
 
-def toggle_frame(node_name, attribute, ctrls, frame_layout):
+def toggle_frame(ctrls, frame_layout, toggle): 
     """
-    Toggles the frame layout of attributes depending on the state of the setting
-    Args:
-        node_name (unicode): Name of the node to check
-        attribute (unicode): Setting attribute
-        ctrls (dict): Dictionary of frame layout controls
+    Toggles visibility for the frame layout of attributes depending on the predicate function
+    Args: 
+        ctrls (dict): Dictionary of frame layout controls 
         frame_layout (unicode): Title of the frame layout
+        toggle (bool): True to show, False to hide the frame layout
     """
-    # print("toggle_frame('{}', '{}', {}, '{}'".format(node_name, attribute, ctrls, frame_layout))
-    if frame_layout in ctrls:
-        if cmds.getAttr("{}.{}".format(node_name, attribute)):
-            for widget in ctrls[frame_layout]:
-                widget.setVisible(True)
-        else:
-            for widget in ctrls[frame_layout]:
-                widget.setVisible(False)
+    # print("toggle_frame({}, '{}', {})".format(ctrls, frame_layout, predicate_func))
+    if frame_layout not in ctrls:
+        return
+    for widget in ctrls[frame_layout]:
+        widget.setVisible(toggle)
 
 
 def toggle_attributes(node_name, driving_attribute, ctrls, shown_attributes, strict=True):
