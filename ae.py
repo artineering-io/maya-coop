@@ -70,7 +70,8 @@ class ShortAttr(BaseAttr):
             callback (func): Callback triggered upon attribute change
             enable (bool): If the attribute is enabled or disabled
         """
-        super(ShortAttr, self).__init__(attr_name, label, tooltip, callback, enable, custom_replace=custom_replace)
+        super(ShortAttr, self).__init__(attr_name, label, tooltip,
+                                        callback, enable, custom_replace=custom_replace)
         self.label_width *= 0.8
 
 
@@ -131,7 +132,8 @@ class AETemplate(object):
                 cmd += ' -label "{}"'.format(lab)
             cmd += ' -addControl "{}"'.format(control)
             if callback:
-                clib.print_warning("Callbacks are not supported by add_control() on Maya < 2022")
+                clib.print_warning(
+                    "Callbacks are not supported by add_control() on Maya < 2022")
                 clib.print_info("Use custom_control(PlainAttrGrp()) instead")
             mel.eval(cmd)
         # control_name = cmds.editorTemplate(queryName=[self.nodeName, control[0]])
@@ -191,10 +193,12 @@ class AETemplate(object):
             module (unicode):  Module where the python versions of the new and replace functions are
             *args (any): Arguments to pass onto the procedure
         """
-        import_cmd = 'python("import {}");'.format(module)  # importing the module where the python functions are
+        import_cmd = 'python("import {}");'.format(
+            module)  # importing the module where the python functions are
         new_proc_cmd = 'global proc {}('.format(new_proc)
         replace_proc_cmd = 'global proc {}('.format(replace_proc)
-        mel_cmd = 'editorTemplate -callCustom "{}" "{}" '.format(new_proc, replace_proc)
+        mel_cmd = 'editorTemplate -callCustom "{}" "{}" '.format(
+            new_proc, replace_proc)
         py_args = ""
         mel_fmt_args = ""
 
@@ -216,7 +220,8 @@ class AETemplate(object):
                     new_proc_cmd += "float $arg{}, ".format(i)
                     replace_proc_cmd += "float $arg{}, ".format(i)
                 else:
-                    cmds.error("Variable of type '{}' has not been implemented yet in call_custom".format(type(arg)))
+                    cmds.error(
+                        "Variable of type '{}' has not been implemented yet in call_custom".format(type(arg)))
         mel_cmd = mel_cmd[:-1] + ";"
         new_proc_cmd = new_proc_cmd[:-2] + ') { python('
         replace_proc_cmd = replace_proc_cmd[:-2] + ') { python('
@@ -267,7 +272,8 @@ class AETemplate(object):
         else:
             # mel wrapping it is because cmds.editorTemplate doesn't work properly prior Maya 2022
             global PLAIN_ATTR_DATA
-            PLAIN_ATTR_DATA[attrs] = custom_obj.build_kwargs  # we store the widget format data in a global
+            # we store the widget format data in a global
+            PLAIN_ATTR_DATA[attrs] = custom_obj.build_kwargs
             AETemplate.call_custom("_ae_plain_attr_new", "_ae_plain_attr_replace", __name__,
                                    attrs)
 
@@ -366,6 +372,7 @@ class ResponsiveGridLayout(CustomControl):
         spacing (int): Spacing between the grid elements
         columns (int): Specifies how many columns the grid layout will have
     """
+
     def build_control_ui(self):
         # print(self.build_args)
         # print(self.build_kwargs)
@@ -378,7 +385,8 @@ class ResponsiveGridLayout(CustomControl):
             # build frame
             frame_title = self.build_kwargs.get('title', '')
             if frame_title:
-                self.frame_path = cmds.frameLayout(label=frame_title, collapse=False)
+                self.frame_path = cmds.frameLayout(
+                    label=frame_title, collapse=False)
             else:
                 self.frame_path = cmds.columnLayout()
             # build grid
@@ -389,11 +397,13 @@ class ResponsiveGridLayout(CustomControl):
             self.populate_widgets()
             # add grid to frame
             frame_widget = omUI.MQtUtil.findControl(self.frame_path)
-            omUI.MQtUtil.addWidgetToMayaLayout(cqt.get_cpp_pointer(self.grid), long(frame_widget))
+            omUI.MQtUtil.addWidgetToMayaLayout(
+                cqt.get_cpp_pointer(self.grid), long(frame_widget))
             # color frameLayout
             if bg_color:
                 self.parent_frame()
-                cmds.frameLayout(self.frame_path, backgroundColor=[bg_color[0], bg_color[1], bg_color[2]], edit=True)
+                cmds.frameLayout(self.frame_path, backgroundColor=[
+                                 bg_color[0], bg_color[1], bg_color[2]], edit=True)
         finally:
             cmds.setUITemplate(popTemplate=True)
 
@@ -401,7 +411,8 @@ class ResponsiveGridLayout(CustomControl):
         # as ctrls are parented on a QT element, existence is managed by us
         for i, attr in enumerate(self.attrs):
             node_attr = "{}.{}".format(self.node_name, attr.name)
-            ctrl_path = cqt.get_full_name(cqt.get_cpp_pointer(self.ctrl_widgets[i]))
+            ctrl_path = cqt.get_full_name(
+                cqt.get_cpp_pointer(self.ctrl_widgets[i]))
             callback = None
             if attr.callback:
                 callback = partial(attr.callback, self.node_name)
@@ -420,7 +431,8 @@ class ResponsiveGridLayout(CustomControl):
                 ctrl_widget = cqt.wrap_ctrl(ctrl, QtWidgets.QWidget)
                 self.ctrl_widgets.append(ctrl_widget)
                 if not ctrl_widget.objectName().startswith("checkBoxGrp"):
-                    self.grid_layout.addWidget(ctrl_widget, row, column, 1, 1, QtCore.Qt.AlignLeft)
+                    self.grid_layout.addWidget(
+                        ctrl_widget, row, column, 1, 1, QtCore.Qt.AlignLeft)
                 else:  # otherwise the order of checkBoxGrp gets reversed again...
                     self.grid_layout.addWidget(ctrl_widget, row, column, 1, 1)
                 column += 1
@@ -462,7 +474,8 @@ class PlainAttrGrp(CustomControl):
 
     def replace_control_ui(self):
         """ Updates/replaces the custom control UI """
-        _plain_attr_widget_update(self.plug_name, self.build_kwargs.get('callback', None))
+        _plain_attr_widget_update(
+            self.plug_name, self.build_kwargs.get('callback', None))
 
 
 def _plain_attr_widget(node_attr, attr_data):
@@ -497,7 +510,8 @@ def _plain_attr_widget(node_attr, attr_data):
     lab = attr_data.get('lab', '')
     if not lab:
         lab = cmds.attributeQuery(attr, n=node, niceName=True)
-    label_width = attr_data.get('label_width', int(mel.eval('$tempMelVar=$gTextColumnWidthIndex')))
+    label_width = attr_data.get('label_width', int(
+        mel.eval('$tempMelVar=$gTextColumnWidthIndex')))
     enabled = attr_data.get('enable', True)
     ann = attr_data.get('ann', "")
     callback = attr_data.get('callback', None)
@@ -512,26 +526,33 @@ def _plain_attr_widget(node_attr, attr_data):
             ctrl = cmds.attrFieldSliderGrp(at=node_attr, label=lab, ann=ann,
                                            hideMapButton=True, enable=enabled, columnWidth=[1, label_width])
         else:
-            ctrl = cmds.attrNavigationControlGrp(at=node_attr, label=lab, ann=ann)
+            ctrl = cmds.attrNavigationControlGrp(
+                at=node_attr, label=lab, ann=ann)
         if callback:  # manage callbacks manually to guarantee their existence
-            cmds.scriptJob(attributeChange=[node_attr, callback], parent=ctrl, replacePrevious=True)
+            cmds.scriptJob(attributeChange=[
+                           node_attr, callback], parent=ctrl, replacePrevious=True)
     elif attr_type == "float3":
         ctrl = cmds.attrColorSliderGrp(at=node_attr, label=lab, ann=ann, showButton=False,
                                        cw=[4, 0], columnAttach4=["right", "both", "right", "both"],
                                        columnOffset4=[6, 1, -3, 0])
     elif attr_type == "float2":
-        ctrl = attr_range_grp(node_attr, lab=lab, tooltip=ann, range_label=attr_data.get('range_label', ""))
+        ctrl = attr_range_grp(node_attr, lab=lab, tooltip=ann,
+                              range_label=attr_data.get('range_label', ""))
     elif attr_type == "long2" or attr_type == "double4":
-        ctrl = cmds.attrFieldGrp(attribute=node_attr, label=lab, ann=ann, hideMapButton=True)
+        ctrl = cmds.attrFieldGrp(
+            attribute=node_attr, label=lab, ann=ann, hideMapButton=True)
     elif attr_type == "bool":
-        ctrl = attr_checkbox_grp(node_attr, lab, label_width, tooltip=ann, enable=enabled, callback=callback)
+        ctrl = attr_checkbox_grp(
+            node_attr, lab, label_width, tooltip=ann, enable=enabled, callback=callback)
     elif attr_type == "enum":
-        ctrl = attr_enum_grp(node_attr, lab, label_width, tooltip=ann, enable=enabled, callback=callback)
+        ctrl = attr_enum_grp(node_attr, lab, label_width,
+                             tooltip=ann, enable=enabled, callback=callback)
     else:
         LOG.error("{} UI could not be generated. Attributes of type {} "
                   "have not been implemented for _plain_attr_widget())".format(node_attr, attr_type))
         return
-    if not ctrl.startswith("window"):  # do not update/replace attributes that are in external windows
+    # do not update/replace attributes that are in external windows
+    if not ctrl.startswith("window"):
         if ctrl not in ATTR_WIDGETS[widget_name]:
             ATTR_WIDGETS[widget_name].append(ctrl)
     return ctrl
@@ -588,7 +609,8 @@ def _check_script_jobs(node_attr, ctrl, callback):
     """
     if callback:
         # print("Callback of {}: {}".format(node_attr, callback))
-        cmds.scriptJob(attributeChange=[node_attr, callback], parent=ctrl, replacePrevious=True)
+        cmds.scriptJob(attributeChange=[
+                       node_attr, callback], parent=ctrl, replacePrevious=True)
         callback()  # run callback (default behavior)
 
 
@@ -620,7 +642,8 @@ def _ae_plain_attr_replace(node_attr):
     """
     # print("ae_plain_attr_replace_('{}')".format(node_attr))
     node, attr = clib.split_node_attr(node_attr)
-    _plain_attr_widget_update(node_attr, PLAIN_ATTR_DATA[attr].get('callback', None))  # update widget
+    _plain_attr_widget_update(node_attr, PLAIN_ATTR_DATA[attr].get(
+        'callback', None))  # update widget
 
 
 def _update_ctrl(ctrl, node_attr, callback=None):
@@ -737,7 +760,7 @@ class AEControlIndexer:
             r_idx = ui_path.find("|", idx + 1)
             if r_idx == -1:  # it is the exact path of the searched control
                 if widget:
-                    return cqt.wrap_ctrl(ui_path)
+                    return cqt.wrap_ctrl(ui_path, QtWidgets.QWidget)
                 return ui_path
         return None
 
@@ -755,7 +778,7 @@ class AEControlIndexer:
         return None
 
 
-def toggle_frame(ctrls, frame_layout, toggle): 
+def toggle_frame(ctrls, frame_layout, toggle):
     """
     Toggles visibility for the frame layout of attributes depending on the predicate function
     Args: 
@@ -787,13 +810,16 @@ def toggle_attributes(node_name, driving_attribute, ctrls, shown_attributes, str
     if not ctrls:
         return
     if not cmds.attributeQuery(driving_attribute, n=node_name, ex=True):
-        LOG.error("No driving attribute '{}' found in node '{}'".format(driving_attribute, node_name))
+        LOG.error("No driving attribute '{}' found in node '{}'".format(
+            driving_attribute, node_name))
         return
-    option = int(cmds.getAttr("{}.{}".format(node_name, driving_attribute)))  # make sure its an "enum"
+    # make sure its an "enum"
+    option = int(cmds.getAttr("{}.{}".format(node_name, driving_attribute)))
     shown_attributes = clib.u_enlist(shown_attributes)
 
     for i, toggle in enumerate(shown_attributes):
-        toggle = clib.u_enlist(toggle)  # make sure they are in a list so we can loop through them
+        # make sure they are in a list so we can loop through them
+        toggle = clib.u_enlist(toggle)
         for t in toggle:
             if t in ctrls:
                 if i == option:
@@ -804,7 +830,8 @@ def toggle_attributes(node_name, driving_attribute, ctrls, shown_attributes, str
                         widget.setVisible(False)
             else:
                 if strict:
-                    LOG.error("{} widgets are not found in the Attribute Editor".format(t))
+                    LOG.error(
+                        "{} widgets are not found in the Attribute Editor".format(t))
 
 
 def attr_range_grp(node_attr, lab, tooltip="", range_label="", enable=True):
@@ -819,7 +846,8 @@ def attr_range_grp(node_attr, lab, tooltip="", range_label="", enable=True):
     Returns:
         (ui path): The UI path of the custom attribute control group
     """
-    ctrl = cmds.attrFieldGrp(attribute=node_attr, label=lab, ann=tooltip, enable=enable, hideMapButton=True)
+    ctrl = cmds.attrFieldGrp(
+        attribute=node_attr, label=lab, ann=tooltip, enable=enable, hideMapButton=True)
     widget = cqt.get_maya_widget(ctrl)
     field_factor = 1.0
     dpi_scale = cqt.get_dpi_scale()
@@ -853,19 +881,24 @@ def attr_checkbox_grp(node_attr, lab, label_width=None, tooltip="", callback=Non
     Returns:
         (ui path): The UI path of the custom attribute control group
     """
-    ctrl = cmds.attrControlGrp(attribute=node_attr, label=lab, ann=tooltip, enable=enable)
+    ctrl = cmds.attrControlGrp(
+        attribute=node_attr, label=lab, ann=tooltip, enable=enable)
     if callback:  # manage callbacks manually to guarantee their existence
-        cmds.scriptJob(attributeChange=[node_attr, callback], parent=ctrl, replacePrevious=True)
+        cmds.scriptJob(attributeChange=[
+                       node_attr, callback], parent=ctrl, replacePrevious=True)
     widget = cqt.wrap_ctrl(ctrl, QtWidgets.QWidget)
     widget.setAccessibleName(lab)
-    widget.setLayoutDirection(QtCore.Qt.RightToLeft)  # move checkbox to the right
-    cmds.checkBoxGrp(ctrl, columnWidth=[1, 0], e=True)  # hide empty label of ctrl group
+    # move checkbox to the right
+    widget.setLayoutDirection(QtCore.Qt.RightToLeft)
+    # hide empty label of ctrl group
+    cmds.checkBoxGrp(ctrl, columnWidth=[1, 0], e=True)
     cbox = widget.findChildren(QtWidgets.QCheckBox)[0]
     if label_width is None:
         label_width = int(mel.eval('$tempMelVar=$gTextColumnWidthIndex'))
     dpi_scale = cqt.get_dpi_scale()
     cbox.setFixedWidth(dpi_scale * (label_width + 2))
-    style_sheet = "margin-top: {0}px; margin-bottom: {0}px".format(dpi_scale * 2)
+    style_sheet = "margin-top: {0}px; margin-bottom: {0}px".format(
+        dpi_scale * 2)
     cbox.setStyleSheet(style_sheet)
     return ctrl
 
@@ -886,9 +919,10 @@ def attr_enum_grp(node_attr, lab, label_width=None, tooltip="", callback=None, e
     ctrl = cmds.attrEnumOptionMenuGrp(at=node_attr, label=lab, ann=tooltip, enable=enable,
                                       columnWidth=[1, label_width])
     if callback:  # manage callbacks manually to guarantee their existence
-        cmds.scriptJob(attributeChange=[node_attr, callback], parent=ctrl, replacePrevious=True)
+        cmds.scriptJob(attributeChange=[
+                       node_attr, callback], parent=ctrl, replacePrevious=True)
     dpi_scale = cqt.get_dpi_scale()
-    ctrl_widget = cqt.wrap_ctrl(ctrl)
+    ctrl_widget = cqt.wrap_ctrl(ctrl, QtWidgets.QWidget)
     combo_box = ctrl_widget.findChildren(QtWidgets.QComboBox)
     width = combo_box[0].width()
     if dpi_scale == 1.0:

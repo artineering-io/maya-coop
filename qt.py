@@ -64,7 +64,7 @@ def wrap_instance(qt_ptr, q_widget=None):
     return wrapInstance(long(qt_ptr), q_widget)
 
 
-def wrap_ctrl(qt_ctrl, qt_base=None):
+def wrap_ctrl(qt_ctrl, qt_base=QtWidgets.QWidget):
     """
     Wrap pointer as a QWidget
     Args:
@@ -82,27 +82,6 @@ def wrap_ctrl(qt_ctrl, qt_base=None):
         qt_ptr = omUI.MQtUtil.findMenuItem(qt_ctrl)
     if qt_ptr is None:
         return None
-    # find base if unspecified
-    if qt_base is None:
-        q_obj = wrapInstance(long(qt_ptr), QtCore.QObject)
-        if qt_base is None:
-            meta_obj = q_obj.metaObject()
-            cls = meta_obj.className()
-            # print("Methods of class {} are:".format(cls))
-            # for i in range(meta_obj.methodCount()):
-            #     print(meta_obj.method(i).name())
-            # print("Properties of class {} are:".format(cls))
-            # for i in range(meta_obj.propertyCount()):
-            #     print(meta_obj.property(i).name())
-            # print("---")
-            if hasattr(QtWidgets, cls):
-                qt_base = getattr(QtWidgets, cls)
-            else:
-                super_cls = meta_obj.superClass().className()
-                if hasattr(QtWidgets, super_cls):
-                    qt_base = getattr(QtWidgets, super_cls)
-                else:
-                    qt_base = QtWidgets.QWidget
     return wrapInstance(long(qt_ptr), qt_base)  # wrap instance
 
 
