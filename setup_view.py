@@ -40,14 +40,14 @@ class SetupUI(cqt.CoopMayaUI):
 
         super(SetupUI, self).__init__(title, center=True,
                                       rebuild=rebuild, brand=brand, show=False)
-        self.layout.setSizeConstraint(QtWidgets.QLayout.SetFixedSize)
+        self.main_layout.setSizeConstraint(QtWidgets.QLayout.SetFixedSize)
         self.brand.setMinimumWidth(600)
 
     def buildUI(self):
         """ This method builds the UI """
         # main layout
         setup_layout = QtWidgets.QHBoxLayout(self)
-        self.layout.addLayout(setup_layout)
+        self.main_layout.addLayout(setup_layout)
         setup_layout.setContentsMargins(20, 20, 20, 20)
 
         # left pane
@@ -72,7 +72,7 @@ class SetupUI(cqt.CoopMayaUI):
         self.content_layout.setSpacing(2*self.dpi)
         setup_layout.addWidget(content_box, stretch=1)
 
-        self.layout.addWidget(self.brand)
+        self.main_layout.addWidget(self.brand)
 
     def populateUI(self):
         if clib.get_local_os() not in self.supported_os:
@@ -106,7 +106,7 @@ class SetupUI(cqt.CoopMayaUI):
             "{} doesn't work on this operating system.".format(self.module_name))
         not_supported_lbl.setStyleSheet("font-weight: bold; color: #ff5b5b")
         self.content_layout.addWidget(not_supported_lbl)
-        self.layout.addWidget(self.brand)
+        self.main_layout.addWidget(self.brand)
 
     def uninstall_option(self):
         """ Populates the uninstallation option """

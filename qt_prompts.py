@@ -21,16 +21,17 @@ class PromptUI(cqt.CoopMayaUI):
         self.message = message
         self.tooltip = tooltip
 
-        super(PromptUI, self).__init__(self.windowTitle, tooltip=self.tooltip, center=True, show=False, parent=parent)
+        super(PromptUI, self).__init__(self.windowTitle,
+                                       tooltip=self.tooltip, center=True, show=False, parent=parent)
 
     def buildUI(self):
         spacing = 10
-        self.layout.setContentsMargins(spacing, spacing, spacing, spacing)
-        self.layout.setSpacing(spacing)
+        self.main_layout.setContentsMargins(spacing, spacing, spacing, spacing)
+        self.main_layout.setSpacing(spacing)
 
         if self.message:
             message_label = QtWidgets.QLabel(self.message)
-            self.layout.addWidget(message_label)
+            self.main_layout.addWidget(message_label)
 
         self.create_connections()
 
@@ -75,20 +76,22 @@ class PickerUI(PromptUI):
         self.multi_select = multi_select
         self.message = message
 
-        super(PickerUI, self).__init__(self.windowTitle, self.message, tooltip="Option picker", parent=parent)
+        super(PickerUI, self).__init__(self.windowTitle,
+                                       self.message, tooltip="Option picker", parent=parent)
 
     def buildUI(self):
         super(PickerUI, self).buildUI()
         self.options_list = QtWidgets.QListWidget()
         if self.multi_select:
-            self.options_list.setSelectionMode(QtWidgets.QAbstractItemView.MultiSelection)
+            self.options_list.setSelectionMode(
+                QtWidgets.QAbstractItemView.MultiSelection)
         else:
             self.options_list.itemDoubleClicked.connect(self.accept)
-        self.layout.addWidget(self.options_list)
+        self.main_layout.addWidget(self.options_list)
 
         self.select_btn = QtWidgets.QPushButton("Select")
         self.select_btn.clicked.connect(self.accept)
-        self.layout.addWidget(self.select_btn)
+        self.main_layout.addWidget(self.select_btn)
 
         self.options_list.setFocus()
 
@@ -127,17 +130,18 @@ class RenameUI(PromptUI):
         self.message = message
         self.prev_name = prev_name
 
-        super(RenameUI, self).__init__(self.windowTitle, self.message, tooltip="Rename element", parent=parent)
+        super(RenameUI, self).__init__(self.windowTitle,
+                                       self.message, tooltip="Rename element", parent=parent)
 
     def buildUI(self):
         super(RenameUI, self).buildUI()
         self.rename_edit = QtWidgets.QLineEdit(self.prev_name)
         self.rename_edit.returnPressed.connect(self.accept)
-        self.layout.addWidget(self.rename_edit)
+        self.main_layout.addWidget(self.rename_edit)
 
         rename_btn = QtWidgets.QPushButton("Rename")
         rename_btn.clicked.connect(self.accept)
-        self.layout.addWidget(rename_btn)
+        self.main_layout.addWidget(rename_btn)
 
         self.resize(200, 100)
 

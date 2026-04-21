@@ -334,9 +334,9 @@ class CoopMayaUI(QtWidgets.QDialog):
             self.setGeometry(pos.x(), pos.y(), 0, 0)
 
         # default UI elements (keeping it simple)
-        self.layout = QtWidgets.QVBoxLayout(self)  # self -> apply to QDialog
-        self.layout.setContentsMargins(0, 0, 0, 0)
-        self.layout.setSpacing(0)
+        self.main_layout = QtWidgets.QVBoxLayout(self)
+        self.main_layout.setContentsMargins(0, 0, 0, 0)
+        self.main_layout.setSpacing(0)
 
         header_margin = 10 * self.dpi
         self.header = QtWidgets.QLabel(title)
@@ -373,7 +373,7 @@ class CoopMayaUI(QtWidgets.QDialog):
 
     def refresh(self):
         # if refresh is not overriden, then it's going to rebuild the UI
-        clear_layout(self.layout)
+        clear_layout(self.main_layout)
         self.buildUI()
         self.populateUI()
 
@@ -666,15 +666,15 @@ class LabeledFieldSliderGroup(QtWidgets.QWidget):
         self._set_slider_members(label, soft_minv, soft_maxv, minv, maxv)
 
         # create layout
-        self.layout = QtWidgets.QHBoxLayout(self)
-        self.layout.setContentsMargins(0, 0, 0, 0)
+        self.main_layout = QtWidgets.QHBoxLayout(self)
+        self.main_layout.setContentsMargins(0, 0, 0, 0)
 
         # create label
         if label:
             lbl = QtWidgets.QLabel(label)
             lbl.setMinimumWidth(140 * self.dpiS)
             lbl.setAlignment(QtCore.Qt.AlignRight | QtCore.Qt.AlignVCenter)
-            self.layout.addWidget(lbl)
+            self.main_layout.addWidget(lbl)
 
         # create field
         self.field = QtWidgets.QDoubleSpinBox()
@@ -713,11 +713,11 @@ class LabeledFieldSliderGroup(QtWidgets.QWidget):
 
         # add to layout
         if not reverse_layout:
-            self.layout.addWidget(self.field)
-            self.layout.addWidget(self.slider)
+            self.main_layout.addWidget(self.field)
+            self.main_layout.addWidget(self.slider)
         else:
-            self.layout.addWidget(self.slider)
-            self.layout.addWidget(self.field)
+            self.main_layout.addWidget(self.slider)
+            self.main_layout.addWidget(self.field)
 
         # save data variables
         self.set_range(self.soft_min, self.soft_max)
@@ -860,9 +860,9 @@ class FileBrowserGrp(QtWidgets.QWidget):
             self.dialog_start_dir = cmds.workspace(q=True, rootDirectory=True)
 
         # create layout
-        self.layout = QtWidgets.QHBoxLayout(self)
-        self.layout.setContentsMargins(0, 0, 0, 0)
-        self.layout.setSpacing(2 * self.dpi)
+        self.main_layout = QtWidgets.QHBoxLayout(self)
+        self.main_layout.setContentsMargins(0, 0, 0, 0)
+        self.main_layout.setSpacing(2 * self.dpi)
 
         # create line edit
         self.line_edit = QtWidgets.QLineEdit(file_path)
@@ -873,15 +873,15 @@ class FileBrowserGrp(QtWidgets.QWidget):
         size_policy.setHorizontalStretch(1)
         self.line_edit.setSizePolicy(size_policy)
 
-        self.layout.addWidget(self.line_edit)
-        self.layout.addStretch()
+        self.main_layout.addWidget(self.line_edit)
+        self.main_layout.addStretch()
 
         # create browse button
         push_button = QtWidgets.QPushButton(button)
         push_button.setMaximumWidth(len(str(button)) * 10 * self.dpi)
         push_button.released.connect(self.browse_dialog)
-        self.layout.addWidget(push_button)
-        self.layout.addStretch()
+        self.main_layout.addWidget(push_button)
+        self.main_layout.addStretch()
 
     def browse_dialog(self):
         """ Runs when the file browse button is released """
@@ -990,9 +990,9 @@ class CollapsibleGrp(QtWidgets.QWidget):
         self.title = title
 
         # create layout
-        self.layout = QtWidgets.QVBoxLayout(self)
-        self.layout.setContentsMargins(0, 0, 0, 0)
-        self.layout.setSpacing(0)
+        self.main_layout = QtWidgets.QVBoxLayout(self)
+        self.main_layout.setContentsMargins(0, 0, 0, 0)
+        self.main_layout.setSpacing(0)
 
         # create toggle button
         self.toggle_button = QtWidgets.QPushButton(
@@ -1005,13 +1005,13 @@ class CollapsibleGrp(QtWidgets.QWidget):
                            padding: 0.3em;
                            border-radius: 0.2em;}}""".format(bg_color[0]*255, bg_color[1]*255, bg_color[2]*255))
         self.toggle_button.released.connect(self.toggle_content)
-        self.layout.addWidget(self.toggle_button)
+        self.main_layout.addWidget(self.toggle_button)
 
         # content widget
         self.content = QtWidgets.QGroupBox()
         self.content_layout = QtWidgets.QVBoxLayout(self.content)
         self.content_layout.setContentsMargins(0, 0, 0, 0)
-        self.layout.addWidget(self.content)
+        self.main_layout.addWidget(self.content)
         self.content.setVisible(not collapsed)
 
     def add_widget(self, widget):
