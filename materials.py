@@ -27,15 +27,18 @@ def get_assigned_meshes(objects=None, shapes=True, l=False):
     if not objects:
         objects = cmds.ls(sl=True, l=True)
     materials = get_materials(objects)
-    shading_engines = cmds.listConnections(materials, type="shadingEngine") or []
+    shading_engines = cmds.listConnections(
+        materials, type="shadingEngine") or []
     for shading_engine in shading_engines:
         meshes = cmds.sets(shading_engine, q=True) or []  # meshes
         meshes = cmds.ls(meshes, l=l)
         if meshes:
-            if not shapes:   # get transforms instead (unless components are assigned)
+            # get transforms instead (unless components are assigned)
+            if not shapes:
                 for mesh in meshes:
                     if not clib.is_component(mesh):
-                        mesh = cmds.listRelatives(mesh, parent=True, fullPath=l)  # transforms
+                        mesh = cmds.listRelatives(
+                            mesh, parent=True, fullPath=l)  # transforms
                     assigned_meshes.extend(clib.u_enlist(mesh))
             else:
                 assigned_meshes.extend(meshes)
@@ -56,12 +59,14 @@ def get_materials(objects):
     materials = cmds.ls(objects, l=True, mat=True)
     transforms = cmds.ls(objects, l=True, et="transform")
     shapes = cmds.ls(objects, l=True, s=True, noIntermediate=True)
+    components = [obj for obj in objects if clib.is_component(obj)]
 
     if not materials and not transforms and not shapes:
-        return _get_material_of_components(objects)  # could be components
+        return _get_material_of_components(components)  # could be components
 
     if transforms:
-        clist.update(shapes, cmds.ls(transforms, o=True, dag=True, s=True, noIntermediate=True))
+        clist.update(shapes, cmds.ls(transforms, o=True,
+                     dag=True, s=True, noIntermediate=True))
 
     if shapes:
         # _clean_shading_engines(shapes)
@@ -69,9 +74,15 @@ def get_materials(objects):
         for se in shading_engines:
             mats = cmds.ls(cmds.listConnections(se), mat=True)
             if not mats:
-                clib.print_warning("No material connected to {}. Deleting shading engine.".format(se))
-                cmds.delete(se)  # cleanup to avoid issues later on i.e., light linking
+                clib.print_warning(
+                    "No material connected to {}. Deleting shading engine.".format(se))
+                # cleanup to avoid issues later on i.e., light linking
+                cmds.delete(se)
             clist.update(materials, mats)
+
+    # Also process any components in a mixed selection
+    if components and (transforms or shapes):
+        clist.update(materials, _get_material_of_components(components))
 
     return materials
 
@@ -86,7 +97,8 @@ def get_shading_engines(objects):
         (list): Shading engines of objects
     """
     shapes = clib.get_shapes(objects, l=True)
-    shading_engines = clist.remove_duplicates(cmds.listConnections(shapes, type="shadingEngine") or [])
+    shading_engines = clist.remove_duplicates(
+        cmds.listConnections(shapes, type="shadingEngine") or [])
     return shading_engines
 
 
@@ -162,14 +174,17 @@ def set_material(mat, objects, quiet=True):
         # sets assign
         shading_engine = cmds.listConnections(mat, type="shadingEngine") or []
         if not shading_engine:  # create shading engine if none was connected to it
-            shading_engine = cmds.sets(empty=True, renderable=True, noSurfaceShader=True, name="{}SG".format(mat))
+            shading_engine = cmds.sets(
+                empty=True, renderable=True, noSurfaceShader=True, name="{}SG".format(mat))
         else:
             shading_engine = shading_engine[0]
-        cmds.defaultNavigation(connectToExisting=True, source=mat, destination=shading_engine, f=True)
+        cmds.defaultNavigation(connectToExisting=True,
+                               source=mat, destination=shading_engine, f=True)
         for shape in shapes:
             cmds.sets(shape, e=True, forceElement=shading_engine)
     except RuntimeError:
-        log.warning("Failed to assign material using sets. Falling back to Hypershade assign")
+        log.warning(
+            "Failed to assign material using sets. Falling back to Hypershade assign")
         # hypershade assign
         selection = cmds.ls(sl=True)
         cmds.select(objects, r=True)
@@ -197,7 +212,8 @@ def separate_materials(objects=None, new_name=""):
         new_material = new_name
         if not new_name:
             new_material = mat
-        new_material = cmds.duplicate(mat, name=new_material, inputConnections=True)[0]
+        new_material = cmds.duplicate(
+            mat, name=new_material, inputConnections=True)[0]
         new_materials.append(new_material)
         replace_material(mat, new_material, objects)
     return new_materials
@@ -231,21 +247,33 @@ def _get_material_of_components(components):
     """
     materials = []
     for c in components:
-        if clib.is_component(c):
-            obj = cmds.ls(c, objectsOnly=True)
-            shading_engines = clist.remove_duplicates(cmds.listConnections(obj, type="shadingEngine"))
-            # Note: we could have used set() above, but the order of elements can be important for certain tools
-            for se in shading_engines:
-                if _is_component_in_se(c, se):
+        if not clib.is_component(c):
+            continue
+        # Convert non-face components (vtx, e, map, etc.) to faces for reliable shading engine lookup
+        if ".f[" not in c:
+            faces = cmds.polyListComponentConversion(c, toFace=True) or []
+            faces = cmds.ls(faces, flatten=True)
+        else:
+            faces = [c]
+        obj = cmds.ls(c, objectsOnly=True)
+        shading_engines = clist.remove_duplicates(
+            cmds.listConnections(obj, type="shadingEngine") or [])
+        # Note: we could have used set() above, but the order of elements can be important for certain tools
+        for se in shading_engines:
+            for face in faces:
+                if _is_component_in_se(face, se):
                     mats = cmds.ls(cmds.listConnections(se), mat=True) or []
                     for m in mats:
                         if m not in materials:
                             materials.append(m)
+                    break  # found material for this SE, no need to check more faces
     # components might not have a material, get material from object
     if not materials:
         for c in components:
             if clib.is_component(c):
-                materials = get_materials(cmds.ls(components, objectsOnly=True))
+                materials = get_materials(
+                    cmds.ls(components, objectsOnly=True))
+                break
     return materials
 
 
@@ -266,23 +294,28 @@ def _clean_shading_engines(objects):
         else:
             shapes.append(obj)
     for shape in shapes:
-        shading_engines = clist.remove_duplicates(cmds.listConnections(shape, type="shadingEngine"))
+        shading_engines = clist.remove_duplicates(
+            cmds.listConnections(shape, type="shadingEngine"))
         if "MNPRX_SE" in shading_engines:
             shading_engines.remove("MNPRX_SE")  # MNPRX instance shading engine
         if len(shading_engines) > 1:
             # remove initialShadingGroup if still available
             if "initialShadingGroup" in shading_engines:
                 shading_engines.remove("initialShadingGroup")
-                destinations = cmds.listConnections(shape, t='shadingEngine', plugs=True)
+                destinations = cmds.listConnections(
+                    shape, t='shadingEngine', plugs=True)
                 for dest in destinations:
                     if "initialShadingGroup" in dest:
                         try:
-                            source = cmds.listConnections(dest, s=True, plugs=True)[0]
+                            source = cmds.listConnections(
+                                dest, s=True, plugs=True)[0]
                             cmds.disconnectAttr(source, dest)
-                            clib.print_warning("initialShadingGroup has been removed from {0}".format(shape))
+                            clib.print_warning(
+                                "initialShadingGroup has been removed from {0}".format(shape))
                             break
                         except RuntimeError:
-                            clib.print_warning("Couldn't disconnect {0} from {1}".format(shape, dest))
+                            clib.print_warning(
+                                "Couldn't disconnect {0} from {1}".format(shape, dest))
     return shading_engines
 
 
@@ -350,18 +383,23 @@ def set_texture(material, tex_attr, file_path):
     file_node = ""
     if file_path:
         if file_path.startswith("/"):
-            file_path = file_path[1:]  # making sure we remove the "/" at the beginning
+            # making sure we remove the "/" at the beginning
+            file_path = file_path[1:]
         full_attr = "{}.{}".format(material, tex_attr)
         sources = cmds.listConnections(full_attr, type='file')
         if sources:
-            file_node = sources[0]  # There can be only one source connected to a texture input attribute
+            # There can be only one source connected to a texture input attribute
+            file_node = sources[0]
             if check_if_texture_exists(file_path):
-                cmds.setAttr(file_node + '.fileTextureName', file_path, type='string')
+                cmds.setAttr(file_node + '.fileTextureName',
+                             file_path, type='string')
             else:
-                clib.print_warning("{} does not exist and could not be set onto {}".format(file_path, material))
+                clib.print_warning(
+                    "{} does not exist and could not be set onto {}".format(file_path, material))
         else:
             file_node = create_file_node(file_path)
-            cmds.defaultNavigation(connectToExisting=True, source=file_node, destination=full_attr, force=True)
+            cmds.defaultNavigation(
+                connectToExisting=True, source=file_node, destination=full_attr, force=True)
     else:
         clib.break_connections(material, tex_attr, delete_inputs=True)
     return file_node
@@ -378,7 +416,8 @@ def create_file_node(file_path):
     place2d_node = cmds.shadingNode('place2dTexture', asUtility=True, ss=True)
     file_node = cmds.shadingNode('file', asTexture=True, ss=True)
     clib.set_attr(file_node, "fileTextureName", file_path)
-    cmds.defaultNavigation(connectToExisting=True, source=place2d_node, destination=file_node)
+    cmds.defaultNavigation(connectToExisting=True,
+                           source=place2d_node, destination=file_node)
     return file_node
 
 
@@ -446,7 +485,8 @@ def check_if_texture_exists(file_path):
         return True
     else:
         if p.is_relative():
-            abs_p = clib.Path(cmds.workspace(q=True, rootDirectory=True)).child(p.path)
+            abs_p = clib.Path(cmds.workspace(
+                q=True, rootDirectory=True)).child(p.path)
             if abs_p.exists():
                 return True
     return False
