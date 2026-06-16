@@ -973,15 +973,6 @@ class CollapsibleGrp(QtWidgets.QWidget):
     """
     Create a collapsible group similar to what you can find in the attribute editor
     """
-    collapsed = {
-        True: u'  \u2BC8   ',
-        False: u'  \u2BC6   '
-    }
-    if clib.get_local_os() == "linux":
-        collapsed = {
-            True: u'  >   ',
-            False: u' ▼   '
-        }
     w_height = 0
 
     def __init__(self, title='', collapsed=False, bg_color=[0.2, 0.2, 0.2]):
@@ -995,15 +986,19 @@ class CollapsibleGrp(QtWidgets.QWidget):
         self.main_layout.setSpacing(0)
 
         # create toggle button
-        self.toggle_button = QtWidgets.QPushButton(
-            "{}{}".format(self.collapsed[collapsed], self.title))
+        self.toggle_button = QtWidgets.QToolButton()
+        self.toggle_button.setText(" " + self.title)
+        self.toggle_button.setToolButtonStyle(QtCore.Qt.ToolButtonTextBesideIcon)
+        self.toggle_button.setArrowType(QtCore.Qt.RightArrow if collapsed else QtCore.Qt.DownArrow)
+        self.toggle_button.setIconSize(QtCore.QSize(8, 8))
+        self.toggle_button.setSizePolicy(QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Fixed)
         self.toggle_button.setObjectName("toggler")
-        self.setStyleSheet("""QPushButton#toggler {{
-                           text-align: left;
-                           font-weight: bold;
-                           background-color: rgb({}, {}, {});
-                           padding: 0.3em;
-                           border-radius: 0.2em;}}""".format(bg_color[0]*255, bg_color[1]*255, bg_color[2]*255))
+        self.setStyleSheet("""QToolButton#toggler {{
+            text-align: left;
+            font-weight: bold;
+            background-color: rgb({}, {}, {});
+            padding: 0.3em;
+            border-radius: 0.2em;}}""".format(bg_color[0]*255, bg_color[1]*255, bg_color[2]*255))
         self.toggle_button.released.connect(self.toggle_content)
         self.main_layout.addWidget(self.toggle_button)
 
@@ -1022,16 +1017,14 @@ class CollapsibleGrp(QtWidgets.QWidget):
         """ Toggles the content of the collapsible group """
         if self.content.isVisible():
             self.content.setVisible(False)
-            self.toggle_button.setText("{}{}".format(
-                self.collapsed[True], self.title))
+            self.toggle_button.setArrowType(QtCore.Qt.RightArrow)
             if self.w_height:
                 # TODO: make this somehow work
                 self.window().resize(self.window().width(), self.w_height)
         else:
             self.w_height = self.window().height()
             self.content.setVisible(True)
-            self.toggle_button.setText("{}{}".format(
-                self.collapsed[False], self.title))
+            self.toggle_button.setArrowType(QtCore.Qt.DownArrow)
 
 
 class SplashView(QWebEngineView):
